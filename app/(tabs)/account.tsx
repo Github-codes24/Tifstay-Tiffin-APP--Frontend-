@@ -18,13 +18,13 @@ const AccountScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView>
-        {/* Header */}
+       
         <View style={styles.header}>
           <Image source={Images.Dummy} style={styles.largeImage} />
           <Text style={styles.title}>Maharashtrian Ghar Ka Khana</Text>
         </View>
 
-        {/* Blue Profile Button */}
+        
         <TouchableOpacity style={styles.primaryButton}>
           <View style={styles.buttonContent}>
             <Image source={Images.Profile} style={styles.smallIcon} />
@@ -33,7 +33,7 @@ const AccountScreen = () => {
           <Text style={styles.arrow}>{'>'}</Text>
         </TouchableOpacity>
 
-        {/* Menu Items */}
+      
         <MenuItem label="Address" image={Images.address} />
         <MenuItem label="My Customers" image={Images.customer} />
         <MenuItem label="Offers" image={Images.offers} />
@@ -41,19 +41,19 @@ const AccountScreen = () => {
         <MenuItem label="Terms and Conditions" image={Images.termsandconditions} />
         <MenuItem label="Contact Us" image={Images.contactus} />
 
-        {/* Language Dropdown (Static) */}
+        
         <View style={styles.languageRow}>
           <Text style={styles.languageText}>Language</Text>
           <Text style={styles.languageDropdown}>English ▼</Text>
         </View>
 
-        {/* Dark Mode Toggle */}
+       
         <View style={styles.switchRow}>
           <Text style={styles.languageText}>Dark Mode</Text>
           <Switch value={darkMode} onValueChange={setDarkMode} />
         </View>
 
-        {/* Logout */}
+      
         <MenuItem label="Log Out" image={Images.address} />
       </ScrollView>
     </SafeAreaView>
