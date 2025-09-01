@@ -1,15 +1,18 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
-
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
   const [loaded] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    // Custom local font
+    SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
+    // Inter
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
   });
 
   if (!loaded) {
@@ -18,12 +21,19 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
+    <>
+      <Stack initialRouteName='splash'>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
+        <Stack.Screen name="splash" options={{ headerShown: false }} />
+        <Stack.Screen name="loginoption" options={{ headerShown: false }} />
+        <Stack.Screen name="login" options={{ headerShown: false }} />
+        <Stack.Screen name="register" options={{ headerShown: false }} />
+        <Stack.Screen name="forgotpass" options={{ headerShown: false }} />
+        <Stack.Screen name="verify" options={{ headerShown: false }} />
+        <Stack.Screen name="recovery" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style="auto" />
-    </ThemeProvider>
+      </>
   );
 }
