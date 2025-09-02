@@ -1,21 +1,53 @@
-  // Image constants for the entire app
+// Image constants for the entire app
 // This file centralizes all image imports to make maintenance easier
 
 export const Images = {
-    logo: require("@/assets/images/logo.png"),
-    splashlogo: require("@/assets/images/splash.png"),
-    food: require("@/assets/images/tiffin.png"),
-    splash: require("@/assets/images/splashbg.png"),
-    cap: require("@/assets/images/cap.png"),
-    building: require("@/assets/images/building.png"),
-    warrow: require("@/assets/images/warrow.png"),
-    barrow: require("@/assets/images/barrow.png"),
-    email: require("@/assets/images/email.png"),
-    profile: require("@/assets/images/profile.png"),
-    openeye: require("@/assets/images/eye.png"),
-    lock: require("@/assets/images/lock.png"),
-  } as const;
-  
-  // Type for image keys
-  export type ImageKey = keyof typeof Images;
-  
+  logo: require("@/assets/images/logo.png"),
+  splashlogo: require("@/assets/images/splash.png"),
+  food: require("@/assets/images/tiffin.png"),
+  splash: require("@/assets/images/splashbg.png"),
+  cap: require("@/assets/images/cap.png"),
+  building: require("@/assets/images/building.png"),
+  warrow: require("@/assets/images/warrow.png"),
+  barrow: require("@/assets/images/barrow.png"),
+  email: require("@/assets/images/email.png"),
+  profile: require("@/assets/images/profile.png"),
+  openeye: require("@/assets/images/eye.png"),
+  lock: require("@/assets/images/lock.png"),
+  dashboard: require("@/assets/images/dashboard.png"),
+  earnings: require("@/assets/images/earnings.png"),
+  orders: require("@/assets/images/orders.png"),
+  notifications: require("@/assets/images/notifications.png"),
+  account: require("@/assets/images/account.png"),
+  complete: require("@/assets/images/complete.png"),
+  watch: require("@/assets/images/watch.png"),
+  total: require("@/assets/images/total.png"),
+  star: require("@/assets/images/star.png"),
+  view: require("@/assets/images/view.png"),
+  delete: require("@/assets/images/delete.png"),
+  edit: require("@/assets/images/edit.png"),
+
+
+  //notification images
+  newOrder: require("@/assets/images/newOrder.png"),
+  oederAccepted: require("@/assets/images/oederAccepted.png"),
+  earningSummary: require("@/assets/images/earningSummary.png"),
+  tiffinService: require("@/assets/images/tiffinService.png"),
+
+  Profile: require("@/assets/images/profile.png"),
+  address: require("@/assets/images/address.png"),
+  customer: require("@/assets/images/customer.png"),
+  offers: require("@/assets/images/offers.png"),
+  search: require("@/assets/images/search.png"),
+  termsandconditions: require("@/assets/images/termsandconditions.png"),
+  contactus: require("@/assets/images/contactus.png"),
+  storeclose: require("@/assets/images/storeclose.png"),
+  user: require("@/assets/images/user.png"),
+  cancel: require("@/assets/images/cancel.png"),
+  req: require("@/assets/images/req.png"),
+  order: require("@/assets/images/order.png"),
+
+} as const;
+
+// Type for image keys
+export type ImageKey = keyof typeof Images;

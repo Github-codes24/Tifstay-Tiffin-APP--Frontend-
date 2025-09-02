@@ -10,5 +10,13 @@ export const Colors = {
   white: '#FFFFFF',
   inputColor:'#F8F5FF',
   inputBorder:'#EDEDED',
-  title:'#0A051F'
+  title:'#0A051F',
+  tabbg:'#F7F6F4',
+  tabicon:'#9C9BA6',
+  searchColor:'#F2EFFD',
+  lightBlue:'#5E9BED',
+  lightBg:'#D9D9D9',
+  lightGrey:'#A5A5A5',
+  green:'#1DB435',
+  red: '#E51A1A'
 };

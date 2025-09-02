@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Tifstay-Tiffin-APP--Frontend-",
-    "slug": "Tifstay-Tiffin-APP--Frontend-",
+    "slug": "tifstay-service",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -16,7 +16,8 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.linemanuser.tifstayservice"
     },
     "web": {
       "bundler": "metro",
@@ -37,6 +38,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "dcc55161-7791-4056-9d51-2e2979a23776"
+      }
+    },
+    "owner": "lineman-user"
   }
 }

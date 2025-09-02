@@ -62,7 +62,7 @@ export default function Login() {
         <CommonButton
           title="Continue"
           buttonStyle={{ marginHorizontal: 16, marginTop: 8 }}
-          onPress={() => {}}
+          onPress={() => {router.push('/(tabs)/(dashboard)')}}
         />
       </View>
       <View style={styles.footer}>

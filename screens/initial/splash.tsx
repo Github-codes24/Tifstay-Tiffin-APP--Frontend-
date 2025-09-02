@@ -17,7 +17,7 @@ import { router } from "expo-router";
 import CommonButton from "@/components/CommonButton";
 import { Colors } from "@/constants/Colors";
 import { Images } from "@/constants/Images";
-import { IS_ANDROID } from "@/constants/Platform";
+import { IS_ANDROID, IS_IOS } from "@/constants/Platform";
 import { fonts } from "@/constants/typography";
 
 const { width } = Dimensions.get("window");
@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
   },
   splashBg: {
     width: "100%",
-    height: 647,
+    height: IS_IOS ? '95%' : '90%',
     alignItems: "center",
     justifyContent: "center",
   },
