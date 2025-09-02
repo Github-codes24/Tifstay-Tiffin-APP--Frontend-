@@ -22,8 +22,17 @@ export default function RootLayout() {
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
+         <Stack.Screen name="editprofile" options={{ headerShown: false }} />
+      <Stack.Screen name="profile" options={{ headerShown: false }} />
+        <Stack.Screen name="changepassword" options={{ headerShown: false }} />
+         <Stack.Screen name="address" options={{ headerShown: false }} />
+         <Stack.Screen name="mycustomers" options={{ headerShown: false }} />
+         <Stack.Screen name="privacy" options={{ headerShown: false }} />
+          <Stack.Screen name="terms" options={{ headerShown: false }} />
+           <Stack.Screen name="offers" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style="auto" />
+     
     </ThemeProvider>
   );
 }
