@@ -57,7 +57,6 @@ export default function NotificationScreen() {
       </SafeAreaView>
       <ScrollView
         style={styles.container}
-        // contentContainerStyle={{ paddingBottom: 100 }}
       >
         {Object.entries(grouped).map(([date, items]) => (
           <View key={date}>

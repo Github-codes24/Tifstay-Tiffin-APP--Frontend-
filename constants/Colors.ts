@@ -18,5 +18,7 @@ export const Colors = {
   lightBg:'#D9D9D9',
   lightGrey:'#A5A5A5',
   green:'#1DB435',
-  red: '#E51A1A'
+  red: '#E51A1A',
+  lightGreen :'#F1FFE0',
+  filterBg:'#FAFBFC'
 };

@@ -3,6 +3,10 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Colors } from '@/constants/Colors';
+import { View } from 'react-native';
+import CommonHeader from '@/components/CommonHeader';
 
 export default function RootLayout() {
   const [loaded] = useFonts({
@@ -32,6 +36,16 @@ export default function RootLayout() {
         <Stack.Screen name="forgotpass" options={{ headerShown: false }} />
         <Stack.Screen name="verify" options={{ headerShown: false }} />
         <Stack.Screen name="recovery" options={{ headerShown: false }} />
+        <Stack.Screen name="review" options={{ header: () => (
+            <SafeAreaView
+              edges={["top"]}
+              style={{ backgroundColor: Colors.white }}
+            >
+              <View style={{ backgroundColor: Colors.white }}>
+                <CommonHeader title="Reviews" />
+              </View>
+            </SafeAreaView>
+          ), }} />
       </Stack>
       <StatusBar style="auto" />
       </>

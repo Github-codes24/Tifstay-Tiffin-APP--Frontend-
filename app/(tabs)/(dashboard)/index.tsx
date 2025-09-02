@@ -121,6 +121,7 @@ export default function ServiceOfflineScreen() {
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.actionButton, { backgroundColor: Colors.orange }]}
+                onPress={()=>{router.push('/(tabs)/earnings')}}
               >
                 <Ionicons
                   name="trending-up-outline"
@@ -152,7 +153,7 @@ export default function ServiceOfflineScreen() {
           <View style={styles.reviewBox}>
             <View style={styles.reviewHeader}>
               <Text style={styles.reviewTitle}>Reviews</Text>
-              <TouchableOpacity>
+              <TouchableOpacity onPress={()=>{router.push('/review')}}>
                 <Text style={styles.linkText}>See All Reviews</Text>
               </TouchableOpacity>
             </View>

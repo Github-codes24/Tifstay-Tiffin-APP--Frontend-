@@ -26,7 +26,7 @@ export const Images = {
   view: require("@/assets/images/view.png"),
   delete: require("@/assets/images/delete.png"),
   edit: require("@/assets/images/edit.png"),
-
+  calender: require("@/assets/images/calender.png"),
 
   //notification images
   newOrder: require("@/assets/images/newOrder.png"),
@@ -46,7 +46,6 @@ export const Images = {
   cancel: require("@/assets/images/cancel.png"),
   req: require("@/assets/images/req.png"),
   order: require("@/assets/images/order.png"),
-
 } as const;
 
 // Type for image keys
