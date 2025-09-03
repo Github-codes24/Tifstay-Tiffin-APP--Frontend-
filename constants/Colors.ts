@@ -20,5 +20,7 @@ export const Colors = {
   green:'#1DB435',
   red: '#E51A1A',
   lightGreen :'#F1FFE0',
-  filterBg:'#FAFBFC'
+  filterBg:'#FAFBFC',
+  buttonBg:'#004AAD',
+  label:'#0A051F'
 };

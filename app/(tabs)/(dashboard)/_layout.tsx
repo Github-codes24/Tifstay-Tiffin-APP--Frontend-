@@ -16,6 +16,7 @@ export default function DashboardLayout() {
               edges={["top"]}
               style={{ backgroundColor: Colors.white }}
             >
+
               <View style={{ backgroundColor: Colors.white }}>
                 <CommonHeader title="My Service Status" />
               </View>
@@ -23,6 +24,8 @@ export default function DashboardLayout() {
           ),
         }}
       />
+      
     </Stack>
+
   );
 }

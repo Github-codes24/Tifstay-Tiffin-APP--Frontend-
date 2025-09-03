@@ -27,12 +27,21 @@ export const Images = {
   delete: require("@/assets/images/delete.png"),
   edit: require("@/assets/images/edit.png"),
   calender: require("@/assets/images/calender.png"),
-
+  PrivacyPolicyIcon: require("@/assets/images/PrivacyPolicyIcon.png"),
+  back: require("@/assets/images/back.png"),
+  name: require("@/assets/images/name.png"),
+  email1: require("@/assets/images/email1.png"),
+  phone: require("@/assets/images/phone.png"),
+   bank: require("@/assets/images/bank.png"),
+  manage: require("@/assets/images/manage.png"),
   //notification images
   newOrder: require("@/assets/images/newOrder.png"),
   oederAccepted: require("@/assets/images/oederAccepted.png"),
   earningSummary: require("@/assets/images/earningSummary.png"),
   tiffinService: require("@/assets/images/tiffinService.png"),
+  home: require("@/assets/images/home.png"),
+  editicon: require("@/assets/images/editicon.png"),
+
 
   Profile: require("@/assets/images/profile.png"),
   address: require("@/assets/images/address.png"),
@@ -46,6 +55,7 @@ export const Images = {
   cancel: require("@/assets/images/cancel.png"),
   req: require("@/assets/images/req.png"),
   order: require("@/assets/images/order.png"),
+  lock1: require("@/assets/images/lock1.png"),
 } as const;
 
 // Type for image keys
