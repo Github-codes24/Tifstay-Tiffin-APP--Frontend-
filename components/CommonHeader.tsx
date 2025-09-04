@@ -27,16 +27,17 @@ const CommonHeader: React.FC<CommonHeaderProps> = ({
       ]}
     >
       {/* Back Button */}
+      <View style={{flexDirection:'row' , alignItems:'center'}}>
       <TouchableOpacity style={styles.backButton} onPress={onBackPress}>
         <Ionicons name="chevron-back" size={20} color="#0A0A23" />
       </TouchableOpacity>
 
       {/* Title */}
       <Text style={styles.title}>{title}</Text>
-
+      </View>
       {/* Right Action */}
       {actionText ? (
-        <TouchableOpacity onPress={onActionPress}>
+        <TouchableOpacity style={{justifyContent:'flex-end'}} onPress={onActionPress}>
           <Text style={styles.actionText}>{actionText}</Text>
         </TouchableOpacity>
       ) : (
@@ -64,6 +65,7 @@ const styles = StyleSheet.create({
     borderColor: "#0A0A23",
     alignItems: "center",
     justifyContent: "center",
+    
   },
   title: {
     fontSize: 14,

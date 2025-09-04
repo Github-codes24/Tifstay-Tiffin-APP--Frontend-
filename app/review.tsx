@@ -164,7 +164,7 @@ const ReviewsScreen = () => {
         renderItem={renderReview}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
-          paddingBottom: IS_IOS ? 210 : 0,
+          paddingBottom: IS_IOS ? 110 : 0,
           paddingTop: 26,
         }}
       />

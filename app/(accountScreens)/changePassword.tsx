@@ -9,6 +9,7 @@ import {
 import CommonTextInput from "@/components/labeledInput";
 import CommonButton from "@/components/CommonButton";
 import { Colors } from "react-native/Libraries/NewAppScreen";
+import { fonts } from "@/constants/typography";
 
 const ChangePasswordScreen = () => {
   const [oldPassword, setOldPassword] = useState("");
@@ -33,6 +34,7 @@ const ChangePasswordScreen = () => {
           onChangeText={setOldPassword}
           placeholder="XXXXXXXX"
           labelStyle={styles.label}
+          containerStyle={{marginBottom:20}}
         />
 
         <CommonTextInput
@@ -41,6 +43,7 @@ const ChangePasswordScreen = () => {
           onChangeText={setNewPassword}
           placeholder="XXXXXXXX"
           labelStyle={styles.label}
+          containerStyle={{marginBottom:20}}
         />
 
         <CommonTextInput
@@ -49,6 +52,7 @@ const ChangePasswordScreen = () => {
           onChangeText={setConfirmPassword}
           placeholder="XXXXXXXX"
           labelStyle={styles.label}
+          containerStyle={{marginBottom:20}}
         />
       </View>
 
@@ -80,11 +84,10 @@ const styles = StyleSheet.create({
     color: "#0A051F",
   },
   label: {
-    color: "#0A051F",
+    color: Colors.title,
     fontSize: 14,
-    fontWeight: "700",
+    fontFamily:fonts.interSemibold,
     marginBottom: 8,
-    
     },
 });
 

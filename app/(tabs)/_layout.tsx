@@ -12,11 +12,13 @@ function TabIcon({
   source,
   label,
   focused,
+  hsource
 }: {
   source: any;
   label: string;
   focused: boolean;
   size?: number;
+  hsource:any
 }) {
   return (
     <View
@@ -39,11 +41,11 @@ function TabIcon({
         }}
       >
         <Image
-          source={source}
+          source={focused? hsource : source}
           style={{
             height: 24,
             width: 24,
-            tintColor: focused ? Colors.white : Colors.tabicon,
+            // tintColor: focused ? Colors.white : Colors.tabicon,
           }}
           resizeMode="contain"
         />
@@ -67,7 +69,7 @@ function TabIcon({
 }
 
 export default function TabLayout() {
-  const insets = useSafeAreaInsets(); // 👈 get device safe area
+  const insets = useSafeAreaInsets();
 
   return (
     <Tabs
@@ -113,6 +115,7 @@ export default function TabLayout() {
               source={Images.dashboard}
               label="Dashboard"
               focused={focused}
+              hsource={Images.hdashboard}
             />
           ),
         }}
@@ -126,6 +129,7 @@ export default function TabLayout() {
               source={Images.earnings}
               label="Earnings"
               focused={focused}
+              hsource={Images.hpearn}
             />
           ),
         }}
@@ -135,7 +139,7 @@ export default function TabLayout() {
         options={{
           title: "Orders",
           tabBarIcon: ({ focused }) => (
-            <TabIcon source={Images.orders} label="Orders" focused={focused} />
+            <TabIcon source={Images.orders} label="Orders" focused={focused}   hsource={Images.horder}            />
           ),
         }}
       />
@@ -148,6 +152,8 @@ export default function TabLayout() {
               source={Images.notifications}
               label="Notification"
               focused={focused}
+              hsource={Images.hnoti}
+
             />
           ),
         }}
@@ -161,6 +167,7 @@ export default function TabLayout() {
               source={Images.account}
               label="Account"
               focused={focused}
+              hsource={Images.hprofile} 
             />
           ),
         }}

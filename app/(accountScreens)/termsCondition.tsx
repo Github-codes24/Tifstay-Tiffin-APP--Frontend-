@@ -1,3 +1,5 @@
+import { Colors } from "@/constants/Colors";
+import { fonts } from "@/constants/typography";
 import React from "react";
 import {
   SafeAreaView,
@@ -85,20 +87,21 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: "400",
+    fontFamily:fonts.interRegular,
     marginTop: 5,
+    color:Colors.title
   },
   paragraph: {
     fontSize: 16,
-    fontWeight: "400",
-    color: "#0A051F",
+    fontFamily:fonts.interRegular,
+    color:Colors.title,
     marginTop: 8,
   },
   bullet: {
     fontSize: 16,
-    fontWeight: "400",
-    color: "#0A051F",
+    fontFamily:fonts.interRegular,
     marginTop: 6,
+    color:Colors.title,
     marginLeft: 16,
   },
 });

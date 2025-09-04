@@ -8,39 +8,50 @@ import {
   ScrollView,
   Switch,
   SafeAreaView,
+  ViewStyle,
+  Modal,
 } from "react-native";
-
-
 import { router } from "expo-router";
 import { Images } from "@/constants/Images";
-
+import { fonts } from "@/constants/typography";
+import { Colors } from "@/constants/Colors";
 
 const AccountScreen = () => {
   const [darkMode, setDarkMode] = useState(false);
+  const [logoutVisible, setLogoutVisible] = useState(false);
+
+  const handleLogout = () => {
+    setLogoutVisible(false);
+    // Perform your logout logic here
+    router.replace("/login"); // example
+  };
 
   return (
     <SafeAreaView style={styles.container}>
-     
-
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Profile Header */}
         <View style={styles.profileHeader}>
           <Image source={Images.user} style={styles.largeImage} />
           <Text style={styles.title}>Maharashtrian Ghar Ka Khana</Text>
         </View>
 
+        {/* Profile Tab */}
         <MenuItem
           label="Profile"
           image={Images.Profile}
           backgroundColor="#004AAD"
           textColor="#fff"
+          iconTint="#fff"
           customStyle={{
-            marginHorizontal: 38,
-            paddingHorizontal: 5,
             borderRadius: 10,
           }}
           onpress={() => router.push("/profile")}
         />
 
+        {/* Menu Items */}
         <MenuItem
           label="Address"
           image={Images.address}
@@ -51,11 +62,7 @@ const AccountScreen = () => {
           image={Images.customer}
           onpress={() => router.push("/myCustomers")}
         />
-        <MenuItem
-          label="Offers"
-          image={Images.offers}
-          // onpress={() => router.push("/offers")}
-        />
+        <MenuItem label="Offers" image={Images.offers} />
         <MenuItem
           label="Privacy Policy"
           image={Images.PrivacyPolicyIcon}
@@ -68,18 +75,67 @@ const AccountScreen = () => {
         />
         <MenuItem label="Contact Us" image={Images.contactus} />
 
-        <View style={styles.languageRow}>
+        {/* Language Selector */}
+        <View style={styles.sectionRow}>
           <Text style={styles.languageText}>Language</Text>
-          <Text style={styles.languageDropdown}>English ▼</Text>
+          <TouchableOpacity
+            style={styles.dropdownContainer}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.dropdownText}>English</Text>
+            <Image
+              source={Images.back}
+              style={[
+                styles.arrowIcon,
+                { tintColor: Colors.grey, transform: [{ rotate: "90deg" }] },
+              ]}
+            />
+          </TouchableOpacity>
         </View>
 
-        <View style={styles.switchRow}>
+        {/* Dark Mode Toggle */}
+        <View style={styles.sectionRow}>
           <Text style={styles.languageText}>Dark Mode</Text>
           <Switch value={darkMode} onValueChange={setDarkMode} />
         </View>
 
-        <MenuItem label="Log Out" image={Images.address} />
+        {/* Logout */}
+        <MenuItem
+          label="Log Out"
+          image={Images.address}
+          onpress={() => setLogoutVisible(true)}
+        />
       </ScrollView>
+
+      {/* Logout Modal */}
+      <Modal
+        transparent
+        visible={logoutVisible}
+        animationType="fade"
+        onRequestClose={() => setLogoutVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Logout</Text>
+            <View style={styles.divider} />
+            <Text style={styles.modalMessage}>Are you sure?</Text>
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => setLogoutVisible(false)}
+              >
+                <Text style={styles.cancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.logoutButton}
+                onPress={handleLogout}
+              >
+                <Text style={styles.logoutText}>Logout</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -88,8 +144,8 @@ const MenuItem = ({
   label,
   image,
   backgroundColor = "#fff",
-  textColor = "#000",
-  iconTint = "#999",
+  textColor = Colors.grey,
+  iconTint = Colors.grey,
   customStyle = {},
   onpress,
 }: {
@@ -98,7 +154,7 @@ const MenuItem = ({
   backgroundColor?: string;
   textColor?: string;
   iconTint?: string;
-  customStyle?: any;
+  customStyle?: ViewStyle;
   onpress?: () => void;
 }) => (
   <TouchableOpacity
@@ -106,7 +162,7 @@ const MenuItem = ({
     onPress={onpress}
   >
     <View style={styles.menuLeft}>
-      <Image source={image} style={[styles.smallIcon]} />
+      <Image source={image} style={styles.smallIcon} />
       <Text style={[styles.menuText, { color: textColor }]}>{label}</Text>
     </View>
     <Image
@@ -117,96 +173,121 @@ const MenuItem = ({
 );
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-  },
-  scrollContent: {
-    paddingBottom: 40,
-    flexGrow: 1,
-  },
-  screenHeader: {
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-    backgroundColor: "#fff",
-  },
-  screenHeaderText: {
-    fontSize: 20,
-    fontWeight: "600",
-  },
-  profileHeader: {
-    alignItems: "center",
-    marginVertical: 20,
-  },
-  largeImage: {
-    width: 86,
-    height: 86,
-    borderRadius: 43,
-  },
+  container: { flex: 1, backgroundColor:Colors.white },
+  scrollContent: { paddingBottom: 40, flexGrow: 1 },
+  profileHeader: { alignItems: "center", marginVertical: 20 },
+  largeImage: { width: 86, height: 86, borderRadius: 43 },
   title: {
     marginTop: 10,
     fontSize: 18,
-    fontWeight: "600",
     textAlign: "center",
+    fontFamily: fonts.interSemibold,
+    color: Colors.title,
   },
   menuItem: {
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 14,
-    paddingHorizontal: 30,
-    marginHorizontal: 10,
+    paddingHorizontal: 16,
+    marginHorizontal: 28,
+    marginVertical: 5,
+    borderRadius: 8,
     justifyContent: "space-between",
   },
-
-  menuLeft: {
+  menuLeft: { flexDirection: "row", alignItems: "center" },
+  smallIcon: { width: 24, height: 24, marginRight: 12 },
+  menuText: { fontSize: 16, fontFamily: fonts.interRegular },
+  arrowIcon: { width: 18, height: 18 },
+  sectionRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginHorizontal: 28,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderTopWidth: 0.5,
+    borderTopColor: Colors.lightGrey,
+  },
+  languageText: { fontSize: 16, fontFamily:fonts.interRegular, color: Colors.grey },
+  dropdownContainer: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
+    borderWidth: 1,
+    borderColor: "#C4C4C4",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    minWidth: 120,
+    backgroundColor: Colors.white,
   },
-  smallIcon: {
-    width: 24,
-    height: 24,
-    marginRight: 12,
+  dropdownText: { fontSize: 16, color: "#0A0A23" },
+
+  /* Modal styles */
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "center",
+    alignItems: "center",
   },
-  menuText: {
-    fontSize: 16,
-    fontWeight: "400",
+  modalContainer: {
+    width: "80%",
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    paddingVertical: 64,
+    alignItems: "center",
+    paddingHorizontal:30
   },
-  arrowIcon: {
-    width: 18,
-    height: 18,
+  modalTitle: {
+    fontSize: 24,
+    fontFamily: fonts.interBold,
+    color: Colors.orange,
+    marginBottom: 8,
   },
-  languageRow: {
+  divider: {
+    width: "100%",
+    height: 1,
+    backgroundColor: Colors.lightGrey,
+    marginVertical: 8,
+  },
+  modalMessage: {
+    fontSize: 24,
+    fontFamily: fonts.interSemibold,
+    color: Colors.title,
+    marginVertical: 12,
+  },
+  modalActions: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginHorizontal: 38,
-    paddingVertical: 14,
-    borderTopWidth: 1,
-    borderTopColor: "#eee",
+    width: "100%",
+    marginTop: 10,
   },
-  switchRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: 10,
-    paddingVertical: 14,
-    marginHorizontal: 32,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
+  cancelButton: {
+    flex: 1,
+    marginRight: 10,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    borderRadius: 25,
+    paddingVertical: 10,
+    alignItems: "center",
   },
-  languageText: {
+  cancelText: {
     fontSize: 16,
-    fontWeight: "400",
-    color: "#616161",
-    marginHorizontal: 15,
+    fontFamily: fonts.interSemibold,
+    color: Colors.primary,
   },
-  languageDropdown: {
-    marginHorizontal: 12,
+  logoutButton: {
+    flex: 1,
+    backgroundColor: Colors.primary,
+    borderRadius: 25,
+    paddingVertical: 10,
+    alignItems: "center",
+  },
+  logoutText: {
     fontSize: 16,
-    color: "#616161",
+    fontFamily: fonts.interSemibold,
+    color: Colors.white,
   },
 });
 
 export default AccountScreen;
-
-

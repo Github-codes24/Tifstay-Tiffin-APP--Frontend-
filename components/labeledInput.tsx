@@ -31,7 +31,7 @@ type LabeledInputProps = TextInputProps & {
   onPress?: () => void;
 };
 
-export default function LabeledInput({
+export default function  LabeledInput({
   label,
   containerStyle,
   labelStyle,
