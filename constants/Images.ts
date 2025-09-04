@@ -1,5 +1,4 @@
-// Image constants for the entire app
-// This file centralizes all image imports to make maintenance easier
+import * as React from "react";
 
 export const Images = {
   logo: require("@/assets/images/logo.png"),
@@ -62,7 +61,22 @@ export const Images = {
   req: require("@/assets/images/req.png"),
   order: require("@/assets/images/order.png"),
   lock1: require("@/assets/images/lock1.png"),
+  menu: require("@/assets/images/menu.png"),
+  profile1: require("@/assets/images/profile1.png"),
+  emptyStar: require("@/assets/images/emptyStar.png"),
+  camera: require("@/assets/images/camera.png"),
+  loc: require("@/assets/images/loc.png"),
+  veg: require("@/assets/images/veg.png"),
+  call: require("@/assets/images/call.png"),
+  chat: require("@/assets/images/chat.png"),
+  mail2: require("@/assets/images/mail2.png"),
+  chat1: require("@/assets/images/chat1.png"),
+  send: require("@/assets/images/send.png"),
+  logout: require("@/assets/images/logout.png")
 } as const;
+
 
 // Type for image keys
 export type ImageKey = keyof typeof Images;
+
+

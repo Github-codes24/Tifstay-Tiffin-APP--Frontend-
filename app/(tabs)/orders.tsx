@@ -162,7 +162,7 @@ export default function Order() {
     <>
       <SafeAreaView edges={["top"]} style={{ backgroundColor: Colors.white }}>
         <View style={{ backgroundColor: Colors.white }}>
-          <CommonHeader title="Reviews" actionText="Add New Booking" onActionPress={()=>{router.push('/(service)/addNewService')}} />
+          <CommonHeader title="Orders" actionText="Add New Booking" onActionPress={()=>{router.push('/(service)/addNewService')}} />
         </View>
       </SafeAreaView>
     

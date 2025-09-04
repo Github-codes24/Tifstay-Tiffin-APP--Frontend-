@@ -111,6 +111,7 @@ export default function ServiceOfflineScreen() {
             <View style={styles.quickActions}>
               <TouchableOpacity
                 style={[styles.actionButton, { backgroundColor: Colors.primary }]}
+                onPress={()=>{router.push('/(service)/addNewService')}}
               >
                 <Ionicons
                   name="add-circle-outline"
@@ -170,7 +171,7 @@ export default function ServiceOfflineScreen() {
             <Text style={styles.serviceCount}>1 service</Text>
           </View>
           <TiffinCard />
-          <CommonButton title="+ Add New Service" onPress={() => {}} />
+          <CommonButton title="+ Add New Service" onPress={() => {router.push('/(service)/addNewService')}} />
         </ScrollView>
       )}
     </SafeAreaView>

@@ -1,16 +1,17 @@
 // components/TimePicker.tsx
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, ViewStyle } from "react-native";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { Ionicons } from "@expo/vector-icons";
 
 interface TimePickerProps {
-  label: string;
+  label?: string;
   value: string;
   onChange: (time: string) => void;
+  containerStyle?: ViewStyle
 }
 
-const TimePicker: React.FC<TimePickerProps> = ({ label, value, onChange }) => {
+const TimePicker: React.FC<TimePickerProps> = ({ label, value, onChange ,containerStyle}) => {
   const [isPickerVisible, setPickerVisible] = useState(false);
 
   const handleConfirm = (date: Date) => {
@@ -25,8 +26,8 @@ const TimePicker: React.FC<TimePickerProps> = ({ label, value, onChange }) => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.label}>{label}</Text>
+    <View style={[styles.container , containerStyle]}>
+      {label && <Text style={styles.label}>{label}</Text>}
       <TouchableOpacity
         style={styles.inputBox}
         onPress={() => setPickerVisible(true)}

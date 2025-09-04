@@ -86,8 +86,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 12,
-    color: "rgba(255, 255, 255, 1)",
-    opacity: 0.9,
+    color: Colors.white,
     fontFamily: fonts.interRegular,
   },
 });

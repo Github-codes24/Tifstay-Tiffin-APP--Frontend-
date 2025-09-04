@@ -32,7 +32,7 @@ export default function Register() {
         <LabeledInput
           value={name}
           onChangeText={setName}
-          leftIconSource={Images.profile}
+          leftIconSource={Images.profile1}
           leftIconStyle={{ height: 21, width: 21 }}
           placeholder="Name"
         />
@@ -60,7 +60,7 @@ export default function Register() {
         <CommonButton
           title="Continue"
           buttonStyle={{ marginHorizontal: 16, marginTop: 24 }}
-          onPress={() => {}}
+          onPress={() => {router.push('/login')}}
         />
       </View>
       <View style={styles.footer}>

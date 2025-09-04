@@ -73,7 +73,11 @@ const AccountScreen = () => {
           image={Images.termsandconditions}
           onpress={() => router.push("/termsCondition")}
         />
-        <MenuItem label="Contact Us" image={Images.contactus} />
+        <MenuItem
+          label="Contact Us"
+          onpress={() => router.push("/contactUs")}
+          image={Images.contactus}
+        />
 
         {/* Language Selector */}
         <View style={styles.sectionRow}>
@@ -102,7 +106,7 @@ const AccountScreen = () => {
         {/* Logout */}
         <MenuItem
           label="Log Out"
-          image={Images.address}
+          image={Images.logout}
           onpress={() => setLogoutVisible(true)}
         />
       </ScrollView>
@@ -173,7 +177,7 @@ const MenuItem = ({
 );
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor:Colors.white },
+  container: { flex: 1, backgroundColor: Colors.white },
   scrollContent: { paddingBottom: 40, flexGrow: 1 },
   profileHeader: { alignItems: "center", marginVertical: 20 },
   largeImage: { width: 86, height: 86, borderRadius: 43 },
@@ -208,7 +212,11 @@ const styles = StyleSheet.create({
     borderTopWidth: 0.5,
     borderTopColor: Colors.lightGrey,
   },
-  languageText: { fontSize: 16, fontFamily:fonts.interRegular, color: Colors.grey },
+  languageText: {
+    fontSize: 16,
+    fontFamily: fonts.interRegular,
+    color: Colors.grey,
+  },
   dropdownContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -236,7 +244,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 64,
     alignItems: "center",
-    paddingHorizontal:30
+    paddingHorizontal: 30,
   },
   modalTitle: {
     fontSize: 24,

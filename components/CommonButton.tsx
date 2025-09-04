@@ -30,8 +30,7 @@ const CommonButton: React.FC<CommonButtonProps> = ({
 
 const styles = StyleSheet.create({
   button: {
-    // width:'100%',
-    backgroundColor:Colors.primary, // default blue
+    backgroundColor:Colors.primary, 
     paddingVertical: 14,
     paddingHorizontal: 20,
     borderRadius: 8,

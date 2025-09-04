@@ -48,17 +48,30 @@ const ReviewsScreen = () => {
         <Image
           key={i}
           source={Images.star}
-          style={[styles.star, { tintColor: i <= count ? '#FCA613' : "#C1C7D0" }]}
+          style={[
+            styles.star,
+            { tintColor: i <= count ? "#FCA613" : "#C1C7D0" },
+          ]}
         />
       ))}
     </View>
   );
 
+  // 🔹 Filtering logic
+  const filteredReviews = reviews.filter((r) => {
+    if (active === "All") return true;
+    if (active === "Positive") return r.rating >= 4;
+    if (active === "Negative") return r.rating <= 2;
+    if (["5", "4", "3", "2", "1"].includes(active))
+      return r.rating === Number(active);
+    return true;
+  });
+
   const renderReview = ({ index, item }: any) => (
     <View
       style={[
         styles.reviewCard,
-        index !== reviews.length - 1 && styles.reviewBorder,
+        index !== filteredReviews.length - 1 && styles.reviewBorder,
       ]}
     >
       <View style={styles.rowBetween}>
@@ -86,7 +99,10 @@ const ReviewsScreen = () => {
               <Image
                 key={i}
                 source={Images.star}
-                style={[styles.star, { tintColor: i <= 4 ? '#FCA613' : "#F5F5F5" }]}
+                style={[
+                  styles.star,
+                  { tintColor: i <= 4 ? "#FCA613" : "#F5F5F5" },
+                ]}
               />
             ))}
           </View>
@@ -103,7 +119,13 @@ const ReviewsScreen = () => {
                     styles.barFill,
                     {
                       width:
-                        star === 5 ? "90%" : star === 4 ? "20%" : star === 3 ? "5%" : "2%",
+                        star === 5
+                          ? "90%"
+                          : star === 4
+                          ? "20%"
+                          : star === 3
+                          ? "5%"
+                          : "2%",
                     },
                   ]}
                 />
@@ -114,6 +136,7 @@ const ReviewsScreen = () => {
       </View>
 
       {/* Filters */}
+      <View>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -141,13 +164,19 @@ const ReviewsScreen = () => {
                     source={Images.star}
                     style={[
                       styles.starIcon,
-                      { tintColor: active === filter ? Colors.white : Colors.grey },
+                      {
+                        tintColor:
+                          active === filter ? Colors.white : Colors.grey,
+                      },
                     ]}
                   />
                 </View>
               ) : (
                 <Text
-                  style={[styles.filterText, active === filter && styles.activeText]}
+                  style={[
+                    styles.filterText,
+                    active === filter && styles.activeText,
+                  ]}
                 >
                   {filter}
                 </Text>
@@ -156,17 +185,27 @@ const ReviewsScreen = () => {
           );
         })}
       </ScrollView>
-
+      </View>
       {/* Reviews */}
       <FlatList
-        data={reviews}
+        data={filteredReviews}
         keyExtractor={(item) => item.id}
         renderItem={renderReview}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           paddingBottom: IS_IOS ? 110 : 0,
-          paddingTop: 26,
+          paddingTop: filteredReviews.length > 0 ? 16 : 0, 
+          flexGrow: 1,
         }}
+        ListEmptyComponent={
+          <View style={{ alignItems: "center", marginTop: 40 }}>
+            <Text
+              style={{ color: Colors.grey, fontFamily: fonts.interRegular }}
+            >
+              No reviews found
+            </Text>
+          </View>
+        }
       />
     </View>
   );
@@ -218,7 +257,7 @@ const styles = StyleSheet.create({
 
   /** Filters **/
   filterBtn: {
-    height: 36,
+    height: 40,
     paddingHorizontal: 12,
     paddingVertical: 8,
     backgroundColor: Colors.filterBg,
@@ -233,6 +272,7 @@ const styles = StyleSheet.create({
     color: Colors.title,
     fontSize: 16,
     fontFamily: fonts.interRegular,
+    lineHeight:20
   },
   activeText: {
     color: Colors.white,

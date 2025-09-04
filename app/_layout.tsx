@@ -208,6 +208,14 @@ export default function RootLayout() {
         />
         <Stack.Screen
           name="(service)/addNewService"
+          options={{headerShown:false}}
+        />
+        <Stack.Screen
+          name="(service)/addNewService1"
+          options={{headerShown:false}}
+        />
+        <Stack.Screen
+          name="(service)/previewService"
           options={{
             header: () => (
               <SafeAreaView
@@ -215,7 +223,41 @@ export default function RootLayout() {
                 style={{ backgroundColor: Colors.white }}
               >
                 <View style={{ backgroundColor: Colors.white }}>
-                  <CommonHeader title="Edit Address" />
+                  <CommonHeader title="Tiffin Details" />
+                </View>
+              </SafeAreaView>
+            ),
+          }}
+        />
+        <Stack.Screen
+          name="(service)/confirmService"
+          options={{headerShown : false}}
+        />
+         <Stack.Screen
+          name="(accountScreens)/contactUs"
+          options={{
+            header: () => (
+              <SafeAreaView
+                edges={["top"]}
+                style={{ backgroundColor: Colors.white }}
+              >
+                <View style={{ backgroundColor: Colors.white }}>
+                  <CommonHeader title="Contact Us" />
+                </View>
+              </SafeAreaView>
+            ),
+          }}
+        />
+         <Stack.Screen
+          name="(accountScreens)/chatScreen"
+          options={{
+            header: () => (
+              <SafeAreaView
+                edges={["top"]}
+                style={{ backgroundColor: Colors.white }}
+              >
+                <View style={{ backgroundColor: Colors.white }}>
+                  <CommonHeader title="Chat" />
                 </View>
               </SafeAreaView>
             ),
