@@ -125,7 +125,7 @@ export default function RootLayout() {
                 style={{ backgroundColor: Colors.white }}
               >
                 <View style={{ backgroundColor: Colors.white }}>
-                  <CommonHeader title="Order Summary" />
+                  <CommonHeader title="My Customers" />
                 </View>
               </SafeAreaView>
             ),

@@ -38,8 +38,9 @@ export default function InitialLogin() {
           titleStyle={styles.secondaryTitle}
           subTitleStyle={styles.secondarySubtitle}
           rightIcon={Images.barrow}
-          title="I'm a PG/Hostel Owners"
+          title="I'm a PG/Hostel Owner"
           subtitle="Want to list my PG/Hostel"
+          onPress={()=>{router.push('/login')}}
         />
       </View>
     </SafeAreaView>
