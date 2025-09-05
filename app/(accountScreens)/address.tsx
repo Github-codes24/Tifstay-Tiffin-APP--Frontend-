@@ -20,7 +20,7 @@ const AddressScreen = () => {
         <Image source={Images.home} style={styles.image} resizeMode="contain" />
 
         <View style={styles.textContainer}>
-          <Text style={styles.title}>Hoime</Text>
+          <Text style={styles.title}>Home</Text>
           <Text style={styles.address}>
             123 Main Street, Dharampeth, {"\n"}Nagpur - 440010
           </Text>

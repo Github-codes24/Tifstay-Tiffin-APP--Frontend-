@@ -88,22 +88,24 @@ export default function TabLayout() {
         tabBarStyle: Platform.select({
           ios: {
             position: "absolute",
-            height: 77,
+            height: 77 + insets.bottom,
             borderTopLeftRadius: 15,
             borderTopRightRadius: 15,
             shadowColor: "#000",
             shadowOpacity: 0.1,
             shadowRadius: 10,
             shadowOffset: { width: 0, height: -3 },
+            paddingBottom: insets.bottom,
           },
           android: {
             backgroundColor: "red",
             borderTopLeftRadius: 15,
             borderTopRightRadius: 15,
             elevation: 5,
-            height:  insets.bottom ? insets.bottom  - 30+ 77 : 77, 
+            height: 77 + insets.bottom,   // fix: add safe area
+            paddingBottom: insets.bottom, // fix: add spacing
           },
-        }),
+        }),        
       }}
     >
       <Tabs.Screen
