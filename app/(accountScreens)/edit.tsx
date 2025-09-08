@@ -15,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { IS_ANDROID } from "@/constants/Platform";
 import { fonts } from "@/constants/typography";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { router } from "expo-router";
 
 
 const EditProfile = () => {
@@ -110,7 +111,7 @@ const EditProfile = () => {
             marginBottom: IS_ANDROID ? 56 : 20,
           }}
         >
-          <CommonButton title="Save" onPress={handleSave} />
+          <CommonButton title="Save" onPress={() => router.push("/profile")} />
         </View>
     </View>
   );

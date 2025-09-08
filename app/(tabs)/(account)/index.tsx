@@ -1,20 +1,20 @@
-import React, { useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Image,
-  TouchableOpacity,
-  ScrollView,
-  Switch,
-  SafeAreaView,
-  ViewStyle,
-  Modal,
-} from "react-native";
-import { router } from "expo-router";
+import { Colors } from "@/constants/Colors";
 import { Images } from "@/constants/Images";
 import { fonts } from "@/constants/typography";
-import { Colors } from "@/constants/Colors";
+import { router } from "expo-router";
+import React, { useState } from "react";
+import {
+  Image,
+  Modal,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
+  ViewStyle,
+} from "react-native";
 
 const AccountScreen = () => {
   const [darkMode, setDarkMode] = useState(false);
@@ -22,8 +22,7 @@ const AccountScreen = () => {
 
   const handleLogout = () => {
     setLogoutVisible(false);
-    // Perform your logout logic here
-    router.replace("/login"); // example
+    router.replace("/login");
   };
 
   return (
@@ -34,7 +33,12 @@ const AccountScreen = () => {
       >
         {/* Profile Header */}
         <View style={styles.profileHeader}>
-          <Image source={Images.user} style={styles.largeImage} />
+          <View style={styles.profileImageContainer}>
+            <Image source={Images.user} style={styles.largeImage} />
+            <View style={styles.cameraIconContainer}>
+              <Image source={Images.photos} style={styles.cameraIcon} />
+            </View>
+          </View>
           <Text style={styles.title}>Maharashtrian Ghar Ka Khana</Text>
         </View>
 
@@ -180,7 +184,27 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.white },
   scrollContent: { paddingBottom: 40, flexGrow: 1 },
   profileHeader: { alignItems: "center", marginVertical: 20 },
-  largeImage: { width: 86, height: 86, borderRadius: 43 },
+  profileImageContainer: {
+    position: 'relative',
+    width: 86,
+    height: 86,
+  },
+  largeImage: {
+    width: 86,
+    height: 86,
+    borderRadius: 43,
+  },
+  cameraIconContainer: {
+    position: 'absolute',
+    bottom: 2,
+    right: 5,
+   
+   
+  },
+  cameraIcon: {
+    width: 23,
+    height: 23,
+  },
   title: {
     marginTop: 10,
     fontSize: 18,

@@ -32,7 +32,7 @@ export default function Register() {
         <LabeledInput
           value={name}
           onChangeText={setName}
-          leftIconSource={Images.profile1}
+          leftIconSource={Images.profile2}
           leftIconStyle={{ height: 21, width: 21 }}
           placeholder="Name"
         />

@@ -38,6 +38,10 @@ export const Images = {
   phone: require("@/assets/images/phone.png"),
    bank: require("@/assets/images/bank.png"),
   manage: require("@/assets/images/manage.png"),
+  profile2: require("@/assets/images/profile2.png"),
+  photos: require("@/assets/images/photos.png"),
+
+
   //notification images
   newOrder: require("@/assets/images/newOrder.png"),
   oederAccepted: require("@/assets/images/oederAccepted.png"),

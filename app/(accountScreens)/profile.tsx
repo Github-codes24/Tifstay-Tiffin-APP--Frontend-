@@ -48,7 +48,9 @@ const MyProfileScreen = () => {
           />
         </View>
 
-        <MenuItem label="Manage Profile" icon={Images.manage} />
+        <MenuItem label="Manage Profile" icon={Images.manage} 
+        onPress={() => router.push("/(accountScreens)/edit")}
+        />
 
         <MenuItem
           label="Change Password"
