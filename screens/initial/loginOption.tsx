@@ -6,6 +6,7 @@ import {
   Image,
   SafeAreaView,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import ServiceButton from "@/components/ServiceButton";
 import { Colors } from "@/constants/Colors";
 import { Images } from "@/constants/Images";
@@ -13,6 +14,15 @@ import { fonts } from "@/constants/typography";
 import { router } from "expo-router";
 
 export default function InitialLogin() {
+  const handleSelectService = async (serviceType:any) => {
+    try {
+      await AsyncStorage.setItem("userServiceType", serviceType);
+      router.push("/login");
+    } catch (error) {
+      console.error("Error saving service type:", error);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.slide}>
@@ -29,7 +39,7 @@ export default function InitialLogin() {
           rightIcon={Images.warrow}
           title="I'm a Tiffin/Restaurant Provider"
           subtitle="Want to list my Tiffin/Restaurant"
-          onPress={()=>{router.push('/login')}}
+          onPress={() => handleSelectService("tiffinProvider")}
         />
 
         <ServiceButton
@@ -40,7 +50,7 @@ export default function InitialLogin() {
           rightIcon={Images.barrow}
           title="I'm a PG/Hostel Owner"
           subtitle="Want to list my PG/Hostel"
-          onPress={()=>{router.push('/login')}}
+          onPress={() => handleSelectService("hostelOwner")}
         />
       </View>
     </SafeAreaView>
@@ -68,7 +78,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.interSemibold,
     marginBottom: 7,
     textAlign: "center",
-    color:Colors.title
+    color: Colors.title,
   },
   description: {
     fontSize: 16,

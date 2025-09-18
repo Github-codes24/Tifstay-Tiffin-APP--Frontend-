@@ -1,8 +1,10 @@
 import BookingCard from "@/components/BookingCard";
+import BookingCardHostel from "@/components/BookingCardHostel";
 import CommonHeader from "@/components/CommonHeader";
 import { Colors } from "@/constants/Colors";
 import { Images } from "@/constants/Images";
 import { fonts } from "@/constants/typography";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import * as React from "react";
 import {
@@ -12,6 +14,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Image,
+  Dimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -19,6 +22,8 @@ const subscribers = [
   { id: "1", name: "Onli Karmokar", plan: "Weekly (Veg Lunch)" },
   { id: "2", name: "Annette Black", plan: "Monthly (Non-Veg Dinner)" },
 ];
+
+// ------------------ Tab Screens ------------------
 
 const RequestsRoute = () => (
   <ScrollView style={styles.scene} showsVerticalScrollIndicator={false}>
@@ -43,6 +48,56 @@ const RequestsRoute = () => (
   </ScrollView>
 );
 
+const RequestsAcceptRoute = () => (
+  <ScrollView style={styles.scene} showsVerticalScrollIndicator={false}>
+    <View style={styles.badgePrimary}>
+      <Text style={styles.badgeTextPrimary}>Accepted</Text>
+    </View>
+    <BookingCardHostel
+      status="Accepted"
+      bookingId="#TF2024002"
+      orderedDate="21/07/2025"
+      tiffinService="Scholars Den Boys Hostel"
+      customer="Onil Karmokar"
+      startDate="Weekly"
+      mealType="12"
+      plan="10,11,12"
+      orderType="01/08/25"
+      onPressUpdate={() =>
+        router.push({
+          pathname: "/orderDetails",
+          params: { isSubscriber: "false" },
+        })
+      }
+    />
+  </ScrollView>
+);
+
+
+const RequestsRouteHostel = () => (
+  <ScrollView style={styles.scene} showsVerticalScrollIndicator={false}>
+    <View style={styles.badgeOrange}>
+      <Text style={styles.badgeTextOrange}>Requests</Text>
+    </View>
+    <BookingCardHostel
+      status="Accepted"
+      bookingId="#TF2024002"
+      orderedDate="21/07/2025"
+      tiffinService="Scholars Den Boys Hostel"
+      customer="Onil Karmokar"
+      startDate="Weekly"
+      mealType="12"
+      plan="10,11,12"
+      orderType="01/08/25"
+      onPressUpdate={() => alert("Update Order Summary clicked!")}
+      isReq
+      onAccept={() => {}}
+      onReject={() => {}}
+    />
+  </ScrollView>
+);
+
+
 const AcceptedRoute = () => (
   <ScrollView style={styles.scene} showsVerticalScrollIndicator={false}>
     <View style={styles.badgePrimary}>
@@ -58,13 +113,12 @@ const AcceptedRoute = () => (
       mealType="Breakfast, Lunch, Dinner"
       plan="Daily"
       orderType="Delivery"
-      // For accepted orders (non-subscriber)
-      onPressUpdate={() => {
+      onPressUpdate={() =>
         router.push({
           pathname: "/orderDetails",
           params: { isSubscriber: "false" },
-        });
-      }}
+        })
+      }
     />
   </ScrollView>
 );
@@ -89,17 +143,32 @@ const CompletedRoute = () => (
   </ScrollView>
 );
 
-interface SubscriberCardProps {
+const CompletedHostelRoute = () => (
+  <ScrollView style={styles.scene} showsVerticalScrollIndicator={false}>
+    <View style={styles.badgeGreen}>
+      <Text style={styles.badgeTextGreen}>Completed</Text>
+    </View>
+    <BookingCardHostel
+       status="Accepted"
+      bookingId="#TF2024002"
+      orderedDate="21/07/2025"
+      tiffinService="Scholars Den Boys Hostel"
+      customer="Onil Karmokar"
+      startDate="Weekly"
+      mealType="12"
+      plan="10,11,12"
+      orderType="01/08/25"
+      statusText="Completed"
+    />
+  </ScrollView>
+);
+
+
+const SubscriberCard: React.FC<{
   name: string;
   plan: string;
   onPressDetails: () => void;
-}
-
-const SubscriberCard: React.FC<SubscriberCardProps> = ({
-  name,
-  plan,
-  onPressDetails,
-}) => (
+}> = ({ name, plan, onPressDetails }) => (
   <View style={styles.subscriberCard}>
     <Image source={Images.user} style={styles.avatar} />
     <View style={styles.textContainer}>
@@ -122,35 +191,54 @@ const SubscriberRoute = () => (
         key={sub.id}
         name={sub.name}
         plan={sub.plan}
-        onPressDetails={() => {
+        onPressDetails={() =>
           router.push({
             pathname: "/orderDetails",
             params: { isSubscriber: "true" },
-          });
-        }}
+          })
+        }
       />
     ))}
   </ScrollView>
 );
 
+// ------------------ Main Screen ------------------
+
 export default function Order() {
   const [index, setIndex] = React.useState(0);
+  const [provider, setProvider] = React.useState<string | null>(null);
 
-  const routes = [
-    { key: "requests", title: "Requests" },
-    { key: "accepted", title: "Accepted" },
-    { key: "completed", title: "Completed" },
-    { key: "subscriber", title: "Subscriber" },
-  ];
+  const getProvider = React.useCallback(async () => {
+    const serviceType = await AsyncStorage.getItem("userServiceType");
+    setProvider(serviceType);
+  }, []);
+
+  React.useEffect(() => {
+    getProvider();
+  }, [getProvider]);
+
+  const routes =
+    provider === "tiffinProvider"
+      ? [
+          { key: "requests", title: "Requests" },
+          { key: "accepted", title: "Accepted" },
+          { key: "completed", title: "Completed" },
+          { key: "subscriber", title: "Subscriber" },
+        ]
+      : [
+          { key: "requests", title: "Requests" },
+          { key: "accepted", title: "Accepted" },
+          { key: "completed", title: "Completed" },
+        ];
 
   const renderScene = () => {
     switch (routes[index].key) {
       case "requests":
-        return <RequestsRoute />;
+        return   provider === "tiffinProvider" ? <RequestsRoute /> : <RequestsRouteHostel/>;
       case "accepted":
-        return <AcceptedRoute />;
+        return provider === "tiffinProvider" ? <AcceptedRoute /> : <RequestsAcceptRoute/>;
       case "completed":
-        return <CompletedRoute />;
+        return provider === "tiffinProvider" ? <CompletedRoute /> : <CompletedHostelRoute/>;
       case "subscriber":
         return <SubscriberRoute />;
       default:
@@ -158,68 +246,107 @@ export default function Order() {
     }
   };
 
+  const isTiffin = provider === "tiffinProvider";
+  const screenWidth = Dimensions.get("window").width;
+
   return (
     <>
       <SafeAreaView edges={["top"]} style={{ backgroundColor: Colors.white }}>
-        <View style={{ backgroundColor: Colors.white }}>
-          <CommonHeader title="Orders" actionText="Add New Booking" onActionPress={()=>{router.push('/(service)/addNewService')}} />
-        </View>
+        <CommonHeader
+          title="Orders"
+          actionText="Add New Booking"
+          onActionPress={() => router.push("/(service)/addNewService")}
+        />
       </SafeAreaView>
-    
+
+      {/* Tab Bar */}
       <View style={styles.tabBarContainer}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.tabBarScroll}
-        >
-          {routes.map((route, i) => {
-            const isActive = i === index;
-            return (
-              <TouchableOpacity
-                key={route.key}
-                onPress={() => setIndex(i)}
-                style={[
-                  styles.tabItem,
-                  {
-                    borderBottomWidth: isActive ? 2 : 0,
-                    borderColor: isActive ? Colors.title : "transparent",
-                  },
-                ]}
-              >
-                <Text
-                  style={[styles.tabTitle, isActive && styles.activeTabTitle]}
+        {isTiffin ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.tabBarScroll}
+          >
+            {routes.map((route, i) => {
+              const isActive = i === index;
+              return (
+                <TouchableOpacity
+                  key={route.key}
+                  onPress={() => setIndex(i)}
+                  style={[
+                    styles.tabItem,
+                    {
+                      borderBottomWidth: isActive ? 2 : 0,
+                      borderColor: isActive ? Colors.title : "transparent",
+                    },
+                  ]}
                 >
-                  {route.title}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
+                  <Text
+                    style={[styles.tabTitle, isActive && styles.activeTabTitle]}
+                  >
+                    {route.title}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        ) : (
+          <View style={styles.tabRow}>
+            {routes.map((route, i) => {
+              const isActive = i === index;
+              return (
+                <TouchableOpacity
+                  key={route.key}
+                  onPress={() => setIndex(i)}
+                  style={[
+                    styles.tabItem,
+                    {
+                      flex: 1,
+                      borderBottomWidth: isActive ? 2 : 0,
+                      borderColor: isActive ? Colors.title : "transparent",
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[styles.tabTitle, isActive && styles.activeTabTitle]}
+                  >
+                    {route.title}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
       </View>
 
+      {/* Tab Content */}
       {renderScene()}
     </>
   );
 }
 
+// ------------------ Styles ------------------
+
 const styles = StyleSheet.create({
   scene: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: Colors.white,
     padding: 16,
   },
   tabBarContainer: {
-    backgroundColor: "#fff",
+    backgroundColor: Colors.white,
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
     paddingHorizontal: 16,
-    justifyContent: "center",
-    alignItems: "center",
   },
   tabBarScroll: {
     flexDirection: "row",
     alignItems: "center",
     gap: 24,
+  },
+  tabRow: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   tabItem: {
     paddingVertical: 12,
@@ -233,7 +360,7 @@ const styles = StyleSheet.create({
   },
   activeTabTitle: {
     fontSize: 14,
-    fontFamily: fonts.interRegular,
+    fontFamily: fonts.interMedium,
     color: Colors.title,
   },
   subscriberCard: {

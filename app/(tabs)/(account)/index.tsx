@@ -2,10 +2,11 @@ import { Colors } from "@/constants/Colors";
 import { Images } from "@/constants/Images";
 import { fonts } from "@/constants/typography";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Image,
   Modal,
+  Platform,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -14,15 +15,58 @@ import {
   TouchableOpacity,
   View,
   ViewStyle,
+  Alert,
 } from "react-native";
+import * as ImagePicker from "expo-image-picker";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const AccountScreen = () => {
   const [darkMode, setDarkMode] = useState(false);
   const [logoutVisible, setLogoutVisible] = useState(false);
+  const [provider, setProvider] = useState<any>(null);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+
+   const getProvider = useCallback(async () => {
+    const serviceType = await AsyncStorage.getItem("userServiceType");
+    setProvider(serviceType)
+    console.log("Selected Service:", serviceType);
+  }, [])
+
+  useEffect(() => {
+    getProvider();
+  }, [getProvider]);
 
   const handleLogout = () => {
     setLogoutVisible(false);
     router.replace("/login");
+  };
+
+  // ✅ Pick image from gallery
+  const pickImage = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission required",
+          "We need access to your photos to change profile picture."
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+      });
+
+      if (!result.canceled) {
+        const uri = result.assets[0].uri;
+        setProfileImage(uri); // ✅ only state update
+      }
+    } catch (error) {
+      console.log("Error picking image:", error);
+    }
   };
 
   return (
@@ -34,12 +78,28 @@ const AccountScreen = () => {
         {/* Profile Header */}
         <View style={styles.profileHeader}>
           <View style={styles.profileImageContainer}>
-            <Image source={Images.user} style={styles.largeImage} />
-            <View style={styles.cameraIconContainer}>
+            <Image
+              source={
+                profileImage
+                  ? { uri: profileImage }
+                  : provider === "tiffinProvider"
+                  ? Images.user
+                  : Images.hostel1
+              }
+              style={styles.largeImage}
+            />
+            <TouchableOpacity
+              style={styles.cameraIconContainer}
+              onPress={pickImage}
+            >
               <Image source={Images.photos} style={styles.cameraIcon} />
-            </View>
+            </TouchableOpacity>
           </View>
-          <Text style={styles.title}>Maharashtrian Ghar Ka Khana</Text>
+          <Text style={styles.title}>
+            {provider === "tiffinProvider"
+              ? "Maharashtrian Ghar Ka Khana"
+              : "Green Valley Boys Hostel"}
+          </Text>
         </View>
 
         {/* Profile Tab */}
@@ -49,9 +109,7 @@ const AccountScreen = () => {
           backgroundColor="#004AAD"
           textColor="#fff"
           iconTint="#fff"
-          customStyle={{
-            borderRadius: 10,
-          }}
+          customStyle={{ borderRadius: 10 }}
           onpress={() => router.push("/profile")}
         />
 
@@ -66,6 +124,15 @@ const AccountScreen = () => {
           image={Images.customer}
           onpress={() => router.push("/myCustomers")}
         />
+        {provider !== "tiffinProvider" && (
+          <MenuItem
+            label="Payment"
+            image={require("@/assets/images/Hostel/payment.png")}
+            onpress={() => {
+              router.push("/(accountScreens)/method");
+            }}
+          />
+        )}
         <MenuItem label="Offers" image={Images.offers} />
         <MenuItem
           label="Privacy Policy"
@@ -86,10 +153,7 @@ const AccountScreen = () => {
         {/* Language Selector */}
         <View style={styles.sectionRow}>
           <Text style={styles.languageText}>Language</Text>
-          <TouchableOpacity
-            style={styles.dropdownContainer}
-            activeOpacity={0.7}
-          >
+          <TouchableOpacity style={styles.dropdownContainer} activeOpacity={0.7}>
             <Text style={styles.dropdownText}>English</Text>
             <Image
               source={Images.back}
@@ -182,10 +246,10 @@ const MenuItem = ({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.white },
-  scrollContent: { paddingBottom: 40, flexGrow: 1 },
+  scrollContent: { paddingBottom: Platform.OS === "ios" ? 80 : 40, flexGrow: 1 },
   profileHeader: { alignItems: "center", marginVertical: 20 },
   profileImageContainer: {
-    position: 'relative',
+    position: "relative",
     width: 86,
     height: 86,
   },
@@ -195,11 +259,9 @@ const styles = StyleSheet.create({
     borderRadius: 43,
   },
   cameraIconContainer: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 2,
     right: 5,
-   
-   
   },
   cameraIcon: {
     width: 23,

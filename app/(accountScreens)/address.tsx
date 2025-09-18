@@ -50,6 +50,7 @@ const AddressScreen = () => {
           </TouchableOpacity>
         </View>
       </View>
+      
     </SafeAreaView>
   );
 };

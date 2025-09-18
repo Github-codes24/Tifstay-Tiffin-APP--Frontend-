@@ -248,8 +248,17 @@ export default function RootLayout() {
             ),
           }}
         />
+        
          <Stack.Screen
-          name="(accountScreens)/chatScreen"
+          name="(accountScreens)/method"
+          options={{headerShown:false }}
+        />
+        <Stack.Screen
+          name="(accountScreens)/payment"
+          options={{headerShown:false }}
+        />
+         <Stack.Screen
+          name="viewroom"
           options={{
             header: () => (
               <SafeAreaView
@@ -257,7 +266,7 @@ export default function RootLayout() {
                 style={{ backgroundColor: Colors.white }}
               >
                 <View style={{ backgroundColor: Colors.white }}>
-                  <CommonHeader title="Chat" />
+                  <CommonHeader title="View Rooms" />
                 </View>
               </SafeAreaView>
             ),

@@ -76,7 +76,15 @@ export const Images = {
   mail2: require("@/assets/images/mail2.png"),
   chat1: require("@/assets/images/chat1.png"),
   send: require("@/assets/images/send.png"),
-  logout: require("@/assets/images/logout.png")
+  logout: require("@/assets/images/logout.png"), 
+
+  //HOSTELS
+
+  hostel : require('@/assets/images/Hostel/hostel.png'),
+  bad : require('@/assets/images/Hostel/bad.png'),
+  hostel1 : require('@/assets/images/Hostel/hostel1.png'),
+  pause: require('@/assets/images/Hostel/pause.png'),
+  bad1: require('@/assets/images/Hostel/bad1.png'),
 } as const;
 
 

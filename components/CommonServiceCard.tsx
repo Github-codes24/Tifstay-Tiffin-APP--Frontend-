@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
   },
   rating: {
     fontSize: 12,
-fontFamily:fonts.interSemibold,
+    fontFamily: fonts.interSemibold,
     marginLeft: 4,
   },
   review: {
@@ -213,7 +213,7 @@ fontFamily:fonts.interSemibold,
   btnText: {
     marginLeft: 6,
     fontSize: 12,
-    color:Colors.grey,
+    color: Colors.grey,
     fontFamily: fonts.interRegular,
   },
   label: {
