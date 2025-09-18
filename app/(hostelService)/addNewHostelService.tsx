@@ -349,8 +349,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     marginBottom: 20,
     backgroundColor: Colors.white,
+    
   },
-  basicCard: { paddingHorizontal: 14 },
+  basicCard: { paddingBottom:60 },
   sectionHeaderContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -358,7 +359,7 @@ const styles = StyleSheet.create({
   },
   marginLeft8: { marginLeft: 8 },
   marginTop16: { marginTop: 16 },
-  padding14: { padding: 14 },
+  padding14: { padding: 40 },
   noHorizontalPadding: { paddingHorizontal: 0 },
   paddingHorizontal14: { paddingHorizontal: 14 },
   iconCircle: {
