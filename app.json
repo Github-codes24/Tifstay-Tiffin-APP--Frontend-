@@ -9,7 +9,7 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "bundleIdentifier":"com.linemanuser.tifstayservice",
+      "bundleIdentifier": "com.linemanuser.tifstayservice",
       "supportsTablet": true
     },
     "android": {
@@ -41,7 +41,10 @@
       "typedRoutes": true
     },
     "extra": {
-      "router": {}
+      "router": {},
+      "eas": {
+        "projectId": "dcc55161-7791-4056-9d51-2e2979a23776"
+      }
     }
   }
 }

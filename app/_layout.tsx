@@ -272,6 +272,24 @@ export default function RootLayout() {
             ),
           }}
         />
+        <Stack.Screen
+          name="(hostelService)/addNewHostelService"
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="(hostelService)/addNewHostelService1"
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="(hostelService)/previewServiceHostel"
+          options={{
+            headerShown: false,
+          }}
+        />
       </Stack>
       <StatusBar style="auto" />
     </>
