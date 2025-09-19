@@ -5,6 +5,7 @@ import LabeledInput from "@/components/labeledInput";
 import StepperInput from "@/components/SteperInput";
 import { Colors } from "@/constants/Colors";
 import { fonts } from "@/constants/typography";
+import { useHostel } from "@/context/HostelProvider";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -19,6 +20,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 const AddNewHostelService = () => {
   const router = useRouter();
+  const { setCreateHostelPage1Data } = useHostel();
 
   // Form states
   const [hostelName, setHostelName] = useState("");
@@ -42,6 +44,24 @@ const AddNewHostelService = () => {
     acRooms: false,
     laundry: false,
   });
+
+  const handleNext = () => {
+    setCreateHostelPage1Data({
+      hostelName,
+      description,
+      hostelType,
+      pricePerDay,
+      monthlyPrice,
+      weeklyPrice,
+      securityDeposit,
+      offers,
+      roomNo,
+      monthlyDining,
+      roomDetails,
+      amenities,
+    });
+    router.push("/(hostelService)/addNewHostelService1");
+  };
 
   const resetForm = () => {
     setHostelName("");
@@ -325,9 +345,7 @@ const AddNewHostelService = () => {
 
         <CommonButton
           title="Next"
-          onPress={() => {
-            router.push("/(hostelService)/addNewHostelService1");
-          }}
+          onPress={handleNext}
           buttonStyle={styles.nextButton}
         />
       </ScrollView>
@@ -340,7 +358,11 @@ const styles = StyleSheet.create({
   safeArea: { backgroundColor: Colors.white },
   headerWrapper: { backgroundColor: Colors.white },
   container: { padding: 10, paddingBottom: 30, backgroundColor: Colors.white },
-  infoBox: { borderRadius: 12, backgroundColor: Colors.white, paddingBottom: 20 },
+  infoBox: {
+    borderRadius: 12,
+    backgroundColor: Colors.white,
+    paddingBottom: 20,
+  },
   card: {
     borderWidth: 1,
     borderColor: "#A5A5A5",
@@ -349,9 +371,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     marginBottom: 20,
     backgroundColor: Colors.white,
-    
   },
-  basicCard: { paddingBottom:60 },
+  basicCard: { paddingBottom: 60 },
   sectionHeaderContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -416,7 +437,11 @@ const styles = StyleSheet.create({
     paddingRight: 20,
     paddingTop: 20,
   },
-  photosContainer: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
+  photosContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
   photosSection: {
     marginBottom: 12,
     borderColor: "#A5A5A5",

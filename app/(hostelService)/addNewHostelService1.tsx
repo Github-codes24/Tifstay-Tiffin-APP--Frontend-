@@ -3,7 +3,9 @@ import CommonHeader from "@/components/CommonHeader";
 import LabeledInput from "@/components/labeledInput";
 import { Colors } from "@/constants/Colors";
 import { fonts } from "@/constants/typography";
+import { useHostel } from "@/context/HostelProvider";
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -18,6 +20,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 const AddNewHostelService1 = () => {
   const router = useRouter();
+  const { createHostelPage1Data } = useHostel();
   const [rulesText, setRulesText] = useState("");
   const [locationOpen, setLocationOpen] = useState(false);
   const [location, setLocation] = useState(null);
@@ -32,6 +35,15 @@ const AddNewHostelService1 = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [whatsappNumber, setWhatsappNumber] = useState("");
 
+  console.log({ createHostelPage1Data });
+
+  const handleSubmit = () => {
+    console.log("Form submitted");
+    // const formData = new FormData();
+    // formData.append("name", name);
+    // formData.append("hostelType", hostelType)
+  };
+
   const resetForm = () => {
     setRulesText("");
     setLocation(null);
@@ -43,6 +55,20 @@ const AddNewHostelService1 = () => {
 
   const handlePreview = () => {
     router.push("/(hostelService)/previewServiceHostel");
+  };
+
+  const pickImage = async () => {
+    // No permissions request is necessary for launching the image library
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+    });
+
+    console.log(result);
+
+    if (!result.canceled) {
+      // setImage(result.assets[0].uri);
+    }
   };
 
   return (
@@ -71,20 +97,19 @@ const AddNewHostelService1 = () => {
             </View>
           </View>
           <View>
-          <LabeledInput
-            label="Hostel Rules & Policies"
-            placeholder="Mention important rules like visiting hours, noise policy, etc."
-            value={rulesText}
-            onChangeText={setRulesText}
-            multiline
-            textAlignVertical="top"
-            labelStyle={styles.inputLabel}
-            inputContainerStyle={{height:64 , backgroundColor:'#fff'}}
-            containerStyle={{paddingHorizontal:0}}
-            // inputStyle={{height:90}}
-            // multiline
-            
-          />
+            <LabeledInput
+              label="Hostel Rules & Policies"
+              placeholder="Mention important rules like visiting hours, noise policy, etc."
+              value={rulesText}
+              onChangeText={setRulesText}
+              multiline
+              textAlignVertical="top"
+              labelStyle={styles.inputLabel}
+              inputContainerStyle={{ height: 64, backgroundColor: "#fff" }}
+              containerStyle={{ paddingHorizontal: 0 }}
+              // inputStyle={{height:90}}
+              // multiline
+            />
           </View>
         </View>
 
@@ -95,7 +120,7 @@ const AddNewHostelService1 = () => {
             <Text style={styles.sectionHeader}>Photos</Text>
           </View>
 
-          <TouchableOpacity style={styles.uploadButton}>
+          <TouchableOpacity style={styles.uploadButton} onPress={pickImage}>
             <Text style={styles.uploadText}>Upload photo</Text>
             <Text style={styles.uploadSubtext}>
               Upload clear photo of your Hostel
@@ -139,8 +164,9 @@ const AddNewHostelService1 = () => {
             value={nearbyLandmarks}
             onChangeText={setNearbyLandmarks}
             labelStyle={styles.inputLabel}
- inputContainerStyle={{height:37, backgroundColor:'#fff'}}
-            containerStyle={{paddingHorizontal:0 , marginBottom:20}}          />
+            inputContainerStyle={{ height: 37, backgroundColor: "#fff" }}
+            containerStyle={{ paddingHorizontal: 0, marginBottom: 20 }}
+          />
 
           <LabeledInput
             label="Full Address"
@@ -150,8 +176,8 @@ const AddNewHostelService1 = () => {
             multiline
             textAlignVertical="top"
             labelStyle={styles.inputLabel}
-             inputContainerStyle={{height:64 , backgroundColor:'#fff'}}
-            containerStyle={{paddingHorizontal:0 }}
+            inputContainerStyle={{ height: 64, backgroundColor: "#fff" }}
+            containerStyle={{ paddingHorizontal: 0 }}
           />
         </View>
 
@@ -187,9 +213,7 @@ const AddNewHostelService1 = () => {
 
         <CommonButton
           title="Submit Listing"
-          onPress={() => {
-            // Handle submit
-          }}
+          onPress={handleSubmit}
           buttonStyle={styles.submitButton}
         />
 
@@ -339,8 +363,8 @@ const styles = StyleSheet.create({
   submitButton: {
     borderRadius: 8,
     marginBottom: 16,
-    paddingVertical:16,
-    paddingHorizontal:16
+    paddingVertical: 16,
+    paddingHorizontal: 16,
   },
   previewButton: {
     borderWidth: 1,

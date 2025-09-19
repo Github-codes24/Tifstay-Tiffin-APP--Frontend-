@@ -1,9 +1,13 @@
 import { Colors } from "@/constants/Colors";
 import { Images } from "@/constants/Images";
 import { fonts } from "@/constants/typography";
+import useAuthStore from "@/store/userAuthStore";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
+  Alert,
   Image,
   Modal,
   Platform,
@@ -15,10 +19,7 @@ import {
   TouchableOpacity,
   View,
   ViewStyle,
-  Alert,
 } from "react-native";
-import * as ImagePicker from "expo-image-picker";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const AccountScreen = () => {
   const [darkMode, setDarkMode] = useState(false);
@@ -26,11 +27,13 @@ const AccountScreen = () => {
   const [provider, setProvider] = useState<any>(null);
   const [profileImage, setProfileImage] = useState<string | null>(null);
 
-   const getProvider = useCallback(async () => {
+  const { logout } = useAuthStore();
+
+  const getProvider = useCallback(async () => {
     const serviceType = await AsyncStorage.getItem("userServiceType");
-    setProvider(serviceType)
+    setProvider(serviceType);
     console.log("Selected Service:", serviceType);
-  }, [])
+  }, []);
 
   useEffect(() => {
     getProvider();
@@ -38,13 +41,15 @@ const AccountScreen = () => {
 
   const handleLogout = () => {
     setLogoutVisible(false);
-    router.replace("/login");
+    logout();
+    router.replace("/loginoption");
   };
 
   // ✅ Pick image from gallery
   const pickImage = async () => {
     try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== "granted") {
         Alert.alert(
           "Permission required",
@@ -153,7 +158,10 @@ const AccountScreen = () => {
         {/* Language Selector */}
         <View style={styles.sectionRow}>
           <Text style={styles.languageText}>Language</Text>
-          <TouchableOpacity style={styles.dropdownContainer} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={styles.dropdownContainer}
+            activeOpacity={0.7}
+          >
             <Text style={styles.dropdownText}>English</Text>
             <Image
               source={Images.back}
@@ -246,7 +254,10 @@ const MenuItem = ({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.white },
-  scrollContent: { paddingBottom: Platform.OS === "ios" ? 80 : 40, flexGrow: 1 },
+  scrollContent: {
+    paddingBottom: Platform.OS === "ios" ? 80 : 40,
+    flexGrow: 1,
+  },
   profileHeader: { alignItems: "center", marginVertical: 20 },
   profileImageContainer: {
     position: "relative",

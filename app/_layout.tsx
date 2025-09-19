@@ -1,17 +1,18 @@
-import { useFonts } from "expo-font";
-import { router, Stack } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import "react-native-reanimated";
+import CommonHeader from "@/components/CommonHeader";
+import { Colors } from "@/constants/Colors";
+import { HostelProvider } from "@/context/HostelProvider";
 import {
   Inter_400Regular,
   Inter_500Medium,
   Inter_600SemiBold,
   Inter_700Bold,
 } from "@expo-google-fonts/inter";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { Colors } from "@/constants/Colors";
+import { useFonts } from "expo-font";
+import { router, Stack } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import { View } from "react-native";
-import CommonHeader from "@/components/CommonHeader";
+import "react-native-reanimated";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function RootLayout() {
   const [loaded] = useFonts({
@@ -30,7 +31,7 @@ export default function RootLayout() {
   }
 
   return (
-    <>
+    <HostelProvider>
       <Stack initialRouteName="splash">
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
@@ -101,7 +102,7 @@ export default function RootLayout() {
             ),
           }}
         />
-         <Stack.Screen
+        <Stack.Screen
           name="(accountScreens)/changePassword"
           options={{
             header: () => (
@@ -140,7 +141,13 @@ export default function RootLayout() {
                 style={{ backgroundColor: Colors.white }}
               >
                 <View style={{ backgroundColor: Colors.white }}>
-                  <CommonHeader title="My Profile" actionText="Edit" onActionPress={()=>{router.push('/(accountScreens)/edit')}} />
+                  <CommonHeader
+                    title="My Profile"
+                    actionText="Edit"
+                    onActionPress={() => {
+                      router.push("/(accountScreens)/edit");
+                    }}
+                  />
                 </View>
               </SafeAreaView>
             ),
@@ -155,7 +162,7 @@ export default function RootLayout() {
                 style={{ backgroundColor: Colors.white }}
               >
                 <View style={{ backgroundColor: Colors.white }}>
-                  <CommonHeader title="Customer Info"  />
+                  <CommonHeader title="Customer Info" />
                 </View>
               </SafeAreaView>
             ),
@@ -208,11 +215,11 @@ export default function RootLayout() {
         />
         <Stack.Screen
           name="(service)/addNewService"
-          options={{headerShown:false}}
+          options={{ headerShown: false }}
         />
         <Stack.Screen
           name="(service)/addNewService1"
-          options={{headerShown:false}}
+          options={{ headerShown: false }}
         />
         <Stack.Screen
           name="(service)/previewService"
@@ -231,9 +238,9 @@ export default function RootLayout() {
         />
         <Stack.Screen
           name="(service)/confirmService"
-          options={{headerShown : false}}
+          options={{ headerShown: false }}
         />
-         <Stack.Screen
+        <Stack.Screen
           name="(accountScreens)/contactUs"
           options={{
             header: () => (
@@ -248,16 +255,16 @@ export default function RootLayout() {
             ),
           }}
         />
-        
-         <Stack.Screen
+
+        <Stack.Screen
           name="(accountScreens)/method"
-          options={{headerShown:false }}
+          options={{ headerShown: false }}
         />
         <Stack.Screen
           name="(accountScreens)/payment"
-          options={{headerShown:false }}
+          options={{ headerShown: false }}
         />
-         <Stack.Screen
+        <Stack.Screen
           name="viewroom"
           options={{
             header: () => (
@@ -292,6 +299,6 @@ export default function RootLayout() {
         />
       </Stack>
       <StatusBar style="auto" />
-    </>
+    </HostelProvider>
   );
 }

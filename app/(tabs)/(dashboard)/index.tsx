@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-expressions */
 import CommonButton from "@/components/CommonButton";
 import TiffinCard from "@/components/CommonServiceCard";
 import HostelCard from "@/components/HostelCard";
@@ -10,104 +11,129 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
-  View,
-  Text,
   Image,
-  StyleSheet,
-  TouchableOpacity,
   ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const hostels = {
-      "id": 1,
-      "name": "Scholars Den Boys Hostel",
-      "type": "Boys Hostel",
-      "location": "Dharampeth",
-      "sublocation": "Near VNIT, Medical College",
-      "price": "₹8000/",
-      "deposit": "₹15000",
-      "availableBeds": 8,
-      "totalBeds": 30,
-      "district": "Nagpur",
-      "images": [
-        "https://images.unsplash.com/photo-1606491956689-2ea866880c84?w=500&q=80",
-        "https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=500&q=80",
-        "https://images.unsplash.com/photo-1601050690597-df0568f70950?w=500&q=80"
-      ],
-      "rating": 4.7,
-      "reviewCount": 52,
-      "amenities": ["WiFi", "Mess", "Security", "Laundry", "Study Hall", "Common TV", "Power Backup"],
-      "image": "hostel1",
-      "description": "A well-maintained boys hostel with all modern amenities. Located in a prime area with easy access to colleges and hospitals. Safe and secure environment with 24/7 security.",
-      "fullAddress": "123, Green Valley Road, Dharampeth, Nagpur - 440010",
-      "facilities": [
-        { "name": "Mess", "available": true },
-        { "name": "Study Hall", "available": true },
-        { "name": "Common TV", "available": true },
-        { "name": "Laundry", "available": true }
-      ],
-      "rulesAndPolicies": "No smoking inside premises. Visitors allowed to 8 PM. Main closing: 7:30 AM - 10:30 PM. 7-9 PM Number breakdown in common areas.",
-      "userReviews": [
-        {
-          "id": 1,
-          "name": "Autumn Phillips",
-          "rating": 5,
-          "date": "Monday, June 16, 2025",
-          "comment": "I stayed for 2 weeks—home away comfort, Wi-Fi was responsive, and Wi-Fi was fast. Highly recommend for students!"
-        },
-        {
-          "id": 2,
-          "name": "Rhonda Rhodes",
-          "rating": 4,
-          "date": "Wednesday, March 12, 2025",
-          "comment": "Budget-friendly with 24/7 security. Shared kitchen was a plus. Minor plumbing issue, but it was fixed quickly."
-        },
-        {
-          "id": 3,
-          "name": "Patricia Sanders",
-          "rating": 5,
-          "date": "Friday, April 11, 2025",
-          "comment": "A cozy living space in Dharampeth. Lots of food options nearby and peaceful environment for studying."
-        }
-      ],
-      "oldPrice ": "₹12000/month",
-      "offer": 10
-    }
+  id: 1,
+  name: "Scholars Den Boys Hostel",
+  type: "Boys Hostel",
+  location: "Dharampeth",
+  sublocation: "Near VNIT, Medical College",
+  price: "₹8000/",
+  deposit: "₹15000",
+  availableBeds: 8,
+  totalBeds: 30,
+  district: "Nagpur",
+  images: [
+    "https://images.unsplash.com/photo-1606491956689-2ea866880c84?w=500&q=80",
+    "https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=500&q=80",
+    "https://images.unsplash.com/photo-1601050690597-df0568f70950?w=500&q=80",
+  ],
+  rating: 4.7,
+  reviewCount: 52,
+  amenities: [
+    "WiFi",
+    "Mess",
+    "Security",
+    "Laundry",
+    "Study Hall",
+    "Common TV",
+    "Power Backup",
+  ],
+  image: "hostel1",
+  description:
+    "A well-maintained boys hostel with all modern amenities. Located in a prime area with easy access to colleges and hospitals. Safe and secure environment with 24/7 security.",
+  fullAddress: "123, Green Valley Road, Dharampeth, Nagpur - 440010",
+  facilities: [
+    { name: "Mess", available: true },
+    { name: "Study Hall", available: true },
+    { name: "Common TV", available: true },
+    { name: "Laundry", available: true },
+  ],
+  rulesAndPolicies:
+    "No smoking inside premises. Visitors allowed to 8 PM. Main closing: 7:30 AM - 10:30 PM. 7-9 PM Number breakdown in common areas.",
+  userReviews: [
+    {
+      id: 1,
+      name: "Autumn Phillips",
+      rating: 5,
+      date: "Monday, June 16, 2025",
+      comment:
+        "I stayed for 2 weeks—home away comfort, Wi-Fi was responsive, and Wi-Fi was fast. Highly recommend for students!",
+    },
+    {
+      id: 2,
+      name: "Rhonda Rhodes",
+      rating: 4,
+      date: "Wednesday, March 12, 2025",
+      comment:
+        "Budget-friendly with 24/7 security. Shared kitchen was a plus. Minor plumbing issue, but it was fixed quickly.",
+    },
+    {
+      id: 3,
+      name: "Patricia Sanders",
+      rating: 5,
+      date: "Friday, April 11, 2025",
+      comment:
+        "A cozy living space in Dharampeth. Lots of food options nearby and peaceful environment for studying.",
+    },
+  ],
+  "oldPrice ": "₹12000/month",
+  offer: 10,
+};
 
 export default function ServiceOfflineScreen() {
   const [isOnline, setIsOnline] = useState(false);
-  const [provider , setProvider] = useState<any>(null)
+  const [provider, setProvider] = useState<any>(null);
   const getProvider = useCallback(async () => {
     const serviceType = await AsyncStorage.getItem("userServiceType");
-    setProvider(serviceType)
+    setProvider(serviceType);
     console.log("Selected Service:", serviceType);
-  }, [])
+  }, []);
 
-  useEffect(()=>{
-    getProvider()
-  },[getProvider])
+  useEffect(() => {
+    getProvider();
+  }, [getProvider]);
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Image source={provider === 'tiffinProvider' ?Images.user : Images.hostel1} style={styles.logo} />
+        <Image
+          source={provider === "tiffinProvider" ? Images.user : Images.hostel1}
+          style={styles.logo}
+        />
         <View style={styles.headerText}>
-          <Text style={styles.title}>{provider === 'tiffinProvider' ? 'Maharashtrian Ghar Ka Khana' : 'Green Valley Boys Hostel'}</Text>
-          <Text style={styles.subtitle}>{provider === 'tiffinProvider' ? 'Manage your tiffin services' : 'Manage your hostel properties'}</Text>
+          <Text style={styles.title}>
+            {provider === "tiffinProvider"
+              ? "Maharashtrian Ghar Ka Khana"
+              : "Green Valley Boys Hostel"}
+          </Text>
+          <Text style={styles.subtitle}>
+            {provider === "tiffinProvider"
+              ? "Manage your tiffin services"
+              : "Manage your hostel properties"}
+          </Text>
         </View>
         <TouchableOpacity
           style={styles.onlineButton}
           onPress={() => {
             setIsOnline(!isOnline); // toggle online/offline
             // if you want navigation only when going online
-            if (!isOnline && provider === 'tiffinProvider') {
+            if (!isOnline && provider === "tiffinProvider") {
               router.push("/(tabs)/(dashboard)/service");
             }
           }}
         >
-          <Text style={styles.onlineButtonText}>{isOnline ? "Go Offline" : "Go Online"}
+          <Text style={styles.onlineButtonText}>
+            {isOnline ? "Go Offline" : "Go Online"}
           </Text>
         </TouchableOpacity>
       </View>
@@ -132,12 +158,17 @@ export default function ServiceOfflineScreen() {
           {/* Stats */}
           <View style={styles.statsRow}>
             <View style={styles.card}>
-              <Image source={provider === 'tiffinProvider' ? Images.order : Images.hostel} style={styles.icon24} />
+              <Image
+                source={
+                  provider === "tiffinProvider" ? Images.order : Images.hostel
+                }
+                style={styles.icon24}
+              />
               <Text style={[styles.cardNumber, { color: Colors.primary }]}>
                 02
               </Text>
               <Text style={[styles.cardText, { color: Colors.primary }]}>
-              {provider === 'tiffinProvider' ?  'New Orders' : 'Total Hostels'}
+                {provider === "tiffinProvider" ? "New Orders" : "Total Hostels"}
               </Text>
             </View>
             <View style={styles.card}>
@@ -146,26 +177,33 @@ export default function ServiceOfflineScreen() {
                 0
               </Text>
               <Text style={[styles.cardText, { color: Colors.orange }]}>
-               {provider === 'tiffinProvider' ?  'Order Request' : 'Request'}
+                {provider === "tiffinProvider" ? "Order Request" : "Request"}
               </Text>
             </View>
           </View>
 
           <View style={[styles.statsRow, { marginBottom: 24 }]}>
             <View style={styles.card}>
-              <Image source={provider === 'tiffinProvider' ? Images.complete : Images.bad} style={styles.icon24} />
+              <Image
+                source={
+                  provider === "tiffinProvider" ? Images.complete : Images.bad
+                }
+                style={styles.icon24}
+              />
               <Text style={[styles.cardNumber, { color: Colors.green }]}>
                 01
               </Text>
               <Text style={[styles.cardText, { color: Colors.green }]}>
-                {provider === 'tiffinProvider' ? 'Completed Orders' : 'Accepted'}
+                {provider === "tiffinProvider"
+                  ? "Completed Orders"
+                  : "Accepted"}
               </Text>
             </View>
             <View style={styles.card}>
               <Image source={Images.cancel} style={styles.icon24} />
               <Text style={[styles.cardNumber, { color: Colors.red }]}>01</Text>
               <Text style={[styles.cardText, { color: Colors.red }]}>
-               {provider === 'tiffinProvider' ? 'Canceled Orders' : 'Canceled'}
+                {provider === "tiffinProvider" ? "Canceled Orders" : "Canceled"}
               </Text>
             </View>
           </View>
@@ -178,8 +216,15 @@ export default function ServiceOfflineScreen() {
             </View>
             <View style={styles.quickActions}>
               <TouchableOpacity
-                style={[styles.actionButton, { backgroundColor: Colors.primary }]}
-                onPress={() => {provider === 'tiffinProvider' ?  router.push('/(service)/addNewService') :  router.push('/(hostelService)/addNewHostelService') }}
+                style={[
+                  styles.actionButton,
+                  { backgroundColor: Colors.primary },
+                ]}
+                onPress={() => {
+                  provider === "tiffinProvider"
+                    ? router.push("/(service)/addNewService")
+                    : router.push("/(hostelService)/addNewHostelService");
+                }}
               >
                 <Ionicons
                   name="add-circle-outline"
@@ -189,8 +234,13 @@ export default function ServiceOfflineScreen() {
                 <Text style={styles.actionText}>Add Service</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.actionButton, { backgroundColor: Colors.orange }]}
-                onPress={() => { router.push('/(tabs)/earnings') }}
+                style={[
+                  styles.actionButton,
+                  { backgroundColor: Colors.orange },
+                ]}
+                onPress={() => {
+                  router.push("/(tabs)/earnings");
+                }}
               >
                 <Ionicons
                   name="trending-up-outline"
@@ -213,7 +263,7 @@ export default function ServiceOfflineScreen() {
               <Text style={styles.earningsChange}>+18%</Text>
             </View>
             <View style={[styles.earningsRow, { marginTop: 0 }]}>
-              <Text style={styles.subText}>This week's total</Text>
+              <Text style={styles.subText}>{"This week's total"}</Text>
               <Text style={styles.subText}>vs last week</Text>
             </View>
           </View>
@@ -222,7 +272,11 @@ export default function ServiceOfflineScreen() {
           <View style={styles.reviewBox}>
             <View style={styles.reviewHeader}>
               <Text style={styles.reviewTitle}>Reviews</Text>
-              <TouchableOpacity onPress={() => { router.push('/review') }}>
+              <TouchableOpacity
+                onPress={() => {
+                  router.push("/review");
+                }}
+              >
                 <Text style={styles.linkText}>See All Reviews</Text>
               </TouchableOpacity>
             </View>
@@ -235,11 +289,27 @@ export default function ServiceOfflineScreen() {
 
           {/* Services */}
           <View style={styles.serviceHeader}>
-            <Text style={styles.serviceTitle}> {provider === 'tiffinProvider' ? 'My Tiffin/Restaurant' : 'My PG/Hostel'}</Text>
+            <Text style={styles.serviceTitle}>
+              {" "}
+              {provider === "tiffinProvider"
+                ? "My Tiffin/Restaurant"
+                : "My PG/Hostel"}
+            </Text>
             <Text style={styles.serviceCount}>1 service</Text>
           </View>
-          {provider === 'tiffinProvider' ? <TiffinCard /> : <HostelCard hostel={hostels} />}
-          <CommonButton title="+ Add New Service" onPress={() => {provider === 'tiffinProvider' ? router.push('/(service)/addNewService') : router.push('/(hostelService)/addNewHostelService') }} />
+          {provider === "tiffinProvider" ? (
+            <TiffinCard />
+          ) : (
+            <HostelCard hostel={hostels} />
+          )}
+          <CommonButton
+            title="+ Add New Service"
+            onPress={() => {
+              provider === "tiffinProvider"
+                ? router.push("/(service)/addNewService")
+                : router.push("/(hostelService)/addNewHostelService");
+            }}
+          />
         </ScrollView>
       )}
     </SafeAreaView>
@@ -253,7 +323,11 @@ const styles = StyleSheet.create({
   logo: { width: 40, height: 40, borderRadius: 24, marginRight: 10 },
   headerText: { flex: 1 },
   title: { fontSize: 16, fontFamily: fonts.interMedium, color: Colors.title },
-  subtitle: { fontSize: 12, fontFamily: fonts.interRegular, color: Colors.grey },
+  subtitle: {
+    fontSize: 12,
+    fontFamily: fonts.interRegular,
+    color: Colors.grey,
+  },
 
   onlineButton: {
     borderColor: Colors.primary,
