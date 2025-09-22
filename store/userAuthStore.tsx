@@ -43,14 +43,15 @@ const useAuthStore = create<AuthState>((set, get) => ({
 
     try {
       const response = await apiService.login(email, password);
-      console.log("Login response from API :", JSON.stringify(response));
 
       if (response.success) {
-        const userData = response.data.user || response.data;
-        const token = response.data.token;
+        const userData = response.data.data?.user;
+        const token = response.data?.data?.token;
 
-        // Store user data in AsyncStorage
-        await AsyncStorage.setItem("userData", JSON.stringify(userData));
+        // Store both in AsyncStorage
+        if (userData) {
+          await AsyncStorage.setItem("userData", JSON.stringify(userData));
+        }
         if (token) {
           await AsyncStorage.setItem("authToken", token);
         }

@@ -23,7 +23,6 @@ class ApiService {
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
-        console.log("API Request:", config.method?.toUpperCase(), config.url);
         return config;
       },
       (error) => {
@@ -208,16 +207,18 @@ class ApiService {
         });
       }
 
-      // Make request with multipart/form-data
+      const token = useAuthStore.getState().token;
+
       const response = await this.api.post("/api/hostels", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${token}`,
         },
       });
 
       return {
         success: true,
-        data: response.data,
+        data: response,
       };
     } catch (error: any) {
       console.error("Create Hostel Error:", error);
