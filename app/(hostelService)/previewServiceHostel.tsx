@@ -1,12 +1,15 @@
+// PreviewServiceHostel.tsx
 import CommonButton from "@/components/CommonButton";
 import CommonHeader from "@/components/CommonHeader";
 import { AMENITY_ICONS, DEFAULT_AMENITY_ICON } from "@/constants/iconMappings";
 import { fonts } from "@/constants/typography";
-
+import { useHostel } from "@/context/HostelProvider";
+import apiService from "@/services/apiService";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
+  Alert,
   Dimensions,
   FlatList,
   Image,
@@ -14,42 +17,97 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 
 const { width } = Dimensions.get("window");
 
-// Demo data
-const demoHostelData = {
-  id: 1,
-  name: "Premium Student Hostel",
-  rating: 4.5,
-  reviews: 120,
-  type: "Boys Hostel",
-  location: "Downtown",
-  sublocation: "Near Medical College",
-  totalRooms: 50,
-  availableBeds: 12,
-  totalBeds: 100,
-  description:
-    "A well-maintained boys hostel with all modern amenities. Located in a prime area with easy access to colleges and hospitals. Safe and secure environment with 24/7 security.",
-  price: "₹8500/month",
-  offer: 15,
-  deposit: "₹15000",
-  images: [
-    "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=500",
-    "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=500",
-    "https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?w=500",
-  ],
-  amenities: ["WiFi", "Meals", "Security", "Study Hall", "Common TV", "CCTV"],
-  rulesAndPolicies:
-    "No smoking inside premises. Visitors allowed till 8 PM. Mess timing: 7-10 AM, 12-2 PM, 7-9 PM. Maintain cleanliness in common areas.",
-  fullAddress: "123 Main Street, Downtown, City - 560001",
-};
-
 export default function PreviewServiceHostel() {
-  const [data] = useState(demoHostelData);
+  const { getCompleteHostelData, clearHostelData } = useHostel();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Get data from context
+  const hostelData = getCompleteHostelData();
+
+  // Convert context data to preview format
+  const data = {
+    id: 1,
+    name: hostelData?.hostelName || "Preview Hostel",
+    rating: 0,
+    reviews: 0,
+    type:
+      hostelData?.hostelType === "boys"
+        ? "Boys Hostel"
+        : hostelData?.hostelType === "girls"
+        ? "Girls Hostel"
+        : "Co-ed Hostel",
+    location: hostelData?.location || "Location",
+    sublocation: hostelData?.nearbyLandmarks || "",
+    totalRooms: 1,
+    availableBeds: 1,
+    totalBeds: 1,
+    description: hostelData?.description || "No description provided",
+    price: `₹${hostelData?.monthlyPrice || 0}/month`,
+    pricePerDay: hostelData?.pricePerDay || 0,
+    weeklyPrice: hostelData?.weeklyPrice || 0,
+    offer: hostelData?.offers ? parseInt(hostelData.offers) : 0,
+    deposit: `₹${hostelData?.securityDeposit || 0}`,
+    images: hostelData?.photos?.map((photo: any) => photo.uri) || [
+      "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=500",
+    ],
+    amenities: Object.entries(hostelData?.amenities || {})
+      .filter(([_, value]) => value)
+      .map(([key]) => {
+        const amenityMap: { [key: string]: string } = {
+          wifi: "WiFi",
+          meals: "Meals",
+          security: "Security",
+          studyHall: "Study Hall",
+          commonTV: "Common TV",
+          cctv: "CCTV",
+          acRooms: "AC Rooms",
+          laundry: "Laundry",
+        };
+        return amenityMap[key] || key;
+      }),
+    rulesAndPolicies: hostelData?.rulesText || "No rules specified",
+    fullAddress: hostelData?.fullAddress || "No address provided",
+    phoneNumber: hostelData?.phoneNumber || "Not provided",
+    whatsappNumber: hostelData?.whatsappNumber || "Not provided",
+  };
+
+  // Handle Create Listing
+  const handleCreateListing = async () => {
+    try {
+      setIsSubmitting(true);
+
+      const completeData = getCompleteHostelData();
+
+      if (!completeData) {
+        Alert.alert("Error", "No data to submit");
+        return;
+      }
+
+      // Submit to API
+      const response = await apiService.createHostelListing(completeData);
+
+      if (response.success) {
+        // Clear the context data
+        clearHostelData();
+        // Navigate to success page
+        router.replace("/(hostelService)/successful");
+      } else {
+        Alert.alert("Error", response.error || "Failed to create listing");
+      }
+    } catch (error) {
+      console.error("Submit error:", error);
+      Alert.alert("Error", "An unexpected error occurred");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   // ==================== IMAGE CAROUSEL SECTION ====================
   const renderImageCarousel = () => {
@@ -98,12 +156,6 @@ export default function PreviewServiceHostel() {
       {/* Title */}
       <View style={styles.titleContainer}>
         <Text style={styles.title}>{data.name}</Text>
-        {/* <View style={styles.ratingContainer}>
-          <Ionicons name="star" size={16} color="#FFA500" />
-          <Text style={styles.rating}>
-            {data.rating} ({data.reviews})
-          </Text>
-        </View> */}
       </View>
 
       {/* Tags for Hostel */}
@@ -145,14 +197,14 @@ export default function PreviewServiceHostel() {
   const renderPricingSection = () => (
     <View style={styles.pricingBox}>
       <View style={styles.priceRow}>
-        <Text style={styles.oldPrice}>₹300/day</Text>
+        <Text style={styles.oldPrice}>₹{data.pricePerDay}/day</Text>
       </View>
       <View style={styles.priceRow}>
-        <Text style={styles.oldPrice}>₹2000/week</Text>
+        <Text style={styles.oldPrice}>₹{data.weeklyPrice}/week</Text>
       </View>
       <View style={styles.priceMainRow}>
         <Text style={styles.currentPrice}>{data.price}</Text>
-        {data.offer && (
+        {data.offer > 0 && (
           <View style={styles.discountBadge}>
             <Text style={styles.discountText}>{data.offer}% OFF</Text>
           </View>
@@ -174,31 +226,17 @@ export default function PreviewServiceHostel() {
         <View style={styles.facilitiesContainer}>
           <View style={styles.facilitiesGrid}>
             {data.amenities?.map((amenity: any, index: number) => {
-              const amenityName =
-                typeof amenity === "string" ? amenity : amenity.name;
-              const isAvailable =
-                typeof amenity === "string"
-                  ? true
-                  : amenity.available !== false;
-              const iconName =
-                AMENITY_ICONS[amenityName] || DEFAULT_AMENITY_ICON;
+              const iconName = AMENITY_ICONS[amenity] || DEFAULT_AMENITY_ICON;
 
               return (
                 <View key={index} style={styles.facilityItem}>
                   <Ionicons
                     name={iconName as any}
                     size={20}
-                    color={isAvailable ? "#333" : "#ccc"}
+                    color="#333"
                     style={styles.facilityIcon}
                   />
-                  <Text
-                    style={[
-                      styles.facilityText,
-                      !isAvailable && styles.unavailableFacility,
-                    ]}
-                  >
-                    {amenityName}
-                  </Text>
+                  <Text style={styles.facilityText}>{amenity}</Text>
                 </View>
               );
             })}
@@ -216,32 +254,31 @@ export default function PreviewServiceHostel() {
             color="#FFA726"
             style={styles.rulesIcon}
           />
-          <Text style={styles.rulesText}>
-            {data.rulesAndPolicies ||
-              "No smoking inside premises. Visitors allowed till 8 PM. Mess timing: 7-10 AM, 12-2 PM, 7-9 PM. Maintain cleanliness in common areas."}
-          </Text>
+          <Text style={styles.rulesText}>{data.rulesAndPolicies}</Text>
         </View>
       </View>
 
       {/* Location */}
       <View style={[styles.section, styles.locationSection]}>
         <Text style={styles.sectionTitle}>Location</Text>
-        <View style={[styles.locationBox , {marginTop:12}]}>
-          <Text style={styles.locationTitle}>Near Medical College</Text>
-          <Text style={styles.locationAddress}>
-            {data.fullAddress || `${data.sublocation}, ${data.location}`}
+        <View style={[styles.locationBox, { marginTop: 12 }]}>
+          <Text style={styles.locationTitle}>
+            {data.sublocation || "Near Medical College"}
           </Text>
+          <Text style={styles.locationAddress}>{data.fullAddress}</Text>
         </View>
       </View>
     </View>
   );
+
+  // ==================== CONTACT INFO SECTION ====================
   const renderContactInfo = () => (
     <View style={styles.infoContainer}>
       <Text style={styles.infoHeaderTitle}>Contact Information</Text>
       <View style={styles.infoBoxsub}>
         <View style={styles.infoBox}>
           <Ionicons name="call-outline" size={20} color="#0A051F" />
-          <Text style={styles.infoValue}>9893464946</Text>
+          <Text style={styles.infoValue}>{data.phoneNumber}</Text>
         </View>
         <View style={styles.infoBox}>
           <Ionicons
@@ -249,7 +286,7 @@ export default function PreviewServiceHostel() {
             size={20}
             color="#0A051F"
           />
-          <Text style={styles.infoValue}>9893464946</Text>
+          <Text style={styles.infoValue}>{data.whatsappNumber}</Text>
         </View>
       </View>
     </View>
@@ -258,17 +295,36 @@ export default function PreviewServiceHostel() {
   // ==================== BOTTOM BUTTONS SECTION ====================
   const renderBottomButtons = () => (
     <>
-    <View style={{ width: "100%", marginTop: 20 }}>
-      <CommonButton
-        buttonStyle={{ marginHorizontal: 16 }}
-        title="+ Create Hostel Listing"
-        onPress={() => {
-          router.push("/(tabs)/(dashboard)");
+      <View style={{ width: "100%", marginTop: 20 }}>
+        <CommonButton
+          buttonStyle={{ marginHorizontal: 16 }}
+          title={
+            isSubmitting ? "Creating Listing..." : "+ Create Hostel Listing"
+          }
+          onPress={handleCreateListing}
+          disabled={isSubmitting}
+        />
+      </View>
+      <TouchableOpacity
+        style={styles.editButton}
+        onPress={() => router.back()}
+        disabled={isSubmitting}
+      >
+        <Text style={styles.editButtonText}>← Back to Edit</Text>
+      </TouchableOpacity>
+      <Text
+        style={{
+          fontSize: 12,
+          fontFamily: fonts.interRegular,
+          color: "#666",
+          textAlign: "center",
+          marginTop: 8,
+          marginBottom: 20,
         }}
-      />
-    </View>
-          <Text style={{fontSize:12 , fontFamily:fonts.interRegular , color:'#666' , textAlign:'center' , marginTop:8}}>Your listing will be reviewed and approved within 24 hours</Text>
-</>
+      >
+        Your listing will be reviewed and approved within 24 hours
+      </Text>
+    </>
   );
 
   // ==================== MAIN RENDER ====================
@@ -288,14 +344,11 @@ export default function PreviewServiceHostel() {
     </SafeAreaView>
   );
 }
-
-// ==================== STYLES ====================
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
   },
-  // Image carousel styles
   imageContainer: {
     height: 250,
     position: "relative",
@@ -373,7 +426,7 @@ const styles = StyleSheet.create({
   tagText: {
     fontSize: 12,
     color: "#fff",
-    fontFamily:fonts.interMedium,
+    fontFamily: fonts.interMedium,
   },
   locationTag: {
     flexDirection: "row",
@@ -399,7 +452,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#666",
     marginRight: 12,
-    fontFamily:fonts.interMedium,
+    fontFamily: fonts.interMedium,
     lineHeight: 20,
     paddingVertical: 8,
   },
@@ -412,7 +465,7 @@ const styles = StyleSheet.create({
     color: "#666060",
     lineHeight: 20,
     marginBottom: 16,
-    fontFamily:fonts.interRegular
+    fontFamily: fonts.interRegular,
   },
 
   // Pricing styles
@@ -432,11 +485,11 @@ const styles = StyleSheet.create({
   oldPrice: {
     fontSize: 12,
     color: "#666",
-    fontFamily:fonts.interMedium
+    fontFamily: fonts.interMedium,
   },
   currentPrice: {
     fontSize: 20,
-    fontFamily:fonts.interSemibold,
+    fontFamily: fonts.interSemibold,
     color: "#004AAD",
   },
   discountBadge: {
@@ -448,15 +501,15 @@ const styles = StyleSheet.create({
   discountText: {
     fontSize: 12,
     color: "#fff",
-    fontFamily:fonts.interRegular,
+    fontFamily: fonts.interRegular,
   },
   depositNote: {
     fontSize: 10,
     color: "#666",
     marginTop: 8,
     lineHeight: 18,
-    fontFamily:fonts.interMedium,
-    maxWidth:257
+    fontFamily: fonts.interMedium,
+    maxWidth: 257,
   },
 
   // Details container
@@ -527,8 +580,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     flexDirection: "row",
     alignItems: "flex-start",
-    borderWidth:1,
-    borderColor:'#DE9809'
+    borderWidth: 1,
+    borderColor: "#DE9809",
   },
   rulesIcon: {
     marginTop: 2,
@@ -539,7 +592,7 @@ const styles = StyleSheet.create({
     color: "#DE9809",
     flex: 1,
     // lineHeight: 20,
-    fontFamily:fonts.interMedium
+    fontFamily: fonts.interMedium,
   },
 
   // Location section styles
@@ -557,14 +610,14 @@ const styles = StyleSheet.create({
   },
   locationTitle: {
     fontSize: 12,
-    fontFamily:fonts.interMedium,
+    fontFamily: fonts.interMedium,
     marginBottom: 4,
     color: "#666060",
   },
   locationAddress: {
     fontSize: 12,
     color: "#666",
-    fontFamily:fonts.interMedium,
+    fontFamily: fonts.interMedium,
     marginBottom: 4,
     lineHeight: 20,
   },
@@ -585,7 +638,7 @@ const styles = StyleSheet.create({
     borderColor: "#E0E0E0",
     borderRadius: 20,
     padding: 6,
-    justifyContent:'center'
+    justifyContent: "center",
   },
   infoHeaderTitle: {
     fontSize: 16,
@@ -597,14 +650,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    marginTop:8
+    marginTop: 8,
   },
   infoValue: {
     fontSize: 14,
     color: "#0A051F",
     lineHeight: 20,
-    padding:5,
-    fontFamily:fonts.interMedium
+    padding: 5,
+    fontFamily: fonts.interMedium,
   },
   // Bottom buttons styles
   bottomContainer: {
@@ -619,5 +672,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 12,
     width: "100%",
+  },
+  // Add this to the styles at the bottom:
+  editButton: {
+    padding: 16,
+    alignItems: "center",
+  },
+  editButtonText: {
+    color: "#FF6B35",
+    fontSize: 14,
+    fontFamily: fonts.interMedium,
   },
 });

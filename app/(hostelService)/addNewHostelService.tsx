@@ -7,9 +7,12 @@ import { Colors } from "@/constants/Colors";
 import { fonts } from "@/constants/typography";
 import { useHostel } from "@/context/HostelProvider";
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
+  Alert,
+  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -34,6 +37,7 @@ const AddNewHostelService = () => {
   const [roomNo, setRoomNo] = useState("");
   const [monthlyDining, setMonthlyDining] = useState(0);
   const [roomDetails, setRoomDetails] = useState("");
+  const [roomPhotos, setRoomPhotos] = useState<any[]>([]);
   const [amenities, setAmenities] = useState({
     wifi: false,
     meals: false,
@@ -44,6 +48,34 @@ const AddNewHostelService = () => {
     acRooms: false,
     laundry: false,
   });
+
+  const pickRoomImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+        allowsMultipleSelection: false,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const newPhoto = {
+          uri: result.assets[0].uri,
+          type: "image/jpeg",
+          name: `room_photo_${Date.now()}.jpg`,
+        };
+        setRoomPhotos([...roomPhotos, newPhoto]);
+      }
+    } catch (error) {
+      console.error("Image picker error:", error);
+      Alert.alert("Error", "Failed to pick image");
+    }
+  };
+
+  const removeRoomPhoto = (index: number) => {
+    setRoomPhotos(roomPhotos.filter((_, i) => i !== index));
+  };
 
   const handleNext = () => {
     setCreateHostelPage1Data({
@@ -59,6 +91,7 @@ const AddNewHostelService = () => {
       monthlyDining,
       roomDetails,
       amenities,
+      roomPhotos,
     });
     router.push("/(hostelService)/addNewHostelService1");
   };
@@ -75,6 +108,7 @@ const AddNewHostelService = () => {
     setRoomNo("");
     setMonthlyDining(0);
     setRoomDetails("");
+    setRoomPhotos([]);
     setAmenities({
       wifi: false,
       meals: false,
@@ -169,7 +203,6 @@ const AddNewHostelService = () => {
               containerStyle={styles.inputContainer}
               inputContainerStyle={styles.inputBox}
             />
-
             <Text style={[styles.inputLabel, styles.marginTop16]}>
               Hostel Type *
             </Text>
@@ -184,7 +217,6 @@ const AddNewHostelService = () => {
               setValue={setHostelType}
               placeholder="Select Hostel Type"
             />
-
             <LabeledInput
               label="Description *"
               placeholder="Describe your hostel, amenities, and what makes it special..."
@@ -215,7 +247,7 @@ const AddNewHostelService = () => {
               onChange={setPricePerDay}
               step={1}
               min={50}
-              max={500}
+              max={5000}
             />
             <StepperInput
               label="Weekly Price (₹)*"
@@ -223,7 +255,7 @@ const AddNewHostelService = () => {
               onChange={setWeeklyPrice}
               step={1}
               min={50}
-              max={500}
+              max={5000}
             />
           </View>
 
@@ -234,7 +266,7 @@ const AddNewHostelService = () => {
               onChange={setMonthlyPrice}
               step={1}
               min={50}
-              max={500}
+              max={50000}
             />
             <StepperInput
               label="Security Deposit (₹)*"
@@ -242,7 +274,7 @@ const AddNewHostelService = () => {
               onChange={setSecurityDeposit}
               step={1}
               min={50}
-              max={500}
+              max={50000}
             />
           </View>
 
@@ -272,16 +304,47 @@ const AddNewHostelService = () => {
                 <Text style={styles.photosLabel}>Photos</Text>
               </View>
 
-              <TouchableOpacity style={styles.uploadButton}>
+              {roomPhotos.length > 0 && (
+                <View style={styles.photosGrid}>
+                  {roomPhotos.map((photo, index) => (
+                    <View key={index} style={styles.photoContainer}>
+                      <Image
+                        source={{ uri: photo.uri }}
+                        style={styles.photoPreview}
+                      />
+                      <TouchableOpacity
+                        style={styles.removePhotoButton}
+                        onPress={() => removeRoomPhoto(index)}
+                      >
+                        <Ionicons
+                          name="close-circle"
+                          size={24}
+                          color="#FF0000"
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              <TouchableOpacity
+                style={styles.uploadButton}
+                onPress={pickRoomImage}
+              >
                 <Text style={styles.uploadText}>Upload photo</Text>
                 <Text style={styles.uploadSubtext}>
                   Upload clear photo of Room
                 </Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.addMorePhotos}>
-                <Text style={styles.addMorePhotosText}>+ Add More Image</Text>
-              </TouchableOpacity>
+              {roomPhotos.length > 0 && roomPhotos.length < 5 && (
+                <TouchableOpacity
+                  style={styles.addMorePhotos}
+                  onPress={pickRoomImage}
+                >
+                  <Text style={styles.addMorePhotosText}>+ Add More Image</Text>
+                </TouchableOpacity>
+              )}
             </View>
 
             <View style={styles.roomDetailsRow}>
@@ -300,7 +363,7 @@ const AddNewHostelService = () => {
                 onChange={setMonthlyDining}
                 step={1}
                 min={50}
-                max={500}
+                max={10000}
               />
             </View>
 
@@ -427,7 +490,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     paddingHorizontal: 14,
   },
-  offersContainer: { marginTop: 4 },
+  offersContainer: { marginTop: 4, paddingHorizontal: 14 },
   subContainer: {
     paddingBottom: 60,
     borderColor: "#A5A5A5",
@@ -454,6 +517,29 @@ const styles = StyleSheet.create({
     fontFamily: fonts.interMedium,
     color: "#374151",
     marginLeft: 8,
+  },
+  photosGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginBottom: 10,
+  },
+  photoContainer: {
+    position: "relative",
+    width: 80,
+    height: 80,
+  },
+  photoPreview: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 8,
+  },
+  removePhotoButton: {
+    position: "absolute",
+    top: -8,
+    right: -8,
+    backgroundColor: "white",
+    borderRadius: 12,
   },
   uploadButton: {
     borderWidth: 1,

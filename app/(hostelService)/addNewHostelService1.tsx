@@ -4,11 +4,14 @@ import LabeledInput from "@/components/labeledInput";
 import { Colors } from "@/constants/Colors";
 import { fonts } from "@/constants/typography";
 import { useHostel } from "@/context/HostelProvider";
+import apiService from "@/services/apiService";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
+  Alert,
+  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -20,7 +23,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 const AddNewHostelService1 = () => {
   const router = useRouter();
-  const { createHostelPage1Data } = useHostel();
+  const { setCreateHostelPage2Data, getCompleteHostelData, clearHostelData } =
+    useHostel();
+
   const [rulesText, setRulesText] = useState("");
   const [locationOpen, setLocationOpen] = useState(false);
   const [location, setLocation] = useState(null);
@@ -34,14 +39,60 @@ const AddNewHostelService1 = () => {
   const [fullAddress, setFullAddress] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [whatsappNumber, setWhatsappNumber] = useState("");
+  const [photos, setPhotos] = useState<any[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  console.log({ createHostelPage1Data });
+  const handleSubmit = async () => {
+    try {
+      // Validate required fields
+      if (!phoneNumber || !whatsappNumber || !fullAddress) {
+        Alert.alert("Error", "Please fill all required fields");
+        return;
+      }
 
-  const handleSubmit = () => {
-    console.log("Form submitted");
-    // const formData = new FormData();
-    // formData.append("name", name);
-    // formData.append("hostelType", hostelType)
+      setIsSubmitting(true);
+
+      // Save page 2 data
+      setCreateHostelPage2Data({
+        rulesText,
+        location,
+        nearbyLandmarks,
+        fullAddress,
+        phoneNumber,
+        whatsappNumber,
+        photos,
+      });
+
+      // Get complete data including room photos from page 1
+      const page1Data = getCompleteHostelData();
+      const completeData = {
+        ...page1Data,
+        rulesText,
+        location,
+        nearbyLandmarks,
+        fullAddress,
+        phoneNumber,
+        whatsappNumber,
+        photos,
+      };
+
+      // Submit to API
+      const response = await apiService.createHostelListing(completeData);
+
+      if (response.success) {
+        // Clear context data
+        clearHostelData();
+        // Navigate to success page
+        router.replace("/(hostelService)/successful");
+      } else {
+        Alert.alert("Error", response.error || "Failed to submit listing");
+      }
+    } catch (error) {
+      console.error("Submit error:", error);
+      Alert.alert("Error", "An unexpected error occurred");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const resetForm = () => {
@@ -51,24 +102,49 @@ const AddNewHostelService1 = () => {
     setFullAddress("");
     setPhoneNumber("");
     setWhatsappNumber("");
+    setPhotos([]);
   };
 
   const handlePreview = () => {
+    // Save current page data before preview
+    setCreateHostelPage2Data({
+      rulesText,
+      location,
+      nearbyLandmarks,
+      fullAddress,
+      phoneNumber,
+      whatsappNumber,
+      photos,
+    });
     router.push("/(hostelService)/previewServiceHostel");
   };
 
   const pickImage = async () => {
-    // No permissions request is necessary for launching the image library
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsEditing: true,
-    });
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+        allowsMultipleSelection: false,
+      });
 
-    console.log(result);
-
-    if (!result.canceled) {
-      // setImage(result.assets[0].uri);
+      if (!result.canceled && result.assets[0]) {
+        const newPhoto = {
+          uri: result.assets[0].uri,
+          type: "image/jpeg",
+          name: `photo_${Date.now()}.jpg`,
+        };
+        setPhotos([...photos, newPhoto]);
+      }
+    } catch (error) {
+      console.error("Image picker error:", error);
+      Alert.alert("Error", "Failed to pick image");
     }
+  };
+
+  const removePhoto = (index: number) => {
+    setPhotos(photos.filter((_, i) => i !== index));
   };
 
   return (
@@ -93,7 +169,6 @@ const AddNewHostelService1 = () => {
             <Ionicons name="document-text-outline" size={20} color="#374151" />
             <View>
               <Text style={styles.sectionHeader}>Rules & Policies</Text>
-              {/* <Text style={styles.infoTitle}></Text> */}
             </View>
           </View>
           <View>
@@ -105,10 +180,12 @@ const AddNewHostelService1 = () => {
               multiline
               textAlignVertical="top"
               labelStyle={styles.inputLabel}
-              inputContainerStyle={{ height: 64, backgroundColor: "#fff" }}
+              inputContainerStyle={{
+                height: 100,
+                backgroundColor: "#fff",
+                paddingTop: 12,
+              }}
               containerStyle={{ paddingHorizontal: 0 }}
-              // inputStyle={{height:90}}
-              // multiline
             />
           </View>
         </View>
@@ -120,16 +197,46 @@ const AddNewHostelService1 = () => {
             <Text style={styles.sectionHeader}>Photos</Text>
           </View>
 
-          <TouchableOpacity style={styles.uploadButton} onPress={pickImage}>
-            <Text style={styles.uploadText}>Upload photo</Text>
-            <Text style={styles.uploadSubtext}>
-              Upload clear photo of your Hostel
-            </Text>
-          </TouchableOpacity>
+          {photos.length > 0 && (
+            <View style={styles.photosGrid}>
+              {photos.map((photo, index) => (
+                <View key={index} style={styles.photoContainer}>
+                  <Image
+                    source={{ uri: photo.uri }}
+                    style={styles.photoPreview}
+                  />
+                  <TouchableOpacity
+                    style={styles.removePhotoButton}
+                    onPress={() => removePhoto(index)}
+                  >
+                    <Ionicons name="close-circle" size={24} color="#FF0000" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
 
-          <TouchableOpacity style={styles.addMorePhotos}>
-            <Text style={styles.addMorePhotosText}>+ Add More Photo</Text>
-          </TouchableOpacity>
+          {photos.length < 5 && (
+            <>
+              <TouchableOpacity style={styles.uploadButton} onPress={pickImage}>
+                <Text style={styles.uploadText}>Upload photo</Text>
+                <Text style={styles.uploadSubtext}>
+                  Upload clear photo of your Hostel
+                </Text>
+              </TouchableOpacity>
+
+              {photos.length > 0 && photos.length < 5 && (
+                <TouchableOpacity
+                  style={styles.addMorePhotos}
+                  onPress={pickImage}
+                >
+                  <Text style={styles.addMorePhotosText}>
+                    + Add More Photo ({5 - photos.length} remaining)
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </>
+          )}
         </View>
 
         {/* Location Details Section */}
@@ -169,14 +276,18 @@ const AddNewHostelService1 = () => {
           />
 
           <LabeledInput
-            label="Full Address"
+            label="Full Address *"
             placeholder="Enter complete address with pincode"
             value={fullAddress}
             onChangeText={setFullAddress}
             multiline
             textAlignVertical="top"
             labelStyle={styles.inputLabel}
-            inputContainerStyle={{ height: 64, backgroundColor: "#fff" }}
+            inputContainerStyle={{
+              height: 64,
+              backgroundColor: "#fff",
+              paddingTop: 12,
+            }}
             containerStyle={{ paddingHorizontal: 0 }}
           />
         </View>
@@ -194,6 +305,7 @@ const AddNewHostelService1 = () => {
             value={phoneNumber}
             onChangeText={setPhoneNumber}
             keyboardType="phone-pad"
+            maxLength={10}
             labelStyle={styles.inputLabel}
             inputContainerStyle={styles.inputBox}
             containerStyle={styles.inputContainer}
@@ -205,6 +317,7 @@ const AddNewHostelService1 = () => {
             value={whatsappNumber}
             onChangeText={setWhatsappNumber}
             keyboardType="phone-pad"
+            maxLength={10}
             labelStyle={styles.inputLabel}
             inputContainerStyle={styles.inputBox}
             containerStyle={styles.inputContainer}
@@ -212,16 +325,16 @@ const AddNewHostelService1 = () => {
         </View>
 
         <CommonButton
-          title="Submit Listing"
+          title={isSubmitting ? "Submitting..." : "Submit Listing"}
           onPress={handleSubmit}
-          buttonStyle={styles.submitButton}
+          buttonStyle={[styles.submitButton, isSubmitting && { opacity: 0.7 }]}
+          disabled={isSubmitting}
         />
 
         <TouchableOpacity
           style={styles.previewButton}
-          onPress={() => {
-            handlePreview();
-          }}
+          onPress={handlePreview}
+          disabled={isSubmitting}
         >
           <Text style={styles.previewText}>Preview</Text>
         </TouchableOpacity>
@@ -244,11 +357,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 20,
     backgroundColor: Colors.white,
-    // paddingBottom: 65,
   },
   sectionHeaderContainer: {
     flexDirection: "row",
-
     marginBottom: 16,
     gap: 8,
   },
@@ -258,42 +369,23 @@ const styles = StyleSheet.create({
     color: "#111827",
     marginLeft: 8,
   },
-  infoTitle: {
-    fontSize: 14,
-    fontFamily: fonts.interMedium,
-    marginBottom: 4,
-  },
   inputLabel: {
     color: Colors.title,
     fontSize: 14,
     fontFamily: fonts.interMedium,
     marginBottom: 8,
-    // alignItems: "center",
-    // justifyContent: "center",
   },
   inputContainer: {
     marginTop: 12,
     paddingHorizontal: 0,
-    // alignItems: "center",
-    // justifyContent: "center",
   },
-
   inputBox: {
     backgroundColor: "#F9FAFB",
     borderColor: "#E5E7EB",
     borderWidth: 1,
-    // height: 48,
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
-  },
-  textArea: {
-    minHeight: 100,
-    paddingTop: 12,
-  },
-  textAreaInput: {
-    minHeight: 80,
-    textAlignVertical: "top",
   },
   uploadButton: {
     borderWidth: 1,
@@ -324,6 +416,29 @@ const styles = StyleSheet.create({
     color: "#FF6B35",
     fontFamily: fonts.interMedium,
     fontSize: 14,
+  },
+  photosGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginBottom: 16,
+  },
+  photoContainer: {
+    position: "relative",
+    width: 100,
+    height: 100,
+  },
+  photoPreview: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 8,
+  },
+  removePhotoButton: {
+    position: "absolute",
+    top: -8,
+    right: -8,
+    backgroundColor: "white",
+    borderRadius: 12,
   },
   dropdownContainer: {
     marginBottom: 16,
