@@ -9,6 +9,7 @@ interface CommonButtonProps {
   onPress: () => void;
   buttonStyle?: ViewStyle | ViewStyle[];
   textStyle?: TextStyle | TextStyle[];
+  disabled?: boolean;
 }
 
 const CommonButton: React.FC<CommonButtonProps> = ({
@@ -16,14 +17,26 @@ const CommonButton: React.FC<CommonButtonProps> = ({
   onPress,
   buttonStyle,
   textStyle,
+  disabled = false,
 }) => {
   return (
     <TouchableOpacity
-      style={[styles.button, buttonStyle]}
+      style={[
+        styles.button, 
+        buttonStyle, 
+        disabled && styles.disabledButton
+      ]}
       onPress={onPress}
       activeOpacity={0.8}
+      disabled={disabled}
     >
-      <Text style={[styles.text, textStyle]}>{title}</Text>
+      <Text style={[
+        styles.text, 
+        textStyle,
+        disabled && styles.disabledText
+      ]}>
+        {title}
+      </Text>
     </TouchableOpacity>
   );
 };
@@ -40,7 +53,13 @@ const styles = StyleSheet.create({
   text: {
     color: Colors.white,
     fontSize: 14,
-    fontFamily:fonts.interBold
+    fontFamily: fonts.interBold
+  },
+  disabledButton: {
+    opacity: 0.6,
+  },
+  disabledText: {
+    opacity: 0.6,
   },
 });
 

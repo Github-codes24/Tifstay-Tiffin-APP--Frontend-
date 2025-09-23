@@ -1,4 +1,3 @@
-import * as React from "react";
 
 export const Images = {
   logo: require("@/assets/images/logo.png"),
@@ -12,6 +11,7 @@ export const Images = {
   email: require("@/assets/images/email.png"),
   profile: require("@/assets/images/profile.png"),
   openeye: require("@/assets/images/eye.png"),
+  closeeye: require("@/assets/images/closeeye.png"),
   lock: require("@/assets/images/lock.png"),
   dashboard: require("@/assets/images/dashboard.png"),
   earnings: require("@/assets/images/earnings.png"),

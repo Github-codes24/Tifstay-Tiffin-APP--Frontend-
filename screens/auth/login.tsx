@@ -142,7 +142,7 @@ export default function Login() {
           title={isLoading ? "Signing in..." : "Continue"}
           buttonStyle={[
             { marginHorizontal: 16, marginTop: 8 },
-            isLoading && { opacity: 0.7 },
+            ...(isLoading ? [{ opacity: 0.7 }] : []),
           ]}
           onPress={handleLogin}
           disabled={isLoading}
@@ -150,7 +150,7 @@ export default function Login() {
       </View>
 
       <View style={styles.footer}>
-        <Text style={styles.footerText}>Don't have an account? </Text>
+        <Text style={styles.footerText}>{"Don't have an account?"} </Text>
         <TouchableOpacity
           onPress={() => {
             router.push("/register");

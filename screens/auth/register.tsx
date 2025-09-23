@@ -191,7 +191,7 @@ export default function Register() {
             title={isLoading ? "Creating Account..." : "Continue"}
             buttonStyle={[
               { marginHorizontal: 16, marginTop: 24 },
-              isLoading && { opacity: 0.7 },
+              isLoading ? { opacity: 0.7 } : {},
             ]}
             onPress={handleRegister}
             disabled={isLoading}

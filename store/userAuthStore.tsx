@@ -151,6 +151,7 @@ const useAuthStore = create<AuthState>((set, get) => ({
       });
       AsyncStorage.removeItem("authToken");
       AsyncStorage.removeItem("userData");
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       set({ isLoading: false });
     }
