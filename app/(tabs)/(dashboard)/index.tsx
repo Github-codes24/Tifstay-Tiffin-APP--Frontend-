@@ -6,6 +6,7 @@ import { Colors } from "@/constants/Colors";
 import { Images } from "@/constants/Images";
 import { IS_IOS } from "@/constants/Platform";
 import { fonts } from "@/constants/typography";
+import useAuthStore from "@/store/userAuthStore";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
@@ -20,76 +21,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const hostels = {
-  id: 1,
-  name: "Scholars Den Boys Hostel",
-  type: "Boys Hostel",
-  location: "Dharampeth",
-  sublocation: "Near VNIT, Medical College",
-  price: "₹8000/",
-  deposit: "₹15000",
-  availableBeds: 8,
-  totalBeds: 30,
-  district: "Nagpur",
-  images: [
-    "https://images.unsplash.com/photo-1606491956689-2ea866880c84?w=500&q=80",
-    "https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=500&q=80",
-    "https://images.unsplash.com/photo-1601050690597-df0568f70950?w=500&q=80",
-  ],
-  rating: 4.7,
-  reviewCount: 52,
-  amenities: [
-    "WiFi",
-    "Mess",
-    "Security",
-    "Laundry",
-    "Study Hall",
-    "Common TV",
-    "Power Backup",
-  ],
-  image: "hostel1",
-  description:
-    "A well-maintained boys hostel with all modern amenities. Located in a prime area with easy access to colleges and hospitals. Safe and secure environment with 24/7 security.",
-  fullAddress: "123, Green Valley Road, Dharampeth, Nagpur - 440010",
-  facilities: [
-    { name: "Mess", available: true },
-    { name: "Study Hall", available: true },
-    { name: "Common TV", available: true },
-    { name: "Laundry", available: true },
-  ],
-  rulesAndPolicies:
-    "No smoking inside premises. Visitors allowed to 8 PM. Main closing: 7:30 AM - 10:30 PM. 7-9 PM Number breakdown in common areas.",
-  userReviews: [
-    {
-      id: 1,
-      name: "Autumn Phillips",
-      rating: 5,
-      date: "Monday, June 16, 2025",
-      comment:
-        "I stayed for 2 weeks—home away comfort, Wi-Fi was responsive, and Wi-Fi was fast. Highly recommend for students!",
-    },
-    {
-      id: 2,
-      name: "Rhonda Rhodes",
-      rating: 4,
-      date: "Wednesday, March 12, 2025",
-      comment:
-        "Budget-friendly with 24/7 security. Shared kitchen was a plus. Minor plumbing issue, but it was fixed quickly.",
-    },
-    {
-      id: 3,
-      name: "Patricia Sanders",
-      rating: 5,
-      date: "Friday, April 11, 2025",
-      comment:
-        "A cozy living space in Dharampeth. Lots of food options nearby and peaceful environment for studying.",
-    },
-  ],
-  "oldPrice ": "₹12000/month",
-  offer: 10,
-};
-
 export default function ServiceOfflineScreen() {
+  const { hostelList, getHostelList } = useAuthStore();
   const [isOnline, setIsOnline] = useState(false);
   const [provider, setProvider] = useState<any>(null);
   const getProvider = useCallback(async () => {
@@ -100,7 +33,8 @@ export default function ServiceOfflineScreen() {
 
   useEffect(() => {
     getProvider();
-  }, [getProvider]);
+    getHostelList();
+  }, [getProvider, getHostelList]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -295,12 +229,18 @@ export default function ServiceOfflineScreen() {
                 ? "My Tiffin/Restaurant"
                 : "My PG/Hostel"}
             </Text>
-            <Text style={styles.serviceCount}>1 service</Text>
+            <Text style={styles.serviceCount}>
+              {hostelList?.length} service
+            </Text>
           </View>
           {provider === "tiffinProvider" ? (
             <TiffinCard />
           ) : (
-            <HostelCard hostel={hostels} />
+            <>
+              {hostelList?.map((hostel: any) => (
+                <HostelCard hostel={hostel} key={hostel._id} />
+              ))}
+            </>
           )}
           <CommonButton
             title="+ Add New Service"

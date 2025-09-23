@@ -1,4 +1,3 @@
-// services/apiService.tsx
 import useAuthStore from "@/store/userAuthStore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios, { AxiosInstance } from "axios";
@@ -226,6 +225,23 @@ class ApiService {
         success: false,
         error:
           error.response?.data?.message || "Failed to create hostel listing.",
+      };
+    }
+  }
+
+  async getHostelList() {
+    try {
+      const response = await this.api.get("/api/hostels");
+      console.log("Hostel List:", response.data);
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error("Get Hostel List Error:", error);
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to get hostel list.",
       };
     }
   }

@@ -1,3 +1,4 @@
+import { Hostel } from "@/types/hostel";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import apiService from "../services/apiService";
@@ -7,6 +8,7 @@ interface User {
   name: string;
   email: string;
   profile: "tiffin_provider" | "hostel_owner";
+  hostelList: Hostel[];
   // Add other user properties as needed
 }
 
@@ -17,7 +19,7 @@ interface AuthState {
   isLoading: boolean;
   error: string | null;
   hasSeenSplash: boolean;
-
+  hostelList: Hostel[];
   // Actions
   login: (email: string, password: string) => Promise<any>;
   register: (
@@ -32,16 +34,68 @@ interface AuthState {
   setUser: (user: User) => void;
   setSplashSeen: () => Promise<void>;
   checkSplashStatus: () => Promise<void>;
+  getHostelList: () => Promise<any>;
 }
 
 const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   token: null,
   isAuthenticated: false,
+  hostelList: [],
   isLoading: false,
   error: null,
   hasSeenSplash: false,
+  checkAuthStatus: async () => {
+    try {
+      const [token, userDataString] = await Promise.all([
+        AsyncStorage.getItem("authToken"),
+        AsyncStorage.getItem("userData"),
+      ]);
 
+      if (token && userDataString) {
+        const userData = JSON.parse(userDataString);
+        set({
+          user: userData,
+          token: token,
+          isAuthenticated: true,
+        });
+
+        // Optionally verify token with backend
+        const response = await apiService.getCurrentUser();
+        if (response.success) {
+          set({ user: response.data });
+        }
+      }
+    } catch (error) {
+      console.error("Error checking auth status:", error);
+      set({
+        user: null,
+        token: null,
+        isAuthenticated: false,
+      });
+    }
+  },
+
+  setUser: (user: User) => set({ user }),
+
+  setSplashSeen: async () => {
+    try {
+      await AsyncStorage.setItem("hasSeenSplash", "true");
+      set({ hasSeenSplash: true });
+    } catch (error) {
+      console.error("Error setting splash seen status:", error);
+    }
+  },
+
+  checkSplashStatus: async () => {
+    try {
+      const hasSeenSplash = await AsyncStorage.getItem("hasSeenSplash");
+      set({ hasSeenSplash: hasSeenSplash === "true" });
+    } catch (error) {
+      console.error("Error checking splash status:", error);
+      set({ hasSeenSplash: false });
+    }
+  },
   login: async (email: string, password: string) => {
     set({ isLoading: true, error: null });
 
@@ -136,6 +190,35 @@ const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
+  getHostelList: async () => {
+    set({ isLoading: true });
+
+    try {
+      const response = await apiService.getHostelList();
+
+      if (response.success) {
+        set({
+          hostelList: response.data?.data,
+          isLoading: false,
+          error: null,
+        });
+        return { success: true };
+      } else {
+        set({
+          isLoading: false,
+          error: response.error,
+        });
+        return { success: false, error: response.error };
+      }
+    } catch (error: any) {
+      set({
+        isLoading: false,
+        error: error.message || "Failed to fetch hostel list",
+      });
+      return { success: false, error: error.message };
+    }
+  },
+
   logout: async () => {
     set({ isLoading: true });
 
@@ -158,58 +241,6 @@ const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   clearError: () => set({ error: null }),
-
-  checkAuthStatus: async () => {
-    try {
-      const [token, userDataString] = await Promise.all([
-        AsyncStorage.getItem("authToken"),
-        AsyncStorage.getItem("userData"),
-      ]);
-
-      if (token && userDataString) {
-        const userData = JSON.parse(userDataString);
-        set({
-          user: userData,
-          token: token,
-          isAuthenticated: true,
-        });
-
-        // Optionally verify token with backend
-        const response = await apiService.getCurrentUser();
-        if (response.success) {
-          set({ user: response.data });
-        }
-      }
-    } catch (error) {
-      console.error("Error checking auth status:", error);
-      set({
-        user: null,
-        token: null,
-        isAuthenticated: false,
-      });
-    }
-  },
-
-  setUser: (user: User) => set({ user }),
-
-  setSplashSeen: async () => {
-    try {
-      await AsyncStorage.setItem("hasSeenSplash", "true");
-      set({ hasSeenSplash: true });
-    } catch (error) {
-      console.error("Error setting splash seen status:", error);
-    }
-  },
-
-  checkSplashStatus: async () => {
-    try {
-      const hasSeenSplash = await AsyncStorage.getItem("hasSeenSplash");
-      set({ hasSeenSplash: hasSeenSplash === "true" });
-    } catch (error) {
-      console.error("Error checking splash status:", error);
-      set({ hasSeenSplash: false });
-    }
-  },
 }));
 
 export default useAuthStore;
