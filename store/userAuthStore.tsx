@@ -16,6 +16,7 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
+  hasSeenSplash: boolean;
 
   // Actions
   login: (email: string, password: string) => Promise<any>;
@@ -29,6 +30,8 @@ interface AuthState {
   clearError: () => void;
   checkAuthStatus: () => Promise<void>;
   setUser: (user: User) => void;
+  setSplashSeen: () => Promise<void>;
+  checkSplashStatus: () => Promise<void>;
 }
 
 const useAuthStore = create<AuthState>((set, get) => ({
@@ -37,6 +40,7 @@ const useAuthStore = create<AuthState>((set, get) => ({
   isAuthenticated: false,
   isLoading: false,
   error: null,
+  hasSeenSplash: false,
 
   login: async (email: string, password: string) => {
     set({ isLoading: true, error: null });
@@ -186,6 +190,25 @@ const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   setUser: (user: User) => set({ user }),
+
+  setSplashSeen: async () => {
+    try {
+      await AsyncStorage.setItem("hasSeenSplash", "true");
+      set({ hasSeenSplash: true });
+    } catch (error) {
+      console.error("Error setting splash seen status:", error);
+    }
+  },
+
+  checkSplashStatus: async () => {
+    try {
+      const hasSeenSplash = await AsyncStorage.getItem("hasSeenSplash");
+      set({ hasSeenSplash: hasSeenSplash === "true" });
+    } catch (error) {
+      console.error("Error checking splash status:", error);
+      set({ hasSeenSplash: false });
+    }
+  },
 }));
 
 export default useAuthStore;

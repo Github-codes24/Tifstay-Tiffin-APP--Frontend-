@@ -1,24 +1,25 @@
-import React, { useRef, useState } from "react";
+import { router } from "expo-router";
+import React, { useEffect, useRef, useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  Image,
-  FlatList,
   Dimensions,
-  SafeAreaView,
+  FlatList,
+  Image,
+  ImageBackground,
+  ListRenderItem,
   NativeScrollEvent,
   NativeSyntheticEvent,
-  ListRenderItem,
-  ImageBackground,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
-import { router } from "expo-router";
 
 import CommonButton from "@/components/CommonButton";
 import { Colors } from "@/constants/Colors";
 import { Images } from "@/constants/Images";
 import { IS_ANDROID, IS_IOS } from "@/constants/Platform";
 import { fonts } from "@/constants/typography";
+import useAuthStore from "@/store/userAuthStore";
 
 const { width } = Dimensions.get("window");
 
@@ -52,6 +53,27 @@ const slides: Slide[] = [
 export default function Splash() {
   const flatListRef = useRef<FlatList<Slide>>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const { hasSeenSplash, checkSplashStatus, setSplashSeen, isAuthenticated, checkAuthStatus } = useAuthStore();
+
+  useEffect(() => {
+    const initializeApp = async () => {
+      await checkSplashStatus();
+      await checkAuthStatus();
+    };
+    
+    initializeApp();
+  }, []);
+
+  useEffect(() => {
+    if (hasSeenSplash) {
+      // If splash has been seen before, navigate directly to appropriate screen
+      if (isAuthenticated) {
+        router.replace("/(tabs)");
+      } else {
+        router.replace("/loginoption");
+      }
+    }
+  }, [hasSeenSplash, isAuthenticated]);
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const slideIndex = Math.round(event.nativeEvent.contentOffset.x / width);
@@ -83,7 +105,10 @@ export default function Splash() {
           <CommonButton
             title="Get Started"
             buttonStyle={styles.commonButton}
-            onPress={() => router.push("/loginoption")}
+            onPress={async () => {
+              await setSplashSeen();
+              router.push("/loginoption");
+            }}
           />
         </View>
       );
