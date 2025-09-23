@@ -22,7 +22,12 @@ const amenityIcons: { [key: string]: string } = {
   Gym: "fitness",
   Parking: "car",
 };
-
+const handleView = (hostel: Hostel) => {
+  router.push({
+    pathname: "/hostelDetails",
+    params: { id: hostel._id }, // ✅ pass hostel id
+  });
+};
 export default function HostelCard({
   hostel,
   onPress,
@@ -101,7 +106,7 @@ export default function HostelCard({
           <View style={styles.actions}>
             <TouchableOpacity
               style={styles.button}
-              onPress={() => router.navigate("./hostelDetails")}
+              onPress={() => handleView(hostel)}
             >
               <Image source={Images.view} style={styles.btnIcon} />
               <Text style={styles.btnText}>View</Text>

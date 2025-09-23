@@ -1,11 +1,14 @@
-// PreviewServiceHostel.tsx
 import CommonHeader from "@/components/CommonHeader";
+import { Colors } from "@/constants/Colors";
 import { AMENITY_ICONS, DEFAULT_AMENITY_ICON } from "@/constants/iconMappings";
 import { fonts } from "@/constants/typography";
+import useAuthStore from "@/store/userAuthStore";
+import { Hostel } from "@/types/hostel";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
-import React, { useState } from "react";
+import { router, useLocalSearchParams } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Dimensions,
   FlatList,
   Image,
@@ -15,24 +18,72 @@ import {
   Text,
   View,
 } from "react-native";
-import useAuthStore from "../../store/userAuthStore";
 
 const { width } = Dimensions.get("window");
 
 export default function HostelDetails() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const { hostelList, getHostelList, isLoading, error } = useAuthStore();
+  const [hostel, setHostel] = useState<Hostel | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  // Get data from context
-  const { hostelList } = useAuthStore();
+  useEffect(() => {
+    const fetchHostels = async () => {
+      if (hostelList.length === 0) {
+        await getHostelList();
+      }
+    };
+    fetchHostels();
+  }, []);
+
+  useEffect(() => {
+    if (id && hostelList.length > 0) {
+      const found = hostelList.find((h) => h._id === id);
+      setHostel(found || null);
+    }
+  }, [id, hostelList]);
+
+  if (isLoading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.error}>{error}</Text>
+      </View>
+    );
+  }
+
+  if (!hostel) {
+    return (
+      <View style={styles.center}>
+        <Text>No hostel found</Text>
+      </View>
+    );
+  }
 
   // ==================== IMAGE CAROUSEL SECTION ====================
   const renderImageCarousel = () => {
     const imageWidth = width - 32;
+    const hasImages = hostel.photos && hostel.photos.length > 0;
+
+    if (!hasImages) {
+      return (
+        <View style={[styles.imageContainer, styles.noImageContainer]}>
+          <Text style={styles.noImageText}>No Image Available</Text>
+        </View>
+      );
+    }
 
     return (
       <View style={styles.imageContainer}>
         <FlatList
-          data={hostelList?.images}
+          data={hostel.photos}
           horizontal
           pagingEnabled
           showsHorizontalScrollIndicator={false}
@@ -45,23 +96,29 @@ export default function HostelDetails() {
             setCurrentImageIndex(index);
           }}
           renderItem={({ item }) => (
-            <Image source={{ uri: item }} style={styles.image} />
+            <Image
+              source={{ uri: `${item}` }}
+              style={styles.image}
+              defaultSource={require("../../assets/images/home.png")}
+            />
           )}
           keyExtractor={(item, index) => index.toString()}
         />
 
         {/* Pagination dots */}
-        <View style={styles.pagination}>
-          {hostelList?.images.map((_: any, index: number) => (
-            <View
-              key={index}
-              style={[
-                styles.paginationDot,
-                currentImageIndex === index && styles.paginationDotActive,
-              ]}
-            />
-          ))}
-        </View>
+        {hostel.photos.length > 1 && (
+          <View style={styles.pagination}>
+            {hostel.photos.map((_: any, index: number) => (
+              <View
+                key={index}
+                style={[
+                  styles.paginationDot,
+                  currentImageIndex === index && styles.paginationDotActive,
+                ]}
+              />
+            ))}
+          </View>
+        )}
       </View>
     );
   };
@@ -71,40 +128,43 @@ export default function HostelDetails() {
     <View style={styles.basicInfo}>
       {/* Title */}
       <View style={styles.titleContainer}>
-        <Text style={styles.title}>{hostelList.name}</Text>
+        <Text style={styles.title}>{hostel.name}</Text>
       </View>
 
       {/* Tags for Hostel */}
       <View style={styles.tagsContainer}>
         <View style={styles.tag}>
-          <Text style={styles.tagText}>{hostelList?.hostelType}</Text>
+          <Text style={styles.tagText}>{hostel.hostelType}</Text>
         </View>
         <View style={styles.locationTag}>
           <Ionicons name="location-outline" size={16} color="#666" />
-          <Text style={styles.locationTagText}>{hostelList?.location}</Text>
-        </View>
-      </View>
-
-      {/* Hostel-specific location info */}
-      {hostelList?.sublocation && (
-        <Text style={styles.sublocation}>{hostelList?.sublocation}</Text>
-      )}
-
-      {/* Hostel room availability */}
-      <View style={styles.roomAvailability}>
-        <Text style={styles.roomText}>
-          Total Rooms: {hostelList?.totalRooms}
-        </Text>
-        <View style={styles.bedInfo}>
-          <Ionicons name="bed-outline" size={16} color="#666" />
-          <Text style={styles.roomText}>
-            {hostelList?.availableBeds}/{hostelList?.totalBeds} bed available
+          <Text style={styles.locationTagText}>
+            {hostel.location.area || hostel.location.fullAddress}
           </Text>
         </View>
       </View>
 
+      {/* Hostel-specific location info */}
+      {hostel.location.landmark && (
+        <Text style={styles.sublocation}>{hostel.location.landmark}</Text>
+      )}
+
+      {/* Hostel room availability */}
+      <View style={styles.roomAvailability}>
+        <Text style={styles.roomText}>Total Rooms: {hostel.rooms.length}</Text>
+        {hostel.rooms.length > 0 && (
+          <View style={styles.bedInfo}>
+            <Ionicons name="bed-outline" size={16} color="#666" />
+            <Text style={styles.roomText}>
+              {hostel.rooms.reduce((total, room) => total + room.noOfBeds, 0)}{" "}
+              total beds
+            </Text>
+          </View>
+        )}
+      </View>
+
       {/* Description */}
-      <Text style={styles.description}>{hostelList?.description}</Text>
+      <Text style={styles.description}>{hostel.description}</Text>
 
       {/* Pricing Section */}
       {renderPricingSection()}
@@ -112,74 +172,98 @@ export default function HostelDetails() {
   );
 
   // ==================== PRICING SECTION ====================
-  const renderPricingSection = () => (
-    <View style={styles.pricingBox}>
-      <View style={styles.priceRow}>
-        <Text style={styles.oldPrice}>₹{hostelList?.pricePerDay}/day</Text>
-      </View>
-      <View style={styles.priceRow}>
-        <Text style={styles.oldPrice}>₹{hostelList?.weeklyPrice}/week</Text>
-      </View>
-      <View style={styles.priceMainRow}>
-        <Text style={styles.currentPrice}>{hostelList?.price}</Text>
-        {hostelList?.offer > 0 && (
-          <View style={styles.discountBadge}>
-            <Text style={styles.discountText}>{hostelList?.offer}% OFF</Text>
-          </View>
+  const renderPricingSection = () => {
+    if (!hostel.pricing || hostel.pricing.length === 0) {
+      return null;
+    }
+
+    const pricing = hostel.pricing[0];
+    const hasOffer = pricing.offer && pricing.offer.trim() !== "";
+
+    return (
+      <View style={styles.pricingBox}>
+        <View style={styles.priceMainRow}>
+          <Text style={styles.currentPrice}>
+            ₹{pricing.price}/{pricing.type}
+          </Text>
+          {hasOffer && (
+            <View style={styles.discountBadge}>
+              <Text style={styles.discountText}>{pricing.offer}</Text>
+            </View>
+          )}
+        </View>
+        {pricing.securityDeposit > 0 && (
+          <Text style={styles.depositNote}>
+            Note: You have to pay security deposit of ₹{pricing.securityDeposit}{" "}
+            on {pricing.type} booking. It will be refunded to you on check-out.
+          </Text>
         )}
       </View>
-    </View>
-  );
+    );
+  };
 
   // ==================== HOSTEL DETAILS SECTION ====================
   const renderHostelDetails = () => (
     <View style={styles.detailsContainer}>
       {/* Facilities & Amenities */}
-      <View style={[styles.section, styles.facilitiesSection]}>
-        <Text style={styles.sectionTitle}>Facilities & Amenities</Text>
-        <View style={styles.facilitiesContainer}>
-          <View style={styles.facilitiesGrid}>
-            {hostelList?.amenities?.map((amenity: any, index: number) => {
-              const iconName = AMENITY_ICONS[amenity] || DEFAULT_AMENITY_ICON;
+      {hostel.facilities && hostel.facilities.length > 0 && (
+        <View style={[styles.section, styles.facilitiesSection]}>
+          <Text style={styles.sectionTitle}>Facilities & Amenities</Text>
+          <View style={styles.facilitiesContainer}>
+            <View style={styles.facilitiesGrid}>
+              {hostel.facilities.map((facility: string, index: number) => {
+                const iconName =
+                  AMENITY_ICONS[facility] || DEFAULT_AMENITY_ICON;
 
-              return (
-                <View key={index} style={styles.facilityItem}>
-                  <Ionicons
-                    name={iconName as any}
-                    size={20}
-                    color="#333"
-                    style={styles.facilityIcon}
-                  />
-                  <Text style={styles.facilityText}>{amenity}</Text>
-                </View>
-              );
-            })}
+                return (
+                  <View key={index} style={styles.facilityItem}>
+                    <Ionicons
+                      name={iconName as any}
+                      size={20}
+                      color="#333"
+                      style={styles.facilityIcon}
+                    />
+                    <Text style={styles.facilityText}>{facility}</Text>
+                  </View>
+                );
+              })}
+            </View>
           </View>
         </View>
-      </View>
+      )}
 
       {/* Rules & Policies */}
-      <View style={[styles.section, styles.rulesSection]}>
-        <Text style={styles.sectionTitle}>Rules & Policies</Text>
-        <View style={styles.rulesBox}>
-          <Ionicons
-            name="alert-circle"
-            size={20}
-            color="#FFA726"
-            style={styles.rulesIcon}
-          />
-          <Text style={styles.rulesText}>{hostelList?.rulesAndPolicies}</Text>
+      {hostel.rules && hostel.rules.length > 0 && (
+        <View style={[styles.section, styles.rulesSection]}>
+          <Text style={styles.sectionTitle}>Rules & Policies</Text>
+          <View style={styles.rulesBox}>
+            <Ionicons
+              name="alert-circle"
+              size={20}
+              color="#FFA726"
+              style={styles.rulesIcon}
+            />
+            <View style={styles.rulesContent}>
+              {hostel.rules.map((rule: string, index: number) => (
+                <Text key={index} style={styles.rulesText}>
+                  • {rule}
+                </Text>
+              ))}
+            </View>
+          </View>
         </View>
-      </View>
+      )}
 
       {/* Location */}
       <View style={[styles.section, styles.locationSection]}>
         <Text style={styles.sectionTitle}>Location</Text>
         <View style={[styles.locationBox, { marginTop: 12 }]}>
           <Text style={styles.locationTitle}>
-            {hostelList?.sublocation || "Near Medical College"}
+            {hostel.location.landmark || hostel.location.area}
           </Text>
-          <Text style={styles.locationAddress}>{hostelList?.fullAddress}</Text>
+          <Text style={styles.locationAddress}>
+            {hostel.location.fullAddress}
+          </Text>
         </View>
       </View>
     </View>
@@ -192,7 +276,7 @@ export default function HostelDetails() {
       <View style={styles.infoBoxsub}>
         <View style={styles.infoBox}>
           <Ionicons name="call-outline" size={20} color="#0A051F" />
-          <Text style={styles.infoValue}>{hostelList?.phoneNumber}</Text>
+          <Text style={styles.infoValue}>{hostel.contact.phone}</Text>
         </View>
         <View style={styles.infoBox}>
           <Ionicons
@@ -200,7 +284,7 @@ export default function HostelDetails() {
             size={20}
             color="#0A051F"
           />
-          <Text style={styles.infoValue}>{hostelList?.whatsappNumber}</Text>
+          <Text style={styles.infoValue}>{hostel.contact.whatsapp}</Text>
         </View>
       </View>
     </View>
@@ -210,7 +294,7 @@ export default function HostelDetails() {
   return (
     <SafeAreaView style={styles.container}>
       <CommonHeader
-        title="Preview Hostel Service"
+        title="Hostel Details"
         onActionPress={() => router.back()}
       />
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -222,10 +306,20 @@ export default function HostelDetails() {
     </SafeAreaView>
   );
 }
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
+  },
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  error: {
+    color: "red",
+    fontSize: 16,
   },
   imageContainer: {
     height: 250,
@@ -234,6 +328,16 @@ const styles = StyleSheet.create({
     marginVertical: 16,
     borderRadius: 15,
     overflow: "hidden",
+  },
+  noImageContainer: {
+    backgroundColor: "#f0f0f0",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  noImageText: {
+    fontSize: 16,
+    color: "#999",
+    fontFamily: fonts.interMedium,
   },
   image: {
     width: width - 32,
@@ -465,12 +569,15 @@ const styles = StyleSheet.create({
     marginTop: 2,
     marginRight: 10,
   },
+  rulesContent: {
+    flex: 1,
+  },
   rulesText: {
     fontSize: 12,
     color: "#DE9809",
-    flex: 1,
-    // lineHeight: 20,
     fontFamily: fonts.interMedium,
+    lineHeight: 20,
+    marginBottom: 4,
   },
 
   // Location section styles
@@ -535,30 +642,6 @@ const styles = StyleSheet.create({
     color: "#0A051F",
     lineHeight: 20,
     padding: 5,
-    fontFamily: fonts.interMedium,
-  },
-  // Bottom buttons styles
-  bottomContainer: {
-    paddingHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 16,
-    alignItems: "center",
-  },
-  primaryButton: {
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: "center",
-    marginBottom: 12,
-    width: "100%",
-  },
-  // Add this to the styles at the bottom:
-  editButton: {
-    padding: 16,
-    alignItems: "center",
-  },
-  editButtonText: {
-    color: "#FF6B35",
-    fontSize: 14,
     fontFamily: fonts.interMedium,
   },
 });

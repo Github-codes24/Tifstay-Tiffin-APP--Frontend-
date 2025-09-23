@@ -1,4 +1,3 @@
-// PreviewServiceHostel.tsx
 import CommonButton from "@/components/CommonButton";
 import CommonHeader from "@/components/CommonHeader";
 import { AMENITY_ICONS, DEFAULT_AMENITY_ICON } from "@/constants/iconMappings";
