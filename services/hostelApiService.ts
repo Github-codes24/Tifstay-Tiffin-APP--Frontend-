@@ -267,6 +267,21 @@ class ApiService {
       };
     }
   }
+
+  async getUserProfile() {
+    try {
+      const response = await this.api.get("api/hostelOwner/getOwnerProfile");
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to get user data",
+      };
+    }
+  }
 }
 
 export default new ApiService();

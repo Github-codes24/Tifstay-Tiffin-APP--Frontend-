@@ -1,40 +1,43 @@
 import React from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
   Image,
-  TouchableOpacity,
-  ScrollView,
   SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
-
-import { router } from "expo-router";
+import { Colors } from "@/constants/Colors";
 import { Images } from "@/constants/Images";
 import { fonts } from "@/constants/typography";
-import { Colors } from "@/constants/Colors";
+import useAuthStore from "@/store/authStore";
+import { router } from "expo-router";
 
 const MyProfileScreen = () => {
+  const { user } = useAuthStore();
   return (
     <SafeAreaView style={styles.container}>
-     
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.profileSection}>
-          <Image source={Images.user} style={styles.profileImage} />
-          <Text style={styles.profileName}>Maharashtrian Ghar Ka Khana</Text>
+          <Image
+            source={{ uri: user?.profileImage }}
+            style={styles.profileImage}
+          />
+          <Text style={styles.profileName}>{user?.fullName}</Text>
         </View>
 
         <View style={styles.infoCard}>
           <InfoRow
             icon={Images.name}
             label="Name"
-            value="Maharashtrian Ghar Ka Khana"
+            value={user?.fullName || ""}
           />
           <InfoRow
             icon={Images.email1}
             label="Email"
-            value="maharashtrian@gmail.com"
+            value={user?.email || ""}
           />
           <InfoRow
             icon={Images.phone}
@@ -44,12 +47,18 @@ const MyProfileScreen = () => {
           <InfoRow
             icon={Images.bank}
             label="Bank Details"
-            value={`98765432101\nSBIN0001234\nSavings\nMahesh Pawar`}
+            value={`${user?.bankDetails.accountNumber || ""}\n${
+              user?.bankDetails.ifscCode || ""
+            }\n${user?.bankDetails.accountType || ""}\n${
+              user?.bankDetails.bankName || ""
+            }\n${user?.bankDetails.accountHolderName || ""}`}
           />
         </View>
 
-        <MenuItem label="Manage Profile" icon={Images.manage} 
-        onPress={() => router.push("/(accountScreens)/edit")}
+        <MenuItem
+          label="Manage Profile"
+          icon={Images.manage}
+          onPress={() => router.push("/(accountScreens)/edit")}
         />
 
         <MenuItem
@@ -133,7 +142,7 @@ const styles = StyleSheet.create({
   },
   profileName: {
     fontSize: 18,
-    fontFamily:fonts.interSemibold,
+    fontFamily: fonts.interSemibold,
     marginTop: 12,
   },
   infoCard: {
@@ -158,13 +167,13 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 14,
-    fontFamily:fonts.interSemibold,
+    fontFamily: fonts.interSemibold,
     color: Colors.title,
     marginBottom: 2,
   },
   infoValue: {
     fontSize: 12,
-    fontFamily:fonts.interMedium,
+    fontFamily: fonts.interMedium,
     color: Colors.grey,
     lineHeight: 20,
   },
@@ -191,7 +200,7 @@ const styles = StyleSheet.create({
   },
   menuText: {
     fontSize: 14,
-    fontFamily:fonts.interSemibold,
+    fontFamily: fonts.interSemibold,
     color: Colors.title,
   },
   arrowIcon: {

@@ -22,12 +22,13 @@ import {
 } from "react-native";
 
 const AccountScreen = () => {
+  const { logout, user } = useAuthStore();
   const [darkMode, setDarkMode] = useState(false);
   const [logoutVisible, setLogoutVisible] = useState(false);
   const [provider, setProvider] = useState<any>(null);
-  const [profileImage, setProfileImage] = useState<string | null>(null);
-
-  const { logout } = useAuthStore();
+  const [profileImage, setProfileImage] = useState<string | null>(
+    user?.profileImage ?? null
+  );
 
   const getProvider = useCallback(async () => {
     const serviceType = await AsyncStorage.getItem("userServiceType");
@@ -103,7 +104,7 @@ const AccountScreen = () => {
           <Text style={styles.title}>
             {provider === "tiffinProvider"
               ? "Maharashtrian Ghar Ka Khana"
-              : "Green Valley Boys Hostel"}
+              : user?.fullName}
           </Text>
         </View>
 

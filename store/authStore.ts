@@ -6,10 +6,17 @@ import tiffinApiService from "../services/tiffinApiServices";
 
 interface User {
   id: string;
-  name: string;
+  fullName: string;
   email: string;
-  profile: "tiffin_provider" | "hostel_owner";
   hostelList: Hostel[];
+  profileImage: string;
+  bankDetails: {
+    accountType: string;
+    accountNumber: string;
+    ifscCode: string;
+    bankName: string;
+    accountHolderName: string;
+  };
   // Add other user properties as needed
 }
 
@@ -40,6 +47,7 @@ interface AuthState {
   setSplashSeen: () => Promise<void>;
   checkSplashStatus: () => Promise<void>;
   getHostelList: () => Promise<any>;
+  getUserProfile: (type: "hostel_owner" | "tiffin_provider") => Promise<any>;
 }
 
 const useAuthStore = create<AuthState>((set, get) => ({
@@ -118,8 +126,8 @@ const useAuthStore = create<AuthState>((set, get) => ({
       }
 
       if (response.success) {
-        const userData = response.data.data?.user;
-        const token = response.data?.data?.token;
+        const userData = type === "hostel_owner" ? response.data?.hostelOwner : response.data?.tiffinProvider;
+        const token = response.data?.token;
 
         // Store both in AsyncStorage
         if (userData) {
@@ -171,8 +179,8 @@ const useAuthStore = create<AuthState>((set, get) => ({
       }
 
       if (response.success) {
-        const userData = response.data.user || response.data;
-        const token = response.data.token;
+        const userData = profile === "hostel_owner" ? response.data?.hostelOwner : response.data?.tiffinProvider;
+        const token = response.data?.token;
 
         // Store user data in AsyncStorage
         await AsyncStorage.setItem("userData", JSON.stringify(userData));
@@ -200,6 +208,40 @@ const useAuthStore = create<AuthState>((set, get) => ({
       set({
         isLoading: false,
         error: error.message || "Registration failed",
+      });
+      return { success: false, error: error.message };
+    }
+  },
+
+  getUserProfile: async (type: "hostel_owner" | "tiffin_provider") => {
+    set({ isLoading: true });
+
+    try {
+      let response;
+      if (type === "hostel_owner") {
+        response = await hostelApiService.getUserProfile();
+      } else {
+        response = await tiffinApiService.getUserProfile();
+      }
+      console.log("User Profile:", response.data);
+      if (response.success) {
+        set({
+          user: response.data?.hostelOwner,
+          isLoading: false,
+          error: null,
+        });
+        return { success: true };
+      } else {
+        set({
+          isLoading: false,
+          error: response.error,
+        });
+        return { success: false, error: response.error };
+      }
+    } catch (error: any) {
+      set({
+        isLoading: false,
+        error: error.message || "Failed to fetch user profile",
       });
       return { success: false, error: error.message };
     }

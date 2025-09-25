@@ -10,7 +10,7 @@ import useAuthStore from "@/store/authStore";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Image,
   ScrollView,
@@ -22,36 +22,40 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ServiceOfflineScreen() {
-  const { hostelList, getHostelList } = useAuthStore();
+  const { hostelList, getHostelList, getUserProfile, user } = useAuthStore();
   const [isOnline, setIsOnline] = useState(false);
-  const [provider, setProvider] = useState<any>(null);
-  const getProvider = useCallback(async () => {
-    const serviceType = await AsyncStorage.getItem("userServiceType");
-    setProvider(serviceType);
-    console.log("Selected Service:", serviceType);
+  const [type, setType] = useState<"hostel_owner" | "tiffin_provider">(
+    "hostel_owner"
+  );
+  const isTiffinProvider = type === "tiffin_provider";
+
+  useEffect(() => {
+    AsyncStorage.getItem("userServiceType").then((type) => {
+      if (type) {
+        setType(type === "hostelOwner" ? "hostel_owner" : "tiffin_provider");
+      }
+    });
   }, []);
 
   useEffect(() => {
-    getProvider();
     getHostelList();
-  }, [getProvider, getHostelList]);
+    getUserProfile(type);
+  }, [type, getHostelList, getUserProfile]);
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <Image
-          source={provider === "tiffinProvider" ? Images.user : Images.hostel1}
+          source={isTiffinProvider ? Images.user : { uri: user?.profileImage }}
           style={styles.logo}
         />
         <View style={styles.headerText}>
           <Text style={styles.title}>
-            {provider === "tiffinProvider"
-              ? "Maharashtrian Ghar Ka Khana"
-              : "Green Valley Boys Hostel"}
+            {isTiffinProvider ? "Maharashtrian Ghar Ka Khana" : user?.fullName}
           </Text>
           <Text style={styles.subtitle}>
-            {provider === "tiffinProvider"
+            {isTiffinProvider
               ? "Manage your tiffin services"
               : "Manage your hostel properties"}
           </Text>
@@ -61,7 +65,7 @@ export default function ServiceOfflineScreen() {
           onPress={() => {
             setIsOnline(!isOnline); // toggle online/offline
             // if you want navigation only when going online
-            if (!isOnline && provider === "tiffinProvider") {
+            if (!isOnline && isTiffinProvider) {
               router.push("/(tabs)/(dashboard)/service");
             }
           }}
@@ -93,16 +97,14 @@ export default function ServiceOfflineScreen() {
           <View style={styles.statsRow}>
             <View style={styles.card}>
               <Image
-                source={
-                  provider === "tiffinProvider" ? Images.order : Images.hostel
-                }
+                source={isTiffinProvider ? Images.order : Images.hostel}
                 style={styles.icon24}
               />
               <Text style={[styles.cardNumber, { color: Colors.primary }]}>
                 02
               </Text>
               <Text style={[styles.cardText, { color: Colors.primary }]}>
-                {provider === "tiffinProvider" ? "New Orders" : "Total Hostels"}
+                {isTiffinProvider ? "New Orders" : "Total Hostels"}
               </Text>
             </View>
             <View style={styles.card}>
@@ -111,7 +113,7 @@ export default function ServiceOfflineScreen() {
                 0
               </Text>
               <Text style={[styles.cardText, { color: Colors.orange }]}>
-                {provider === "tiffinProvider" ? "Order Request" : "Request"}
+                {isTiffinProvider ? "Order Request" : "Request"}
               </Text>
             </View>
           </View>
@@ -119,25 +121,21 @@ export default function ServiceOfflineScreen() {
           <View style={[styles.statsRow, { marginBottom: 24 }]}>
             <View style={styles.card}>
               <Image
-                source={
-                  provider === "tiffinProvider" ? Images.complete : Images.bad
-                }
+                source={isTiffinProvider ? Images.complete : Images.bad}
                 style={styles.icon24}
               />
               <Text style={[styles.cardNumber, { color: Colors.green }]}>
                 01
               </Text>
               <Text style={[styles.cardText, { color: Colors.green }]}>
-                {provider === "tiffinProvider"
-                  ? "Completed Orders"
-                  : "Accepted"}
+                {isTiffinProvider ? "Completed Orders" : "Accepted"}
               </Text>
             </View>
             <View style={styles.card}>
               <Image source={Images.cancel} style={styles.icon24} />
               <Text style={[styles.cardNumber, { color: Colors.red }]}>01</Text>
               <Text style={[styles.cardText, { color: Colors.red }]}>
-                {provider === "tiffinProvider" ? "Canceled Orders" : "Canceled"}
+                {isTiffinProvider ? "Canceled Orders" : "Canceled"}
               </Text>
             </View>
           </View>
@@ -155,7 +153,7 @@ export default function ServiceOfflineScreen() {
                   { backgroundColor: Colors.primary },
                 ]}
                 onPress={() => {
-                  provider === "tiffinProvider"
+                  isTiffinProvider
                     ? router.push("/(service)/addNewService")
                     : router.push("/(hostelService)/addNewHostelService");
                 }}
@@ -225,15 +223,13 @@ export default function ServiceOfflineScreen() {
           <View style={styles.serviceHeader}>
             <Text style={styles.serviceTitle}>
               {" "}
-              {provider === "tiffinProvider"
-                ? "My Tiffin/Restaurant"
-                : "My PG/Hostel"}
+              {isTiffinProvider ? "My Tiffin/Restaurant" : "My PG/Hostel"}
             </Text>
             <Text style={styles.serviceCount}>
               {hostelList?.length} service
             </Text>
           </View>
-          {provider === "tiffinProvider" ? (
+          {isTiffinProvider ? (
             <TiffinCard />
           ) : (
             <>
@@ -245,7 +241,7 @@ export default function ServiceOfflineScreen() {
           <CommonButton
             title="+ Add New Service"
             onPress={() => {
-              provider === "tiffinProvider"
+              isTiffinProvider
                 ? router.push("/(service)/addNewService")
                 : router.push("/(hostelService)/addNewHostelService");
             }}
