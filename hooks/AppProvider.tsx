@@ -1,7 +1,7 @@
 import { Colors } from "@/constants/Colors";
 import React, { useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
-import useAuthStore from "../store/userAuthStore";
+import useAuthStore from "../store/authStore";
 
 export default function AuthProvider({
   children,

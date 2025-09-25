@@ -19,7 +19,7 @@ import { Colors } from "@/constants/Colors";
 import { Images } from "@/constants/Images";
 import { IS_ANDROID, IS_IOS } from "@/constants/Platform";
 import { fonts } from "@/constants/typography";
-import useAuthStore from "@/store/userAuthStore";
+import useAuthStore from "@/store/authStore";
 
 const { width } = Dimensions.get("window");
 
@@ -53,14 +53,20 @@ const slides: Slide[] = [
 export default function Splash() {
   const flatListRef = useRef<FlatList<Slide>>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const { hasSeenSplash, checkSplashStatus, setSplashSeen, isAuthenticated, checkAuthStatus } = useAuthStore();
+  const {
+    hasSeenSplash,
+    checkSplashStatus,
+    setSplashSeen,
+    isAuthenticated,
+    checkAuthStatus,
+  } = useAuthStore();
 
   useEffect(() => {
     const initializeApp = async () => {
       await checkSplashStatus();
       await checkAuthStatus();
     };
-    
+
     initializeApp();
   }, []);
 
@@ -89,7 +95,11 @@ export default function Splash() {
             style={styles.splashBg}
             resizeMode="cover"
           >
-            <Image source={item.image} style={styles.logo} resizeMode="contain" />
+            <Image
+              source={item.image}
+              style={styles.logo}
+              resizeMode="contain"
+            />
           </ImageBackground>
         </View>
       );
@@ -98,10 +108,18 @@ export default function Splash() {
     if (item.type === "onboarding") {
       return (
         <View style={styles.slide}>
-          <Image source={Images.logo} style={styles.appLogo} resizeMode="contain" />
+          <Image
+            source={Images.logo}
+            style={styles.appLogo}
+            resizeMode="contain"
+          />
           <Text style={styles.title}>{item.title}</Text>
           <Text style={styles.description}>{item.description}</Text>
-          <Image source={item.image} style={styles.foodImage} resizeMode="cover" />
+          <Image
+            source={item.image}
+            style={styles.foodImage}
+            resizeMode="cover"
+          />
           <CommonButton
             title="Get Started"
             buttonStyle={styles.commonButton}
@@ -153,7 +171,7 @@ const styles = StyleSheet.create({
   },
   splashBg: {
     width: "100%",
-    height: IS_IOS ? '95%' : '90%',
+    height: IS_IOS ? "95%" : "90%",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -179,7 +197,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.interSemibold,
     marginBottom: 12,
     textAlign: "center",
-    color:Colors.title
+    color: Colors.title,
   },
   description: {
     fontSize: 16,

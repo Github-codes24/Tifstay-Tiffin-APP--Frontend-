@@ -6,6 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import Animated from "react-native-reanimated";
 
 interface HostelCardProps {
   hostel: Hostel;
@@ -39,7 +40,7 @@ export default function HostelCard({
       onPress={onPress}
       activeOpacity={0.7}
     >
-      <View style={styles.cardContent}>
+      <Animated.View style={styles.cardContent} sharedTransitionTag="sharedTag">
         {/* Left side - Image */}
         <Image source={Images.hostel1} style={styles.hostelImage} />
 
@@ -134,7 +135,7 @@ export default function HostelCard({
             <Text style={styles.btnText}> View Rooms</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </Animated.View>
     </TouchableOpacity>
   );
 }

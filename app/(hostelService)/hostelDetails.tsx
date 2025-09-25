@@ -2,7 +2,7 @@ import CommonHeader from "@/components/CommonHeader";
 import { Colors } from "@/constants/Colors";
 import { AMENITY_ICONS, DEFAULT_AMENITY_ICON } from "@/constants/iconMappings";
 import { fonts } from "@/constants/typography";
-import useAuthStore from "@/store/userAuthStore";
+import useAuthStore from "@/store/authStore";
 import { Hostel } from "@/types/hostel";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
@@ -11,13 +11,13 @@ import {
   ActivityIndicator,
   Dimensions,
   FlatList,
-  Image,
   SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import Animated from "react-native-reanimated";
 
 const { width } = Dimensions.get("window");
 
@@ -81,7 +81,10 @@ export default function HostelDetails() {
     }
 
     return (
-      <View style={styles.imageContainer}>
+      <Animated.View
+        style={styles.imageContainer}
+        sharedTransitionTag="sharedTag"
+      >
         <FlatList
           data={hostel.photos}
           horizontal
@@ -96,9 +99,10 @@ export default function HostelDetails() {
             setCurrentImageIndex(index);
           }}
           renderItem={({ item }) => (
-            <Image
+            <Animated.Image
               source={{ uri: `${item}` }}
               style={styles.image}
+              sharedTransitionTag="sharedTag"
               defaultSource={require("../../assets/images/home.png")}
             />
           )}
@@ -119,7 +123,7 @@ export default function HostelDetails() {
             ))}
           </View>
         )}
-      </View>
+      </Animated.View>
     );
   };
 

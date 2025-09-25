@@ -1,7 +1,7 @@
 import { Colors } from "@/constants/Colors";
 import { Images } from "@/constants/Images";
 import { fonts } from "@/constants/typography";
-import useAuthStore from "@/store/userAuthStore";
+import useAuthStore from "@/store/authStore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";

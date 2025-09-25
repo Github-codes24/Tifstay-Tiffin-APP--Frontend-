@@ -1,7 +1,8 @@
 import { Hostel } from "@/types/hostel";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
-import apiService from "../services/apiService";
+import hostelApiService from "../services/hostelApiService";
+import tiffinApiService from "../services/tiffinApiServices";
 
 interface User {
   id: string;
@@ -21,12 +22,16 @@ interface AuthState {
   hasSeenSplash: boolean;
   hostelList: Hostel[];
   // Actions
-  login: (email: string, password: string) => Promise<any>;
+  login: (
+    email: string,
+    password: string,
+    type: "hostel_owner" | "tiffin_provider"
+  ) => Promise<any>;
   register: (
     name: string,
     email: string,
     password: string,
-    profile: string
+    profile: "hostel_owner" | "tiffin_provider"
   ) => Promise<any>;
   logout: () => Promise<void>;
   clearError: () => void;
@@ -61,7 +66,7 @@ const useAuthStore = create<AuthState>((set, get) => ({
         });
 
         // Optionally verify token with backend
-        const response = await apiService.getCurrentUser();
+        const response = await hostelApiService.getCurrentUser();
         if (response.success) {
           set({ user: response.data });
         }
@@ -96,11 +101,21 @@ const useAuthStore = create<AuthState>((set, get) => ({
       set({ hasSeenSplash: false });
     }
   },
-  login: async (email: string, password: string) => {
+  login: async (
+    email: string,
+    password: string,
+    type: "hostel_owner" | "tiffin_provider"
+  ) => {
     set({ isLoading: true, error: null });
 
     try {
-      const response = await apiService.login(email, password);
+      let response;
+
+      if (type === "hostel_owner") {
+        response = await hostelApiService.login(email, password);
+      } else {
+        response = await tiffinApiService.login(email, password);
+      }
 
       if (response.success) {
         const userData = response.data.data?.user;
@@ -140,20 +155,20 @@ const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   register: async (
-    name: string,
+    fullName: string,
     email: string,
     password: string,
-    profile: string
+    profile: "hostel_owner" | "tiffin_provider"
   ) => {
     set({ isLoading: true, error: null });
 
     try {
-      const response = await apiService.register(
-        name,
-        email,
-        password,
-        profile
-      );
+      let response;
+      if (profile === "hostel_owner") {
+        response = await hostelApiService.register(fullName, email, password);
+      } else {
+        response = await tiffinApiService.register(fullName, email, password);
+      }
 
       if (response.success) {
         const userData = response.data.user || response.data;
@@ -194,7 +209,7 @@ const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoading: true });
 
     try {
-      const response = await apiService.getHostelList();
+      const response = await hostelApiService.getHostelList();
 
       if (response.success) {
         set({
@@ -223,7 +238,7 @@ const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoading: true });
 
     try {
-      await apiService.logout();
+      await hostelApiService.logout();
 
       set({
         user: null,

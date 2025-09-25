@@ -3,7 +3,7 @@ import CommonHeader from "@/components/CommonHeader";
 import { AMENITY_ICONS, DEFAULT_AMENITY_ICON } from "@/constants/iconMappings";
 import { fonts } from "@/constants/typography";
 import { useHostel } from "@/context/HostelProvider";
-import apiService from "@/services/apiService";
+import apiService from "@/services/hostelApiService";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useState } from "react";

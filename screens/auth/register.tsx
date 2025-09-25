@@ -16,31 +16,27 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import useAuthStore from "../../store/userAuthStore";
+import useAuthStore from "../../store/authStore";
 
 export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [userServiceType, setUserServiceType] = useState("");
+  const [type, setType] = useState<"hostel_owner" | "tiffin_provider">(
+    "hostel_owner"
+  );
 
   const { register, isLoading, error, clearError, isAuthenticated } =
     useAuthStore();
 
   // Get service type from AsyncStorage
   useEffect(() => {
-    const getServiceType = async () => {
-      try {
-        const serviceType = await AsyncStorage.getItem("userServiceType");
-        setUserServiceType(serviceType || "");
-      } catch (error) {
-        console.error("Error getting service type:", error);
+    AsyncStorage.getItem("userServiceType").then((type) => {
+      if (type) {
+        setType(type === "hostelOwner" ? "hostel_owner" : "tiffin_provider");
       }
-    };
-    getServiceType();
+    });
   }, []);
 
   // Navigate to dashboard if authenticated
@@ -84,27 +80,14 @@ export default function Register() {
         return;
       }
 
-      if (password !== confirmPassword) {
-        Alert.alert("Error", "Passwords do not match");
-        return;
-      }
-
-      // Map service type to profile
-      const profileMap: { [key: string]: string } = {
-        tiffinProvider: "tiffin_provider",
-        hostelOwner: "hostel_owner",
-      };
-
-      const profile = profileMap[userServiceType] || "hostel_owner";
-
-      console.log("Registering with profile:", profile);
+      console.log("Registering with profile:", type);
 
       // Call register function from store
       const response = await register(
         name.trim(),
         email.trim().toLowerCase(),
         password,
-        profile
+        type
       );
 
       if (response.success) {
@@ -163,22 +146,6 @@ export default function Register() {
             rightIconSource={showPassword ? Images.closeeye : Images.openeye}
             leftIconStyle={{ height: 20.7, width: 20.7 }}
             placeholder="Password"
-          />
-
-          <LabeledInput
-            value={confirmPassword}
-            secureTextEntry={!showConfirmPassword}
-            onChangeText={setConfirmPassword}
-            onPress={() => {
-              setShowConfirmPassword(!showConfirmPassword);
-            }}
-            leftIconSource={Images.lock}
-            containerStyle={{ marginTop: 16 }}
-            rightIconSource={
-              showConfirmPassword ? Images.closeeye : Images.openeye
-            }
-            leftIconStyle={{ height: 20.7, width: 20.7 }}
-            placeholder="Confirm Password"
           />
 
           {error && (

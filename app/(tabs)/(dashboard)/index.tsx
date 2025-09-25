@@ -6,7 +6,7 @@ import { Colors } from "@/constants/Colors";
 import { Images } from "@/constants/Images";
 import { IS_IOS } from "@/constants/Platform";
 import { fonts } from "@/constants/typography";
-import useAuthStore from "@/store/userAuthStore";
+import useAuthStore from "@/store/authStore";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";

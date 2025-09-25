@@ -4,7 +4,7 @@ import LabeledInput from "@/components/labeledInput";
 import { Colors } from "@/constants/Colors";
 import { fonts } from "@/constants/typography";
 import { useHostel } from "@/context/HostelProvider";
-import apiService from "@/services/apiService";
+import apiService from "@/services/hostelApiService";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";

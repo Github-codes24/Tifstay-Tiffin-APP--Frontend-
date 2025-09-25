@@ -1,10 +1,11 @@
-import useAuthStore from "@/store/userAuthStore";
+import useAuthStore from "@/store/authStore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios, { AxiosInstance } from "axios";
 
 class ApiService {
   private api: AxiosInstance;
-  private baseURL = "https://tifstay-backend.onrender.com";
+  // private baseURL = "https://tifstay-backend.onrender.com";
+  private baseURL = "https://tifstay-project-be.onrender.com";
 
   constructor() {
     this.api = axios.create({
@@ -58,7 +59,7 @@ class ApiService {
   // Authentication APIs
   async login(email: string, password: string) {
     try {
-      const response = await this.api.post("/api/auth/login", {
+      const response = await this.api.post("/api/hostelOwner/loginOwner", {
         email,
         password,
       });
@@ -81,23 +82,18 @@ class ApiService {
     }
   }
 
-  async register(
-    name: string,
-    email: string,
-    password: string,
-    profile: string
-  ) {
+  async register(fullName: string, email: string, password: string) {
     try {
-      const response = await this.api.post("/api/auth/register", {
-        name,
+      const response = await this.api.post("/api/hostelOwner/registerOwner", {
+        fullName,
         email,
         password,
-        profile,
       });
 
       // Store token if returned
       if (response.data.token) {
         await AsyncStorage.setItem("authToken", response.data.token);
+        console.log("Token stored successfully");
       }
 
       return {
