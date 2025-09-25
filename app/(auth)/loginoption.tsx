@@ -2,15 +2,16 @@ import ServiceButton from "@/components/ServiceButton";
 import { Colors } from "@/constants/Colors";
 import { Images } from "@/constants/Images";
 import { fonts } from "@/constants/typography";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import useAuthStore from "@/store/authStore";
 import { router } from "expo-router";
 import React from "react";
 import { Image, SafeAreaView, StyleSheet, Text, View } from "react-native";
 
 export default function InitialLogin() {
+  const { setUserServiceType } = useAuthStore();
   const handleSelectService = async (serviceType: any) => {
     try {
-      await AsyncStorage.setItem("userServiceType", serviceType);
+      setUserServiceType(serviceType);
       router.push("/login");
     } catch (error) {
       console.error("Error saving service type:", error);

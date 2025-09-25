@@ -4,9 +4,8 @@ import { Colors } from "@/constants/Colors";
 import { Images } from "@/constants/Images";
 import { fonts } from "@/constants/typography";
 import useAuthStore from "@/store/authStore";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   Alert,
   Image,
@@ -21,27 +20,8 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [type, setType] = useState<"hostel_owner" | "tiffin_provider">(
-    "hostel_owner"
-  );
-
-  const { login, isLoading, error, clearError, isAuthenticated, user } =
+  const { login, isLoading, error, clearError, userServiceType } =
     useAuthStore();
-
-  useEffect(() => {
-    AsyncStorage.getItem("userServiceType").then((type) => {
-      if (type) {
-        setType(type === "hostelOwner" ? "hostel_owner" : "tiffin_provider");
-      }
-    });
-  }, []);
-
-  // Navigate to dashboard if already authenticated
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      router.replace("/(tabs)/(dashboard)");
-    }
-  }, [isAuthenticated, user]);
 
   const handleLogin = async () => {
     try {
@@ -71,7 +51,7 @@ export default function Login() {
       console.log("Attempting login...");
 
       // Call login function from store
-      const response = await login(email.trim(), password, type);
+      const response = await login(email.trim(), password, userServiceType);
 
       console.log("Login response:", response);
 

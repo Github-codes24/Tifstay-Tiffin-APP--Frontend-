@@ -7,12 +7,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useMemo, useState } from "react";
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
   Image,
   Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -38,7 +38,7 @@ const AddCardScreen = () => {
 
   const displayNumber = useMemo(() => {
     const f = formatCardNumber(cardNumber);
-    return f || '';
+    return f || "";
   }, [cardNumber]);
 
   const displayName = cardholderName || "--";
@@ -60,7 +60,10 @@ const AddCardScreen = () => {
     <SafeAreaView style={styles.safeArea}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
           <Ionicons name="chevron-back" size={16} color="#000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Add New Card</Text>
@@ -70,15 +73,31 @@ const AddCardScreen = () => {
       <View style={styles.previewWrap}>
         <View style={styles.cardPreview}>
           {/* <View style={styles.cardTopRow}> */}
-            {!isFormValid ? <Image
-              source={require("../../assets/images/Hostel/chip.png")}
-              style={{ width: 48, height: 32, resizeMode: "contain" , marginLeft:'auto' }}
-            /> : <Image
-              source={require("../../assets/images/Hostel/visa.png")}
-              style={{ width: 48, height: 48, resizeMode: "contain" ,  marginLeft:'auto' }}
-            />}
+          {!isFormValid ? (
+            <Image
+              source={require("../../../assets/images/Hostel/chip.png")}
+              style={{
+                width: 48,
+                height: 32,
+                resizeMode: "contain",
+                marginLeft: "auto",
+              }}
+            />
+          ) : (
+            <Image
+              source={require("../../../assets/images/Hostel/visa.png")}
+              style={{
+                width: 48,
+                height: 48,
+                resizeMode: "contain",
+                marginLeft: "auto",
+              }}
+            />
+          )}
           {/* </View> */}
-            <Text style={styles.cardNumber}>{displayNumber ? displayNumber : '**** **** **** ****'}</Text>
+          <Text style={styles.cardNumber}>
+            {displayNumber ? displayNumber : "**** **** **** ****"}
+          </Text>
 
           <View style={styles.cardBottomRow}>
             <View>
@@ -136,7 +155,7 @@ const AddCardScreen = () => {
             containerStyle={styles.flexInput}
             inputContainerStyle={styles.input}
             labelStyle={styles.label}
-            rightIconSource={require("../../assets/images/Hostel/calender.png")}
+            rightIconSource={require("../../../assets/images/Hostel/calender.png")}
             maxLength={5}
           />
           <View style={{ width: 12 }} />
@@ -144,7 +163,9 @@ const AddCardScreen = () => {
             label="CVV / CVC"
             placeholder="Enter CVV"
             value={cvv}
-            onChangeText={(t: string) => setCvv(t.replace(/\D/g, "").slice(0, 4))}
+            onChangeText={(t: string) =>
+              setCvv(t.replace(/\D/g, "").slice(0, 4))
+            }
             inputMode="numeric"
             containerStyle={styles.flexInput}
             inputContainerStyle={styles.input}
@@ -159,11 +180,10 @@ const AddCardScreen = () => {
           // disabled={!isFormValid}
           buttonStyle={[
             { width: "95%", alignSelf: "center", marginVertical: 40 },
-            !isFormValid && { opacity: 0.5 },
+            !isFormValid ? { opacity: 0.5 } : {},
           ]}
         />
       </KeyboardAwareScrollView>
-
     </SafeAreaView>
   );
 };
@@ -206,7 +226,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.orange,
     borderRadius: 16,
     padding: 20,
-    height: Platform.OS === 'ios' ?  183 :200,
+    height: Platform.OS === "ios" ? 183 : 200,
     justifyContent: "space-between",
   },
   cardTopRow: {
@@ -216,7 +236,7 @@ const styles = StyleSheet.create({
   },
   cardNumber: {
     color: "#fff",
-    fontSize: Platform.OS === 'ios'? 30 : 24,
+    fontSize: Platform.OS === "ios" ? 30 : 24,
     fontFamily: fonts.interBold,
   },
   cardBottomRow: {
@@ -227,12 +247,12 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.8)",
     fontSize: 12,
     marginBottom: 4,
-    fontFamily:fonts.interMedium
+    fontFamily: fonts.interMedium,
   },
   cardValue: {
     color: "#fff",
     fontSize: 16,
-    fontFamily:fonts.interSemibold
+    fontFamily: fonts.interSemibold,
   },
 
   // Form
@@ -255,7 +275,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    fontFamily:fonts.interSemibold,
+    fontFamily: fonts.interSemibold,
     color: Colors.title,
   },
   row: {

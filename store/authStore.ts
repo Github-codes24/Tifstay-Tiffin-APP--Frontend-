@@ -1,6 +1,7 @@
 import { Hostel } from "@/types/hostel";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
+import { createJSONStorage, persist } from 'zustand/middleware';
 import hostelApiService from "../services/hostelApiService";
 import tiffinApiService from "../services/tiffinApiServices";
 
@@ -28,6 +29,7 @@ interface AuthState {
   error: string | null;
   hasSeenSplash: boolean;
   hostelList: Hostel[];
+  userServiceType: "hostel_owner" | "tiffin_provider";
   // Actions
   login: (
     email: string,
@@ -42,15 +44,16 @@ interface AuthState {
   ) => Promise<any>;
   logout: () => Promise<void>;
   clearError: () => void;
-  checkAuthStatus: () => Promise<void>;
   setUser: (user: User) => void;
-  setSplashSeen: () => Promise<void>;
-  checkSplashStatus: () => Promise<void>;
+  setSplashSeen: () => void;
   getHostelList: () => Promise<any>;
   getUserProfile: (type: "hostel_owner" | "tiffin_provider") => Promise<any>;
+  setUserServiceType: (type: "hostel_owner" | "tiffin_provider") => void;
 }
 
-const useAuthStore = create<AuthState>((set, get) => ({
+const useAuthStore = create<AuthState>()(
+  persist(
+    (set, get) => ({
   user: null,
   token: null,
   isAuthenticated: false,
@@ -58,57 +61,11 @@ const useAuthStore = create<AuthState>((set, get) => ({
   isLoading: false,
   error: null,
   hasSeenSplash: false,
-  checkAuthStatus: async () => {
-    try {
-      const [token, userDataString] = await Promise.all([
-        AsyncStorage.getItem("authToken"),
-        AsyncStorage.getItem("userData"),
-      ]);
-
-      if (token && userDataString) {
-        const userData = JSON.parse(userDataString);
-        set({
-          user: userData,
-          token: token,
-          isAuthenticated: true,
-        });
-
-        // Optionally verify token with backend
-        const response = await hostelApiService.getCurrentUser();
-        if (response.success) {
-          set({ user: response.data });
-        }
-      }
-    } catch (error) {
-      console.error("Error checking auth status:", error);
-      set({
-        user: null,
-        token: null,
-        isAuthenticated: false,
-      });
-    }
-  },
-
+  userServiceType: "hostel_owner",
   setUser: (user: User) => set({ user }),
 
-  setSplashSeen: async () => {
-    try {
-      await AsyncStorage.setItem("hasSeenSplash", "true");
-      set({ hasSeenSplash: true });
-    } catch (error) {
-      console.error("Error setting splash seen status:", error);
-    }
-  },
+  setSplashSeen: () => set({ hasSeenSplash: true }),
 
-  checkSplashStatus: async () => {
-    try {
-      const hasSeenSplash = await AsyncStorage.getItem("hasSeenSplash");
-      set({ hasSeenSplash: hasSeenSplash === "true" });
-    } catch (error) {
-      console.error("Error checking splash status:", error);
-      set({ hasSeenSplash: false });
-    }
-  },
   login: async (
     email: string,
     password: string,
@@ -128,14 +85,6 @@ const useAuthStore = create<AuthState>((set, get) => ({
       if (response.success) {
         const userData = type === "hostel_owner" ? response.data?.hostelOwner : response.data?.tiffinProvider;
         const token = response.data?.token;
-
-        // Store both in AsyncStorage
-        if (userData) {
-          await AsyncStorage.setItem("userData", JSON.stringify(userData));
-        }
-        if (token) {
-          await AsyncStorage.setItem("authToken", token);
-        }
 
         set({
           user: userData,
@@ -181,12 +130,6 @@ const useAuthStore = create<AuthState>((set, get) => ({
       if (response.success) {
         const userData = profile === "hostel_owner" ? response.data?.hostelOwner : response.data?.tiffinProvider;
         const token = response.data?.token;
-
-        // Store user data in AsyncStorage
-        await AsyncStorage.setItem("userData", JSON.stringify(userData));
-        if (token) {
-          await AsyncStorage.setItem("authToken", token);
-        }
 
         set({
           user: userData,
@@ -280,8 +223,7 @@ const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoading: true });
 
     try {
-      await hostelApiService.logout();
-
+      hostelApiService.logout();
       set({
         user: null,
         token: null,
@@ -289,15 +231,17 @@ const useAuthStore = create<AuthState>((set, get) => ({
         isLoading: false,
         error: null,
       });
-      AsyncStorage.removeItem("authToken");
-      AsyncStorage.removeItem("userData");
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       set({ isLoading: false });
     }
   },
 
   clearError: () => set({ error: null }),
-}));
+  setUserServiceType: (type: "hostel_owner" | "tiffin_provider") =>
+    set({ userServiceType: type }),
+}), {
+  name: 'auth-storage',
+  storage: createJSONStorage(() => AsyncStorage),
+}) );
 
 export default useAuthStore;

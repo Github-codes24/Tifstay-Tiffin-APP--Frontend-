@@ -4,9 +4,8 @@ import { Colors } from "@/constants/Colors";
 import { Images } from "@/constants/Images";
 import { fonts } from "@/constants/typography";
 import useAuthStore from "@/store/authStore";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   Alert,
   Image,
@@ -23,28 +22,9 @@ export default function Register() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [type, setType] = useState<"hostel_owner" | "tiffin_provider">(
-    "hostel_owner"
-  );
 
-  const { register, isLoading, error, clearError, isAuthenticated } =
+  const { register, isLoading, error, clearError, userServiceType } =
     useAuthStore();
-
-  // Get service type from AsyncStorage
-  useEffect(() => {
-    AsyncStorage.getItem("userServiceType").then((type) => {
-      if (type) {
-        setType(type === "hostelOwner" ? "hostel_owner" : "tiffin_provider");
-      }
-    });
-  }, []);
-
-  // Navigate to dashboard if authenticated
-  useEffect(() => {
-    if (isAuthenticated) {
-      router.replace("/(tabs)/(dashboard)");
-    }
-  }, [isAuthenticated]);
 
   const handleRegister = async () => {
     try {
@@ -80,20 +60,18 @@ export default function Register() {
         return;
       }
 
-      console.log("Registering with profile:", type);
+      console.log("Registering with profile:", userServiceType);
 
       // Call register function from store
       const response = await register(
         name.trim(),
         email.trim().toLowerCase(),
         password,
-        type
+        userServiceType
       );
 
       if (response.success) {
-        Alert.alert("Success", "Registration successful!", [
-          { text: "OK", onPress: () => router.replace("/(tabs)/(dashboard)") },
-        ]);
+        Alert.alert("Success", "Registration successful!", [{ text: "OK" }]);
       }
     } catch (error: any) {
       console.error("Registration error:", error);

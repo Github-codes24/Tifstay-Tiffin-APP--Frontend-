@@ -244,10 +244,9 @@ class ApiService {
 
   async logout() {
     try {
-      // Clear local storage
-      await AsyncStorage.multiRemove(["authToken", "userData"]);
-      return { success: true };
-    } catch (error) {
+     const response = await this.api.post("/api/hostelOwner/logoutOwner");
+     return {success:true,data:response.data};
+    } catch (error: any) {
       return { success: false, error: "Logout failed" };
     }
   }

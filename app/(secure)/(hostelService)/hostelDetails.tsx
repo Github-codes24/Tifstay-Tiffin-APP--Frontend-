@@ -103,7 +103,7 @@ export default function HostelDetails() {
               source={{ uri: `${item}` }}
               style={styles.image}
               sharedTransitionTag="sharedTag"
-              defaultSource={require("../../assets/images/home.png")}
+              defaultSource={require("../../../assets/images/home.png")}
             />
           )}
           keyExtractor={(item, index) => index.toString()}

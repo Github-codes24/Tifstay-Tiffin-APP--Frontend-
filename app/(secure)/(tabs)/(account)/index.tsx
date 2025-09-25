@@ -43,7 +43,6 @@ const AccountScreen = () => {
   const handleLogout = () => {
     setLogoutVisible(false);
     logout();
-    router.replace("/loginoption");
   };
 
   // ✅ Pick image from gallery
@@ -135,7 +134,7 @@ const AccountScreen = () => {
             label="Payment"
             image={require("@/assets/images/Hostel/payment.png")}
             onpress={() => {
-              router.push("/(accountScreens)/method");
+              router.push("/(secure)/(accountScreens)/method");
             }}
           />
         )}

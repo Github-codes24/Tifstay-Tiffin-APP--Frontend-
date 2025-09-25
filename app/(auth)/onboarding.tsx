@@ -53,30 +53,15 @@ const slides: Slide[] = [
 export default function Splash() {
   const flatListRef = useRef<FlatList<Slide>>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const {
-    hasSeenSplash,
-    checkSplashStatus,
-    setSplashSeen,
-    isAuthenticated,
-    checkAuthStatus,
-  } = useAuthStore();
-
-  useEffect(() => {
-    const initializeApp = async () => {
-      await checkSplashStatus();
-      await checkAuthStatus();
-    };
-
-    initializeApp();
-  }, []);
+  const { hasSeenSplash, setSplashSeen, isAuthenticated } = useAuthStore();
 
   useEffect(() => {
     if (hasSeenSplash) {
       // If splash has been seen before, navigate directly to appropriate screen
       if (isAuthenticated) {
-        router.replace("/(tabs)");
+        router.replace("/(secure)/(tabs)/(dashboard)");
       } else {
-        router.replace("/loginoption");
+        router.replace("/(auth)/login");
       }
     }
   }, [hasSeenSplash, isAuthenticated]);
