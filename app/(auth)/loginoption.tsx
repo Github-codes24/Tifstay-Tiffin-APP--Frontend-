@@ -34,7 +34,7 @@ export default function InitialLogin() {
           rightIcon={Images.warrow}
           title="I'm a Tiffin/Restaurant Provider"
           subtitle="Want to list my Tiffin/Restaurant"
-          onPress={() => handleSelectService("tiffinProvider")}
+          onPress={() => handleSelectService("tiffin_provider")}
         />
 
         <ServiceButton
@@ -45,7 +45,7 @@ export default function InitialLogin() {
           rightIcon={Images.barrow}
           title="I'm a PG/Hostel Owner"
           subtitle="Want to list my PG/Hostel"
-          onPress={() => handleSelectService("hostelOwner")}
+          onPress={() => handleSelectService("hostel_owner")}
         />
       </View>
     </SafeAreaView>

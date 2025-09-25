@@ -56,23 +56,10 @@ class ApiService {
 
   // Authentication APIs
   async login(email: string, password: string) {
-    try {
-      const response = await this.api.post("/api/hostelOwner/loginOwner", {
+    return this.api.post("/api/hostelOwner/loginOwner", {
         email,
         password,
       });
-
-      return {
-        success: true,
-        data: response.data,
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        error:
-          error.response?.data?.message || "Login failed. Please try again.",
-      };
-    }
   }
 
   async register(fullName: string, email: string, password: string) {

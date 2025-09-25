@@ -74,18 +74,16 @@ const useAuthStore = create<AuthState>()(
     set({ isLoading: true, error: null });
 
     try {
-      let response;
-
+      let response: any;
       if (type === "hostel_owner") {
         response = await hostelApiService.login(email, password);
       } else {
         response = await tiffinApiService.login(email, password);
       }
-
-      if (response.success) {
+    
+      if (response?.data?.success) {
         const userData = type === "hostel_owner" ? response.data?.hostelOwner : response.data?.tiffinProvider;
         const token = response.data?.token;
-
         set({
           user: userData,
           token: token,
@@ -98,9 +96,9 @@ const useAuthStore = create<AuthState>()(
       } else {
         set({
           isLoading: false,
-          error: response.error,
+          error:   "Login failed. Please try again.",
         });
-        return { success: false, error: response.error };
+        return { success: false, error: "Login failed. Please try again." };
       }
     } catch (error: any) {
       set({
