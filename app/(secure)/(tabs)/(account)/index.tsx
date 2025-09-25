@@ -2,10 +2,9 @@ import { Colors } from "@/constants/Colors";
 import { Images } from "@/constants/Images";
 import { fonts } from "@/constants/typography";
 import useAuthStore from "@/store/authStore";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   Alert,
   Image,
@@ -22,23 +21,14 @@ import {
 } from "react-native";
 
 const AccountScreen = () => {
-  const { logout, user } = useAuthStore();
+  const { logout, user, userServiceType } = useAuthStore();
   const [darkMode, setDarkMode] = useState(false);
   const [logoutVisible, setLogoutVisible] = useState(false);
-  const [provider, setProvider] = useState<any>(null);
   const [profileImage, setProfileImage] = useState<string | null>(
     user?.profileImage ?? null
   );
 
-  const getProvider = useCallback(async () => {
-    const serviceType = await AsyncStorage.getItem("userServiceType");
-    setProvider(serviceType);
-    console.log("Selected Service:", serviceType);
-  }, []);
-
-  useEffect(() => {
-    getProvider();
-  }, [getProvider]);
+  const isTiffinProvider = userServiceType === "tiffin_provider";
 
   const handleLogout = () => {
     setLogoutVisible(false);
@@ -87,7 +77,7 @@ const AccountScreen = () => {
               source={
                 profileImage
                   ? { uri: profileImage }
-                  : provider === "tiffinProvider"
+                  : isTiffinProvider
                   ? Images.user
                   : Images.hostel1
               }
@@ -101,9 +91,7 @@ const AccountScreen = () => {
             </TouchableOpacity>
           </View>
           <Text style={styles.title}>
-            {provider === "tiffinProvider"
-              ? "Maharashtrian Ghar Ka Khana"
-              : user?.fullName}
+            {isTiffinProvider ? "Maharashtrian Ghar Ka Khana" : user?.fullName}
           </Text>
         </View>
 
@@ -129,7 +117,7 @@ const AccountScreen = () => {
           image={Images.customer}
           onpress={() => router.push("/myCustomers")}
         />
-        {provider !== "tiffinProvider" && (
+        {isTiffinProvider && (
           <MenuItem
             label="Payment"
             image={require("@/assets/images/Hostel/payment.png")}

@@ -4,17 +4,16 @@ import CommonHeader from "@/components/CommonHeader";
 import { Colors } from "@/constants/Colors";
 import { Images } from "@/constants/Images";
 import { fonts } from "@/constants/typography";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import useAuthStore from "@/store/authStore";
 import { router } from "expo-router";
 import * as React from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
   Image,
-  Dimensions,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -73,7 +72,6 @@ const RequestsAcceptRoute = () => (
   </ScrollView>
 );
 
-
 const RequestsRouteHostel = () => (
   <ScrollView style={styles.scene} showsVerticalScrollIndicator={false}>
     <View style={styles.badgeOrange}>
@@ -96,7 +94,6 @@ const RequestsRouteHostel = () => (
     />
   </ScrollView>
 );
-
 
 const AcceptedRoute = () => (
   <ScrollView style={styles.scene} showsVerticalScrollIndicator={false}>
@@ -149,7 +146,7 @@ const CompletedHostelRoute = () => (
       <Text style={styles.badgeTextGreen}>Completed</Text>
     </View>
     <BookingCardHostel
-       status="Accepted"
+      status="Accepted"
       bookingId="#TF2024002"
       orderedDate="21/07/2025"
       tiffinService="Scholars Den Boys Hostel"
@@ -162,7 +159,6 @@ const CompletedHostelRoute = () => (
     />
   </ScrollView>
 );
-
 
 const SubscriberCard: React.FC<{
   name: string;
@@ -206,39 +202,30 @@ const SubscriberRoute = () => (
 
 export default function Order() {
   const [index, setIndex] = React.useState(0);
-  const [provider, setProvider] = React.useState<string | null>(null);
+  const { userServiceType } = useAuthStore();
+  const isTiffinProvider = userServiceType === "tiffin_provider";
 
-  const getProvider = React.useCallback(async () => {
-    const serviceType = await AsyncStorage.getItem("userServiceType");
-    setProvider(serviceType);
-  }, []);
-
-  React.useEffect(() => {
-    getProvider();
-  }, [getProvider]);
-
-  const routes =
-    provider === "tiffinProvider"
-      ? [
-          { key: "requests", title: "Requests" },
-          { key: "accepted", title: "Accepted" },
-          { key: "completed", title: "Completed" },
-          { key: "subscriber", title: "Subscriber" },
-        ]
-      : [
-          { key: "requests", title: "Requests" },
-          { key: "accepted", title: "Accepted" },
-          { key: "completed", title: "Completed" },
-        ];
+  const routes = isTiffinProvider
+    ? [
+        { key: "requests", title: "Requests" },
+        { key: "accepted", title: "Accepted" },
+        { key: "completed", title: "Completed" },
+        { key: "subscriber", title: "Subscriber" },
+      ]
+    : [
+        { key: "requests", title: "Requests" },
+        { key: "accepted", title: "Accepted" },
+        { key: "completed", title: "Completed" },
+      ];
 
   const renderScene = () => {
     switch (routes[index].key) {
       case "requests":
-        return   provider === "tiffinProvider" ? <RequestsRoute /> : <RequestsRouteHostel/>;
+        return isTiffinProvider ? <RequestsRoute /> : <RequestsRouteHostel />;
       case "accepted":
-        return provider === "tiffinProvider" ? <AcceptedRoute /> : <RequestsAcceptRoute/>;
+        return isTiffinProvider ? <AcceptedRoute /> : <RequestsAcceptRoute />;
       case "completed":
-        return provider === "tiffinProvider" ? <CompletedRoute /> : <CompletedHostelRoute/>;
+        return isTiffinProvider ? <CompletedRoute /> : <CompletedHostelRoute />;
       case "subscriber":
         return <SubscriberRoute />;
       default:
@@ -246,22 +233,19 @@ export default function Order() {
     }
   };
 
-  const isTiffin = provider === "tiffinProvider";
-  const screenWidth = Dimensions.get("window").width;
-
   return (
     <>
       <SafeAreaView edges={["top"]} style={{ backgroundColor: Colors.white }}>
         <CommonHeader
           title="Orders"
           actionText="Add New Booking"
-          onActionPress={() => router.push("/(service)/addNewService")}
+          onActionPress={() => router.push("/(secure)/(service)/addNewService")}
         />
       </SafeAreaView>
 
       {/* Tab Bar */}
       <View style={styles.tabBarContainer}>
-        {isTiffin ? (
+        {isTiffinProvider ? (
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}

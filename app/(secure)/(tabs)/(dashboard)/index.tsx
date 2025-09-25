@@ -8,7 +8,6 @@ import { IS_IOS } from "@/constants/Platform";
 import { fonts } from "@/constants/typography";
 import useAuthStore from "@/store/authStore";
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -22,25 +21,15 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ServiceOfflineScreen() {
-  const { hostelList, getHostelList, getUserProfile, user } = useAuthStore();
+  const { hostelList, getHostelList, getUserProfile, user, userServiceType } =
+    useAuthStore();
   const [isOnline, setIsOnline] = useState(false);
-  const [type, setType] = useState<"hostel_owner" | "tiffin_provider">(
-    "hostel_owner"
-  );
-  const isTiffinProvider = type === "tiffin_provider";
-
-  useEffect(() => {
-    AsyncStorage.getItem("userServiceType").then((type) => {
-      if (type) {
-        setType(type === "hostelOwner" ? "hostel_owner" : "tiffin_provider");
-      }
-    });
-  }, []);
+  const isTiffinProvider = userServiceType === "tiffin_provider";
 
   useEffect(() => {
     getHostelList();
-    getUserProfile(type);
-  }, [type, getHostelList, getUserProfile]);
+    getUserProfile(userServiceType);
+  }, [userServiceType, getHostelList, getUserProfile]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -66,7 +55,7 @@ export default function ServiceOfflineScreen() {
             setIsOnline(!isOnline); // toggle online/offline
             // if you want navigation only when going online
             if (!isOnline && isTiffinProvider) {
-              router.push("/(tabs)/(dashboard)/service");
+              router.push("/(secure)/(tabs)/(dashboard)/service");
             }
           }}
         >
@@ -154,8 +143,10 @@ export default function ServiceOfflineScreen() {
                 ]}
                 onPress={() => {
                   isTiffinProvider
-                    ? router.push("/(service)/addNewService")
-                    : router.push("/(hostelService)/addNewHostelService");
+                    ? router.push("/(secure)/(service)/addNewService")
+                    : router.push(
+                        "/(secure)/(hostelService)/addNewHostelService"
+                      );
                 }}
               >
                 <Ionicons
@@ -171,7 +162,7 @@ export default function ServiceOfflineScreen() {
                   { backgroundColor: Colors.orange },
                 ]}
                 onPress={() => {
-                  router.push("/(tabs)/earnings");
+                  router.push("/(secure)/(tabs)/earnings");
                 }}
               >
                 <Ionicons
@@ -242,8 +233,8 @@ export default function ServiceOfflineScreen() {
             title="+ Add New Service"
             onPress={() => {
               isTiffinProvider
-                ? router.push("/(service)/addNewService")
-                : router.push("/(hostelService)/addNewHostelService");
+                ? router.push("/(secure)/(service)/addNewService")
+                : router.push("/(secure)/(hostelService)/addNewHostelService");
             }}
           />
         </ScrollView>

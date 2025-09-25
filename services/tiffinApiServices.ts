@@ -1,5 +1,4 @@
 import useAuthStore from "@/store/authStore";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios, { AxiosInstance } from "axios";
 
 class ApiService {
@@ -46,8 +45,7 @@ class ApiService {
 
         // Handle 401 errors (unauthorized)
         if (error.response?.status === 401) {
-          await AsyncStorage.removeItem("authToken");
-          await AsyncStorage.removeItem("userData");
+          useAuthStore.setState({ token: null, isAuthenticated: false, user: null, });
           // You might want to redirect to login here
         }
 
@@ -63,11 +61,6 @@ class ApiService {
         email,
         password,
       });
-
-      // Store token if returned
-      if (response.data.token) {
-        await AsyncStorage.setItem("authToken", response.data.token);
-      }
 
       return {
         success: true,
@@ -93,12 +86,6 @@ class ApiService {
         email,
         password,
       });
-
-      // Store token if returned
-      if (response.data.token) {
-        await AsyncStorage.setItem("authToken", response.data.token);
-        console.log("Token stored successfully");
-      }
 
       return {
         success: true,
@@ -248,10 +235,9 @@ class ApiService {
 
   async logout() {
     try {
-      // Clear local storage
-      await AsyncStorage.multiRemove(["authToken", "userData"]);
-      return { success: true };
-    } catch (error) {
+     const response = await this.api.post("/api/tiffinProvider/logoutProvider");
+     return {success:true,data:response.data};
+    } catch (error: any) {
       return { success: false, error: "Logout failed" };
     }
   }
