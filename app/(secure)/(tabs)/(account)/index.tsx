@@ -110,7 +110,7 @@ const AccountScreen = () => {
         <MenuItem
           label="Address"
           image={Images.address}
-          onpress={() => router.push("/address")}
+          onpress={() => router.push("/addressScreen")}
         />
         <MenuItem
           label="My Customers"

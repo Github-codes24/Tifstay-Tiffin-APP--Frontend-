@@ -48,6 +48,7 @@ export const Images = {
   earningSummary: require("@/assets/images/earningSummary.png"),
   tiffinService: require("@/assets/images/tiffinService.png"),
   home: require("@/assets/images/home.png"),
+  add: require("@/assets/images/add.png"),
   editicon: require("@/assets/images/editicon.png"), 
   map:require("@/assets/images/map.png"),
   home1:require("@/assets/images/home1.png"),
@@ -77,7 +78,7 @@ export const Images = {
   chat1: require("@/assets/images/chat1.png"),
   send: require("@/assets/images/send.png"),
   logout: require("@/assets/images/logout.png"), 
-
+work: require("@/assets/images/work.png"),
   //HOSTELS
 
   hostel : require('@/assets/images/Hostel/hostel.png'),

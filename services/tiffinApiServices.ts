@@ -1,10 +1,9 @@
 import useAuthStore from "@/store/authStore";
 import axios, { AxiosInstance } from "axios";
 
-class ApiService {
+class TiffinApiService {
   private api: AxiosInstance;
-  // private baseURL = "https://tifstay-backend.onrender.com";
-  private baseURL = "https://tifstay-project-be.onrender.com";
+  private baseURL = "https://API.com";
 
   constructor() {
     this.api = axios.create({
@@ -45,8 +44,7 @@ class ApiService {
 
         // Handle 401 errors (unauthorized)
         if (error.response?.status === 401) {
-          useAuthStore.setState({ token: null, isAuthenticated: false, user: null, });
-          // You might want to redirect to login here
+          useAuthStore.setState({ token: null, isAuthenticated: false, user: null });
         }
 
         return Promise.reject(error);
@@ -56,32 +54,15 @@ class ApiService {
 
   // Authentication APIs
   async login(email: string, password: string) {
-    try {
-      const response = await this.api.post("/api/hostelOwner/loginOwner", {
-        email,
-        password,
-      });
-
-      return {
-        success: true,
-        data: response.data,
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        error:
-          error.response?.data?.message || "Login failed. Please try again.",
-      };
-    }
+    return this.api.post("/api/tiffinProvider/loginProvider", {
+      email,
+      password,
+    });
   }
 
-  async register(
-    fullName: string,
-    email: string,
-    password: string,
-  ) {
+  async register(fullName: string, email: string, password: string) {
     try {
-      const response = await this.api.post("/api/hostelOwner/registerOwner", {
+      const response = await this.api.post("/api/tiffinProvider/registerProvider", {
         fullName,
         email,
         password,
@@ -94,183 +75,33 @@ class ApiService {
     } catch (error: any) {
       return {
         success: false,
-        error:
-          error.response?.data?.message ||
-          "Registration failed. Please try again.",
+        error: error.response?.data?.message || "Registration failed. Please try again.",
       };
     }
   }
 
-  // Create Hostel Listing
-  async createHostelListing(hostelData: any) {
+  async changePassword(oldPassword: string, newPassword: string, confirmPassword: string) {
     try {
-      const formData = new FormData();
-
-      // Basic fields
-      formData.append("name", hostelData.hostelName);
-      formData.append(
-        "hostelType",
-        hostelData.hostelType === "boys"
-          ? "Boys Hostel"
-          : hostelData.hostelType === "girls"
-          ? "Girls Hostel"
-          : hostelData.hostelType === "coed"
-          ? "Co-ed Hostel"
-          : "Boys Hostel"
-      );
-      formData.append("description", hostelData.description);
-
-      // Pricing as JSON string
-      const pricingData = [
-        {
-          type: "monthly",
-          price: hostelData.monthlyPrice,
-          securityDeposit: hostelData.securityDeposit,
-          offer: hostelData.offers || "",
-        },
-      ];
-      formData.append("pricing", JSON.stringify(pricingData));
-
-      // Rooms as JSON string
-      const roomsData = [
-        {
-          roomNo: hostelData.roomNo,
-          noOfBeds: 3, // You might want to add this as a field
-          details: hostelData.roomDetails,
-        },
-      ];
-      formData.append("rooms", JSON.stringify(roomsData));
-
-      // Facilities as comma-separated string
-      const facilitiesList = Object.entries(hostelData.amenities || {})
-        .filter(([key, value]) => value)
-        .map(([key]) => {
-          const facilityMap: { [key: string]: string } = {
-            wifi: "Wifi",
-            meals: "Mess",
-            security: "Security",
-            studyHall: "Study Hall",
-            commonTV: "Common TV",
-            cctv: "CCTV",
-            acRooms: "AC Rooms",
-            laundry: "Laundry",
-          };
-          return facilityMap[key] || key;
-        });
-      formData.append("facilities", facilitiesList.join(", "));
-
-      // Rules
-      formData.append("rules", hostelData.rulesText || "");
-
-      // Location as JSON string
-      const locationData = {
-        area: hostelData.location || hostelData.nearbyLandmarks || "",
-        fullAddress: hostelData.fullAddress || "",
-      };
-      formData.append("location", JSON.stringify(locationData));
-
-      // Contact as JSON string
-      const contactData = {
-        phone: hostelData.phoneNumber || "",
-        whatsapp: hostelData.whatsappNumber || "",
-      };
-      formData.append("contact", JSON.stringify(contactData));
-
-      // Photos (if any) - combine room photos and hostel photos
-      const allPhotos = [
-        ...(hostelData.roomPhotos || []),
-        ...(hostelData.photos || []),
-      ];
-      if (allPhotos.length > 0) {
-        allPhotos.forEach((photo: any) => {
-          if (photo.uri) {
-            formData.append("photos", {
-              uri: photo.uri,
-              type: photo.type || "image/jpeg",
-              name: photo.name || `photo_${Date.now()}.jpg`,
-            } as any);
-          }
-        });
-      }
-
-      const token = useAuthStore.getState().token;
-
-      const response = await this.api.post("/api/hostels", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${token}`,
-        },
+      const response = await this.api.post("/api/tiffinProvider/changeProviderPassword", {
+        oldPassword,
+        newPassword,
+        confirmPassword,
       });
 
       return {
         success: true,
-        data: response,
-      };
-    } catch (error: any) {
-      console.error("Create Hostel Error:", error);
-      return {
-        success: false,
-        error:
-          error.response?.data?.message || "Failed to create hostel listing.",
-      };
-    }
-  }
-
-  async getHostelList() {
-    try {
-      const response = await this.api.get("/api/hostels");
-      console.log("Hostel List:", response.data);
-      return {
-        success: true,
         data: response.data,
-      };
-    } catch (error: any) {
-      console.error("Get Hostel List Error:", error);
-      return {
-        success: false,
-        error: error.response?.data?.message || "Failed to get hostel list.",
-      };
-    }
-  }
-
-  async logout() {
-    try {
-     const response = await this.api.post("/api/tiffinProvider/logoutProvider");
-     return {success:true,data:response.data};
-    } catch (error: any) {
-      return { success: false, error: "Logout failed" };
-    }
-  }
-
-  async changePassword(oldPassword: string, newPassword: string,confirmPassword: string) {
-    try {
-      const response = await this.api.post("/api/tiffinProvider/changeTiffinProviderPassword", { oldPassword, newPassword,confirmPassword });
-      return {
-        success: true,
-        data: response.data,
+        message: response.data?.message || "Password changed successfully"
       };
     } catch (error: any) {
       return {
         success: false,
-        error:
-          error.response?.data?.message ||
-          "Password change failed. Please try again.",
+        error: error.response?.data?.message || "Password change failed. Please try again.",
       };
     }
   }
-  async updateProfile(profileData: {
-    fullName: string;
-    email: string;
-    phoneNumber: string;
-    profileImage?: any;
-    bankDetails: {
-      accountNumber: string;
-      ifscCode: string;
-      accountType: string;
-      accountHolderName: string;
-      bankName: string;
-    };
-  }) {
+
+  async updateProfile(profileData: any) {
     try {
       const formData = new FormData();
       
@@ -294,13 +125,13 @@ class ApiService {
           name: profileData.profileImage.name || `profile_${Date.now()}.jpg`,
         } as any);
       }
-  
-      const response = await this.api.put("/api/hostelOwner/updateOwnerProfile", formData, {
+
+      const response = await this.api.put("/api/tiffinProvider/updateProviderProfile", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
-  
+
       return {
         success: true,
         data: response.data,
@@ -312,10 +143,10 @@ class ApiService {
       };
     }
   }
-  // Get current user (example endpoint - adjust based on your API)
-  async getCurrentUser() {
+
+  async getUserProfile() {
     try {
-      const response = await this.api.get("/api/auth/me");
+      const response = await this.api.get("/api/tiffinProvider/getProviderProfile");
       return {
         success: true,
         data: response.data,
@@ -328,20 +159,100 @@ class ApiService {
     }
   }
 
-  async getUserProfile() {
+  async logout() {
     try {
-      const response = await this.api.get("api/tiffinProvider/getTiffinProviderProfile");
+      const response = await this.api.post("/api/tiffinProvider/logoutProvider");
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: "Logout failed" };
+    }
+  }
+
+  // Address Management APIs for Tiffin Provider
+  async addAddress(addressData: {
+    address: string;
+    street: string;
+    postCode: string;
+    label: "Home" | "Work";
+  }) {
+    try {
+      const response = await this.api.post("/api/tiffinProvider/address/addAddress", addressData);
       return {
         success: true,
-        data: response.data,
+        data: response.data.data,
       };
     } catch (error: any) {
       return {
         success: false,
-        error: error.response?.data?.message || "Failed to get user data",
+        error: error.response?.data?.message || "Failed to add address",
+      };
+    }
+  }
+
+  async getAllAddresses() {
+    try {
+      const response = await this.api.get("/api/tiffinProvider/address/getAllAddresses");
+      return {
+        success: true,
+        data: response.data.data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to fetch addresses",
+      };
+    }
+  }
+
+  async getAddressById(addressId: string) {
+    try {
+      const response = await this.api.get(`/api/tiffinProvider/address/getAddress/${addressId}`);
+      return {
+        success: true,
+        data: response.data.data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to fetch address",
+      };
+    }
+  }
+
+  async editAddress(addressId: string, addressData: {
+    address: string;
+    street: string;
+    postCode: string;
+    label: "Home" | "Work";
+  }) {
+    try {
+      const response = await this.api.put(`/api/tiffinProvider/address/editAddress/${addressId}`, addressData);
+      return {
+        success: true,
+        data: response.data.data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to update address",
+      };
+    }
+  }
+
+  async deleteAddress(addressId: string) {
+    try {
+      const response = await this.api.delete(`/api/tiffinProvider/address/deleteAddress/${addressId}`);
+      return {
+        success: true,
+        data: response.data.data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to delete address",
       };
     }
   }
 }
 
-export default new ApiService();
+export default new TiffinApiService();

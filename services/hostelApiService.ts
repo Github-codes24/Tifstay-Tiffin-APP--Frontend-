@@ -83,9 +83,11 @@ class ApiService {
       };
     }
   }
+  async forgotPassword(email: string) { return this.api.post("/api/hostelOwner/forgotOwnerPassword", { email }); }
   async verifyOtp(email: string, otp: string) {
     return this.api.post("/api/hostelOwner/verifyOwnerOtp", { email, otp });
   }
+  async resetPassword(token: string, password: string) { return this.api.post("/api/hostelOwner/resetOwnerPassword", { token, password }); }
   async changePassword(oldPassword: string, newPassword: string, confirmPassword: string) {
     try {
       const response = await this.api.post("/api/hostelOwner/changeOwnerPassword", {
@@ -163,10 +165,92 @@ class ApiService {
     }
   }
 
-async forgotPassword(email: string) { return this.api.post("/api/hostelOwner/forgotOwnerPassword", { email }); }
 
-async resetPassword(token: string, password: string) { return this.api.post("/api/hostelOwner/resetOwnerPassword", { token, password }); }
+// Address Management APIs
+async addAddress(addressData: {
+  address: string;
+  street: string;
+  postCode: string;
+  label: "Home" | "Work";
+}) {
+  try {
+    const response = await this.api.post("/api/hostelOwner/address/addAddress", addressData);
+    return {
+      success: true,
+      data: response.data.data,
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.response?.data?.message || "Failed to add address",
+    };
+  }
+}
 
+async getAllAddresses() {
+  try {
+    const response = await this.api.get("/api/hostelOwner/address/getAllAddresses");
+    return {
+      success: true,
+      data: response.data.data,
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.response?.data?.message || "Failed to fetch addresses",
+    };
+  }
+}
+
+async getAddressById(addressId: string) {
+  try {
+    const response = await this.api.get(`/api/hostelOwner/address/getAddress/${addressId}`);
+    return {
+      success: true,
+      data: response.data.data,
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.response?.data?.message || "Failed to fetch address",
+    };
+  }
+}
+
+async editAddress(addressId: string, addressData: {
+  address: string;
+  street: string;
+  postCode: string;
+  label: "Home" | "Work";
+}) {
+  try {
+    const response = await this.api.put(`/api/hostelOwner/address/editAddress/${addressId}`, addressData);
+    return {
+      success: true,
+      data: response.data.data,
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.response?.data?.message || "Failed to update address",
+    };
+  }
+}
+
+async deleteAddress(addressId: string) {
+  try {
+    const response = await this.api.delete(`/api/hostelOwner/address/deleteAddress/${addressId}`);
+    return {
+      success: true,
+      data: response.data.data,
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.response?.data?.message || "Failed to delete address",
+    };
+  }
+}
   // Create Hostel Listing
   async createHostelListing(hostelData: any) {
     try {

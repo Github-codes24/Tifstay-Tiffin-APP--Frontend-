@@ -45,7 +45,7 @@ export default function SecureLayout() {
         }}
       />
       <Stack.Screen
-        name="(accountScreens)/address"
+        name="(accountScreens)/addressScreen"
         options={{
           header: () => (
             <SafeAreaView
@@ -60,7 +60,7 @@ export default function SecureLayout() {
         }}
       />
       <Stack.Screen
-        name="(accountScreens)/edit"
+        name="(accountScreens)/addEditAddress"
         options={{
           header: () => (
             <SafeAreaView

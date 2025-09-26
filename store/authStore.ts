@@ -296,7 +296,6 @@ const useAuthStore = create<AuthState>()(
       return { success: false, error: error.message };
     }
   },
-
   getHostelList: async () => {
     set({ isLoading: true });
 
