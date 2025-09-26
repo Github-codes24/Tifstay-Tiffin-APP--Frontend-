@@ -4,13 +4,13 @@ import { fonts } from "@/constants/typography";
 import { router } from "expo-router";
 import React from "react";
 import {
-  SafeAreaView,
-  View,
-  Text,
   FlatList,
   Image,
+  SafeAreaView,
   StyleSheet,
+  Text,
   TouchableOpacity,
+  View,
 } from "react-native";
 
 const customers = [
@@ -65,7 +65,12 @@ export default function MyCustomersScreen() {
         data={customers}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <TouchableOpacity onPress={()=>{router.push('/(accountScreens)/customerInfo')}} style={styles.customerRow}>
+          <TouchableOpacity
+            onPress={() => {
+              router.push("/(secure)/(accountScreens)/customerInfo");
+            }}
+            style={styles.customerRow}
+          >
             <Image source={item.image} style={styles.profileImage} />
             <View style={styles.info}>
               <Text style={styles.name}>{item.name}</Text>

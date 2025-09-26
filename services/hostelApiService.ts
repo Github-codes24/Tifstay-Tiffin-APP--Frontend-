@@ -83,6 +83,38 @@ class ApiService {
       };
     }
   }
+  async verifyOtp(email: string, otp: string) {
+    return this.api.post("/api/hostelOwner/verifyOwnerOtp", { email, otp });
+  }
+  async changePassword(oldPassword: string, newPassword: string, confirmPassword: string) {
+    try {
+      const response = await this.api.post("/api/hostelOwner/changeOwnerPassword", {
+        oldPassword,
+        newPassword,
+        confirmPassword,
+      });
+  
+      return {
+        success: true,
+        data: response.data,
+        message: response.data?.message || "Password changed successfully"
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error:
+          error.response?.data?.message ||
+          "Password change failed. Please try again.",
+      };
+    }
+  }
+async updateProfile(fullName: string, email: string, password: string) {
+  return this.api.put("/api/hostelOwner/updateOwnerProfile", { fullName, email, password });
+}
+
+async forgotPassword(email: string) { return this.api.post("/api/hostelOwner/forgotOwnerPassword", { email }); }
+
+async resetPassword(token: string, password: string) { return this.api.post("/api/hostelOwner/resetOwnerPassword", { token, password }); }
 
   // Create Hostel Listing
   async createHostelListing(hostelData: any) {

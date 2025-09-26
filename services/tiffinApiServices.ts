@@ -242,6 +242,23 @@ class ApiService {
     }
   }
 
+  async changePassword(oldPassword: string, newPassword: string,confirmPassword: string) {
+    try {
+      const response = await this.api.post("/api/tiffinProvider/changeTiffinProviderPassword", { oldPassword, newPassword,confirmPassword });
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error:
+          error.response?.data?.message ||
+          "Password change failed. Please try again.",
+      };
+    }
+  }
+
   // Get current user (example endpoint - adjust based on your API)
   async getCurrentUser() {
     try {

@@ -58,13 +58,15 @@ const MyProfileScreen = () => {
         <MenuItem
           label="Manage Profile"
           icon={Images.manage}
-          onPress={() => router.push("/(accountScreens)/edit")}
+          onPress={() => router.push("/(secure)/(accountScreens)/edit")}
         />
 
         <MenuItem
           label="Change Password"
           icon={Images.lock1}
-          onPress={() => router.push("/(accountScreens)/changePassword")}
+          onPress={() =>
+            router.push("/(secure)/(accountScreens)/changePassword")
+          }
         />
       </ScrollView>
     </SafeAreaView>

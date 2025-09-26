@@ -18,6 +18,7 @@ interface User {
     bankName: string;
     accountHolderName: string;
   };
+  changePassword: string;
   // Add other user properties as needed
 }
 
@@ -49,7 +50,13 @@ interface AuthState {
   getHostelList: () => Promise<any>;
   getUserProfile: (type: "hostel_owner" | "tiffin_provider") => Promise<any>;
   setUserServiceType: (type: "hostel_owner" | "tiffin_provider") => void;
-}
+  changePassword: (
+    oldPassword: string,
+    newPassword: string,
+    confirmPassword: string,
+    type: "hostel_owner" | "tiffin_provider"
+  ) => Promise<any>;
+  }
 
 const useAuthStore = create<AuthState>()(
   persist(
@@ -75,6 +82,9 @@ const useAuthStore = create<AuthState>()(
 
     try {
       let response: any;
+
+      console.log("Login button pressed", type);
+
       if (type === "hostel_owner") {
         response = await hostelApiService.login(email, password);
       } else {
@@ -154,6 +164,49 @@ const useAuthStore = create<AuthState>()(
     }
   },
 
+
+  changePassword: async (
+    oldPassword: string,
+    newPassword: string,
+    confirmPassword: string,
+    type: "hostel_owner" | "tiffin_provider"
+  ) => {
+    set({ isLoading: true, error: null });
+  
+    try {
+      let response;
+      const userServiceType = get().userServiceType || type;
+      
+      if (userServiceType === "hostel_owner") {
+        response = await hostelApiService.changePassword(oldPassword, newPassword, confirmPassword);
+      } else {
+        response = await tiffinApiService.changePassword(oldPassword, newPassword, confirmPassword);
+      }
+  
+      if (response.success) {
+        // Update success message
+        set({
+          isLoading: false,
+          error: null,
+        });
+  
+        return { success: true, message: "Password changed successfully" };
+      } else {
+        set({
+          isLoading: false,
+          error: response.error || "Failed to change password",
+        });
+        return { success: false, error: response.error };
+      }
+    } catch (error: any) {
+      set({
+        isLoading: false,
+        error: error.message || "Failed to change password",
+      });
+      return { success: false, error: error.message };
+    }
+  },
+  
   getUserProfile: async (type: "hostel_owner" | "tiffin_provider") => {
     set({ isLoading: true });
 

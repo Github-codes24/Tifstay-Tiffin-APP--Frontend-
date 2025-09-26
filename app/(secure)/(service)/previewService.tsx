@@ -1,18 +1,12 @@
 // screens/MealDetails.tsx
-import React from "react";
-import {
-  View,
-  Text,
-  Image,
-  StyleSheet,
-  ScrollView,
-} from "react-native";
+import CommonButton from "@/components/CommonButton";
 import { Colors } from "@/constants/Colors";
 import { Images } from "@/constants/Images";
 import { fonts } from "@/constants/typography";
 import { Ionicons } from "@expo/vector-icons";
-import CommonButton from "@/components/CommonButton";
 import { router } from "expo-router";
+import React from "react";
+import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
 
 const MealDetails = () => {
   return (
@@ -22,8 +16,8 @@ const MealDetails = () => {
         contentContainerStyle={styles.scrollContent}
       >
         {/* Meal Image */}
-        <View style={{paddingHorizontal:16}}>
-        <Image source={Images.food} style={styles.image} />
+        <View style={{ paddingHorizontal: 16 }}>
+          <Image source={Images.food} style={styles.image} />
         </View>
 
         {/* Title + Description */}
@@ -81,7 +75,7 @@ const MealDetails = () => {
         <Text style={styles.listItem}>• Dinner (8:00 PM - 10:00 PM)</Text>
 
         {/* What's Included */}
-        <Text style={styles.sectionTitle}>What's included</Text>
+        <Text style={styles.sectionTitle}>{"What's included"}</Text>
         <Text style={styles.listItem}>
           • 2 Roti + 1 Sabzi + Dal + Rice + Pickle
         </Text>
@@ -131,7 +125,7 @@ const MealDetails = () => {
           title="+ Create Tiffin Listing"
           buttonStyle={styles.createButton}
           onPress={() => {
-            router.push("/(service)/confirmService");
+            router.push("/(secure)/(service)/confirmService");
           }}
         />
 
@@ -279,7 +273,7 @@ const styles = StyleSheet.create({
     color: Colors.title,
   },
   createButton: { marginHorizontal: 16, marginTop: 16 },
-  reviewNote: { marginTop: 10 ,textAlign:'center' },
+  reviewNote: { marginTop: 10, textAlign: "center" },
   iconSmall: { height: 16, width: 16 },
   iconMedium: { height: 20, width: 20 },
 });

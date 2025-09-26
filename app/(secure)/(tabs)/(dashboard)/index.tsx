@@ -27,7 +27,7 @@ export default function ServiceOfflineScreen() {
   const isTiffinProvider = userServiceType === "tiffin_provider";
 
   useEffect(() => {
-    getHostelList();
+    // getHostelList();
     getUserProfile(userServiceType);
   }, [userServiceType, getHostelList, getUserProfile]);
 

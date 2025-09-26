@@ -1,34 +1,36 @@
-import React, { useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Image,
-  SafeAreaView,
-} from "react-native";
+import CommonButton from "@/components/CommonButton";
 import { Colors } from "@/constants/Colors";
 import { Images } from "@/constants/Images";
 import { fonts } from "@/constants/typography";
-import CommonButton from "@/components/CommonButton";
 import { router } from "expo-router";
+import React from "react";
+import { Image, SafeAreaView, StyleSheet, Text, View } from "react-native";
 
 export default function SuccessFul() {
   return (
     <SafeAreaView style={styles.container}>
-        <View
-          style={{ justifyContent: "center", flex: 1, alignItems: "center"}}
-        >
-          <Image
-            source={Images.logo}
-            style={styles.appLogo}
-            resizeMode="contain"
+      <View style={{ justifyContent: "center", flex: 1, alignItems: "center" }}>
+        <Image
+          source={Images.logo}
+          style={styles.appLogo}
+          resizeMode="contain"
+        />
+        <Text style={[styles.title, { marginBottom: 10 }]}>
+          Listing Created!
+        </Text>
+        <Text style={styles.footerText}>
+          Your tiffin service listing has been submitted for review.
+        </Text>
+        <View style={{ width: "100%", marginTop: 20 }}>
+          <CommonButton
+            buttonStyle={{ marginHorizontal: 16 }}
+            title="Go to Home"
+            onPress={() => {
+              router.push("/(secure)/(tabs)/(dashboard)");
+            }}
           />
-          <Text style={[styles.title, { marginBottom: 10 }]}>Listing Created!</Text>
-          <Text style={styles.footerText}>Your tiffin service listing has been submitted for review.</Text>
-          <View style={{width:'100%' , marginTop:20}}>
-          <CommonButton buttonStyle={{marginHorizontal:16}} title="Go to Home" onPress={()=>{router.push('/(tabs)/(dashboard)')}}/>
-          </View>
         </View>
+      </View>
     </SafeAreaView>
   );
 }
@@ -53,7 +55,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.interSemibold,
     marginBottom: 28,
     textAlign: "center",
-    color:Colors.title
+    color: Colors.title,
   },
   footer: {
     marginTop: 57,
@@ -66,7 +68,7 @@ const styles = StyleSheet.create({
     color: Colors.grey,
     textAlign: "center",
     fontFamily: fonts.interRegular,
-    paddingHorizontal:50
+    paddingHorizontal: 50,
   },
   registerText: {
     fontSize: 16,

@@ -3,12 +3,12 @@ import { fonts } from "@/constants/typography";
 import { router } from "expo-router";
 import React from "react";
 import {
-  View,
-  Text,
   Image,
-  TouchableOpacity,
-  StyleSheet,
   SafeAreaView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 const AddressScreen = () => {
@@ -33,7 +33,11 @@ const AddressScreen = () => {
             top: 19,
           }}
         >
-          <TouchableOpacity onPress={() => {router.push('/(accountScreens)/editAddress')}}>
+          <TouchableOpacity
+            onPress={() => {
+              router.push("/(secure)/(accountScreens)/editAddress");
+            }}
+          >
             <Image
               source={Images.editicon}
               style={styles.actionIcon}
@@ -50,7 +54,6 @@ const AddressScreen = () => {
           </TouchableOpacity>
         </View>
       </View>
-      
     </SafeAreaView>
   );
 };

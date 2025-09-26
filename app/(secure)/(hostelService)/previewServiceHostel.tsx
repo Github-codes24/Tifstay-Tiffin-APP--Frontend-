@@ -96,7 +96,7 @@ export default function PreviewServiceHostel() {
         // Clear the context data
         clearHostelData();
         // Navigate to success page
-        router.replace("/(hostelService)/successful");
+        router.replace("/(secure)/(hostelService)/successful");
       } else {
         Alert.alert("Error", response.error || "Failed to create listing");
       }

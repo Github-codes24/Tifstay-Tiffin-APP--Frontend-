@@ -27,7 +27,7 @@ export default function SuccessFul() {
             buttonStyle={{ marginHorizontal: 16 }}
             title="Go to Home"
             onPress={() => {
-              router.push("/(tabs)/(dashboard)");
+              router.push("/(secure)/(tabs)/(dashboard)");
             }}
           />
         </View>

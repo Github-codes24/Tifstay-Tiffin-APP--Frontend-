@@ -30,7 +30,7 @@ const AddNewHostelService1 = () => {
   const [locationOpen, setLocationOpen] = useState(false);
   const [location, setLocation] = useState(null);
   const [locationItems, setLocationItems] = useState([
-    { label: "Select Area", value: null },
+    { label: "Select Area", value: undefined },
     { label: "Near VNIT, Medical College...", value: "vnit" },
     { label: "Near IIM, IT Park", value: "iim" },
     { label: "Near GMCH", value: "gmch" },
@@ -83,7 +83,7 @@ const AddNewHostelService1 = () => {
         // Clear context data
         clearHostelData();
         // Navigate to success page
-        router.replace("/(hostelService)/successful");
+        router.replace("/(secure)/(hostelService)/successful");
       } else {
         Alert.alert("Error", response.error || "Failed to submit listing");
       }
@@ -116,7 +116,7 @@ const AddNewHostelService1 = () => {
       whatsappNumber,
       photos,
     });
-    router.push("/(hostelService)/previewServiceHostel");
+    router.push("/(secure)/(hostelService)/previewServiceHostel");
   };
 
   const pickImage = async () => {
@@ -327,7 +327,11 @@ const AddNewHostelService1 = () => {
         <CommonButton
           title={isSubmitting ? "Submitting..." : "Submit Listing"}
           onPress={handleSubmit}
-          buttonStyle={[styles.submitButton, isSubmitting && { opacity: 0.7 }]}
+          buttonStyle={
+            isSubmitting
+              ? [styles.submitButton, { opacity: 0.7 }]
+              : styles.submitButton
+          }
           disabled={isSubmitting}
         />
 
