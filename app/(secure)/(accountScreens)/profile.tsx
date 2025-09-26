@@ -42,7 +42,7 @@ const MyProfileScreen = () => {
           <InfoRow
             icon={Images.phone}
             label="Phone Number"
-            value="715-601-4598"
+            value={user?.phoneNumber || ""}
           />
           <InfoRow
             icon={Images.bank}

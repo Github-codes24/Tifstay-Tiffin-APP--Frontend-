@@ -19,6 +19,7 @@ interface User {
     accountHolderName: string;
   };
   changePassword: string;
+  phoneNumber: string;
   // Add other user properties as needed
 }
 
@@ -56,7 +57,25 @@ interface AuthState {
     confirmPassword: string,
     type: "hostel_owner" | "tiffin_provider"
   ) => Promise<any>;
+  updateProfile: (
+    profileData: {
+      fullName: string;
+      email: string;
+      phoneNumber: string;
+      profileImage?: any;
+      bankDetails: {
+        accountNumber: string;
+        ifscCode: string;
+        accountType: string;
+        accountHolderName: string;
+        bankName: string;
+      };
+    },
+    type: "hostel_owner" | "tiffin_provider"
+  ) => Promise<any>;
+  
   }
+  
 
 const useAuthStore = create<AuthState>()(
   persist(
@@ -163,7 +182,44 @@ const useAuthStore = create<AuthState>()(
       return { success: false, error: error.message };
     }
   },
-
+  updateProfile: async (profileData, type) => {
+    set({ isLoading: true, error: null });
+  
+    try {
+      let response;
+      const userServiceType = get().userServiceType || type;
+      
+      if (userServiceType === "hostel_owner") {
+        response = await hostelApiService.updateProfile(profileData);
+      } else {
+        response = await tiffinApiService.updateProfile(profileData);
+      }
+  
+      if (response.success) {
+        // Update the user in the store with the new data
+        const updatedUser = response.data?.updatedHostelOwner || response.data?.hostelOwner;
+        set({
+          user: updatedUser,
+          isLoading: false,
+          error: null,
+        });
+  
+        return { success: true, message: "Profile updated successfully" };
+      } else {
+        set({
+          isLoading: false,
+          error: response.error || "Failed to update profile",
+        });
+        return { success: false, error: response.error };
+      }
+    } catch (error: any) {
+      set({
+        isLoading: false,
+        error: error.message || "Failed to update profile",
+      });
+      return { success: false, error: error.message };
+    }
+  },
 
   changePassword: async (
     oldPassword: string,

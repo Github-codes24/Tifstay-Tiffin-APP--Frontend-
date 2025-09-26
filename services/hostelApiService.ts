@@ -108,9 +108,60 @@ class ApiService {
       };
     }
   }
-async updateProfile(fullName: string, email: string, password: string) {
-  return this.api.put("/api/hostelOwner/updateOwnerProfile", { fullName, email, password });
-}
+  async updateProfile(profileData: {
+    fullName: string;
+    email: string;
+    phoneNumber: string;
+    profileImage?: any;
+    bankDetails: {
+      accountNumber: string;
+      ifscCode: string;
+      accountType: string;
+      accountHolderName: string;
+      bankName: string;
+    };
+  }) {
+    try {
+      const formData = new FormData();
+      
+      // Add basic fields
+      formData.append("fullName", profileData.fullName);
+      formData.append("email", profileData.email);
+      formData.append("phoneNumber", profileData.phoneNumber);
+      
+      // Add bank details
+      formData.append("bankDetails[accountNumber]", profileData.bankDetails.accountNumber);
+      formData.append("bankDetails[ifscCode]", profileData.bankDetails.ifscCode);
+      formData.append("bankDetails[accountType]", profileData.bankDetails.accountType);
+      formData.append("bankDetails[accountHolderName]", profileData.bankDetails.accountHolderName);
+      formData.append("bankDetails[bankName]", profileData.bankDetails.bankName);
+      
+      // Add profile image if provided
+      if (profileData.profileImage) {
+        formData.append("profileImage", {
+          uri: profileData.profileImage.uri,
+          type: profileData.profileImage.type || "image/jpeg",
+          name: profileData.profileImage.name || `profile_${Date.now()}.jpg`,
+        } as any);
+      }
+  
+      const response = await this.api.put("/api/hostelOwner/updateOwnerProfile", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+  
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to update profile",
+      };
+    }
+  }
 
 async forgotPassword(email: string) { return this.api.post("/api/hostelOwner/forgotOwnerPassword", { email }); }
 
