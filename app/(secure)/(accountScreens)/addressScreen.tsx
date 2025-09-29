@@ -171,15 +171,33 @@ const AddressScreen = () => {
               </TouchableOpacity>
             </View>
           }
-        />
-        <Text style={{ textAlign: "center", color: Colors.grey }}>OR</Text>
-        <TouchableOpacity onPress={handleAddNewAddress}>
-          <View style={styles.card}>
-            <Image source={Images.add} style={styles.image} />
+          ListFooterComponent={
+            <View>
+              <Text
+                style={{
+                  textAlign: "center",
+                  color: Colors.grey,
+                  marginVertical: 16,
+                }}
+              >
+                OR
+              </Text>
+              <TouchableOpacity onPress={handleAddNewAddress}>
+                <View style={styles.card}>
+                  <Image
+                    source={Images.add}
+                    style={styles.image}
+                    resizeMode="contain"
+                  />
 
-            <Text style={styles.textContainer}>Add New Address</Text>
-          </View>
-        </TouchableOpacity>
+                  <View style={styles.textContainer}>
+                    <Text style={styles.addTitle}>Add New Address</Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            </View>
+          }
+        />
       </View>
     </SafeAreaView>
   );
@@ -283,5 +301,11 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 14,
     fontFamily: fonts.interSemibold,
+  },
+  addTitle: {
+    fontWeight: "800",
+    color: Colors.lightGrey,
+    fontSize: 16,
+    fontFamily: fonts.interRegular,
   },
 });

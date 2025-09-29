@@ -19,7 +19,7 @@ import {
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("imranmdsh@gmail.com");
-  const [password, setPassword] = useState("Testing@12");
+  const [password, setPassword] = useState("Testing@123");
   const { login, isLoading, error, clearError, userServiceType } =
     useAuthStore();
 

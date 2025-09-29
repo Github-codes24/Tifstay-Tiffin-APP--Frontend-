@@ -345,7 +345,7 @@ async deleteAddress(addressId: string) {
 
       const token = useAuthStore.getState().token;
 
-      const response = await this.api.post("/api/hostels", formData, {
+      const response = await this.api.post("/api/hostelService/createHostelService", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
           Authorization: `Bearer ${token}`,
@@ -368,7 +368,7 @@ async deleteAddress(addressId: string) {
 
   async getHostelList() {
     try {
-      const response = await this.api.get("/api/hostels");
+      const response = await this.api.get("/api/hostelService/getAllHostelServices");
       console.log("Hostel List:", response.data);
       return {
         success: true,
