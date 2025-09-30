@@ -7,6 +7,7 @@ import { Images } from "@/constants/Images";
 import { IS_IOS } from "@/constants/Platform";
 import { fonts } from "@/constants/typography";
 import useAuthStore from "@/store/authStore";
+import useServiceStore from "@/store/serviceStore";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -21,15 +22,15 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ServiceOfflineScreen() {
-  const { hostelList, getHostelList, getUserProfile, user, userServiceType } =
-    useAuthStore();
+  const { getUserProfile, user, userServiceType } = useAuthStore();
+  const { hostelServices, getAllHostelServices } = useServiceStore();
   const [isOnline, setIsOnline] = useState(false);
   const isTiffinProvider = userServiceType === "tiffin_provider";
 
   useEffect(() => {
-    // getHostelList();
+    getAllHostelServices();
     getUserProfile(userServiceType);
-  }, [userServiceType, getHostelList, getUserProfile]);
+  }, [userServiceType, getAllHostelServices, getUserProfile]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -217,14 +218,14 @@ export default function ServiceOfflineScreen() {
               {isTiffinProvider ? "My Tiffin/Restaurant" : "My PG/Hostel"}
             </Text>
             <Text style={styles.serviceCount}>
-              {hostelList?.length} service
+              {hostelServices?.length} service
             </Text>
           </View>
           {isTiffinProvider ? (
             <TiffinCard />
           ) : (
             <>
-              {hostelList?.map((hostel: any) => (
+              {hostelServices?.map((hostel: any) => (
                 <HostelCard hostel={hostel} key={hostel._id} />
               ))}
             </>

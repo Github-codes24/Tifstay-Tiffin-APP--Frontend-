@@ -1,4 +1,3 @@
-import { Hostel } from "@/types/hostel";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { createJSONStorage, persist } from 'zustand/middleware';
@@ -9,7 +8,6 @@ interface User {
   id: string;
   fullName: string;
   email: string;
-  hostelList: Hostel[];
   profileImage: string;
   bankDetails: {
     accountType: string;
@@ -30,7 +28,6 @@ interface AuthState {
   isLoading: boolean;
   error: string | null;
   hasSeenSplash: boolean;
-  hostelList: Hostel[];
   userServiceType: "hostel_owner" | "tiffin_provider";
   // Actions
   login: (
@@ -48,7 +45,6 @@ interface AuthState {
   clearError: () => void;
   setUser: (user: User) => void;
   setSplashSeen: () => void;
-  getHostelList: () => Promise<any>;
   getUserProfile: (type: "hostel_owner" | "tiffin_provider") => Promise<any>;
   setUserServiceType: (type: "hostel_owner" | "tiffin_provider") => void;
   changePassword: (
@@ -83,7 +79,6 @@ const useAuthStore = create<AuthState>()(
   user: null,
   token: null,
   isAuthenticated: false,
-  hostelList: [],
   isLoading: false,
   error: null,
   hasSeenSplash: false,
@@ -292,34 +287,6 @@ const useAuthStore = create<AuthState>()(
       set({
         isLoading: false,
         error: error.message || "Failed to fetch user profile",
-      });
-      return { success: false, error: error.message };
-    }
-  },
-  getHostelList: async () => {
-    set({ isLoading: true });
-
-    try {
-      const response = await hostelApiService.getHostelList();
-
-      if (response.success) {
-        set({
-          hostelList: response.data?.data,
-          isLoading: false,
-          error: null,
-        });
-        return { success: true };
-      } else {
-        set({
-          isLoading: false,
-          error: response.error,
-        });
-        return { success: false, error: response.error };
-      }
-    } catch (error: any) {
-      set({
-        isLoading: false,
-        error: error.message || "Failed to fetch hostel list",
       });
       return { success: false, error: error.message };
     }

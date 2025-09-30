@@ -5,7 +5,7 @@ import LabeledInput from "@/components/labeledInput";
 import StepperInput from "@/components/SteperInput";
 import { Colors } from "@/constants/Colors";
 import { fonts } from "@/constants/typography";
-import { useHostel } from "@/context/HostelProvider";
+import useServiceStore from "@/store/serviceStore";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
@@ -23,7 +23,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 const AddNewHostelService = () => {
   const router = useRouter();
-  const { setCreateHostelPage1Data } = useHostel();
+  const { setFormPage1Data, clearFormData } = useServiceStore();
 
   // Form states
   const [hostelName, setHostelName] = useState("");
@@ -78,7 +78,21 @@ const AddNewHostelService = () => {
   };
 
   const handleNext = () => {
-    setCreateHostelPage1Data({
+    // Validation
+    if (!hostelName.trim()) {
+      Alert.alert("Error", "Please enter hostel name");
+      return;
+    }
+    if (!description.trim()) {
+      Alert.alert("Error", "Please enter description");
+      return;
+    }
+    if (monthlyPrice === 0) {
+      Alert.alert("Error", "Please enter monthly price");
+      return;
+    }
+
+    setFormPage1Data({
       hostelName,
       description,
       hostelType,
@@ -93,7 +107,7 @@ const AddNewHostelService = () => {
       amenities,
       roomPhotos,
     });
-    router.push("/(hostelService)/addNewHostelService1");
+    router.push("/(secure)/(hostelService)/addNewHostelService1");
   };
 
   const resetForm = () => {
@@ -119,6 +133,7 @@ const AddNewHostelService = () => {
       acRooms: false,
       laundry: false,
     });
+    clearFormData();
   };
 
   const toggleAmenity = (amenity: string) => {

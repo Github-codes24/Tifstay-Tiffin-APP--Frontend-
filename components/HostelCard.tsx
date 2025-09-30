@@ -1,15 +1,53 @@
 import { Colors } from "@/constants/Colors";
 import { Images } from "@/constants/Images";
 import { fonts } from "@/constants/typography";
-import { Hostel } from "@/types/hostel";
+import useServiceStore from "@/store/serviceStore";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  Alert,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import Animated from "react-native-reanimated";
 
+interface HostelService {
+  _id: string;
+  hostelName: string;
+  hostelType: string;
+  description: string;
+  pricing: {
+    type: string;
+    price: number;
+  };
+  securityDeposit: number;
+  offers?: string;
+  rooms: {
+    _id?: string;
+    roomNumber: number;
+    numberOfBeds: number;
+    roomDetails: string;
+  }[];
+  facilities: string[];
+  location: {
+    area: string;
+    nearbyLandmarks: string;
+    fullAddress: string;
+  };
+  contactInfo: {
+    phone: number;
+    whatsapp: number;
+  };
+  rulesAndPolicies: string;
+  hostelPhotos?: string[];
+}
+
 interface HostelCardProps {
-  hostel: Hostel;
+  hostel: HostelService;
   onPress?: () => void;
   onBookPress?: () => void;
 }
@@ -18,22 +56,74 @@ const amenityIcons: { [key: string]: string } = {
   WiFi: "wifi",
   Mess: "restaurant",
   Security: "shield-checkmark",
+  StudyHall: "book",
+  CommonTV: "tv",
+  CCTV: "videocam",
+  ACRooms: "snow",
   Laundry: "shirt",
-  AC: "snow",
-  Gym: "fitness",
-  Parking: "car",
 };
-const handleView = (hostel: Hostel) => {
-  router.push({
-    pathname: "/hostelDetails",
-    params: { id: hostel._id }, // ✅ pass hostel id
-  });
-};
+
 export default function HostelCard({
   hostel,
   onPress,
   onBookPress,
 }: HostelCardProps) {
+  const { deleteHostelService, isLoading } = useServiceStore();
+
+  const handleView = () => {
+    router.push({
+      pathname: "/hostelDetails",
+      params: { id: hostel._id },
+    });
+  };
+
+  const handleEdit = () => {
+    // TODO: Implement edit functionality
+    Alert.alert("Edit", "Edit functionality will be implemented soon");
+  };
+
+  const handlePause = () => {
+    // TODO: Implement pause functionality
+    Alert.alert("Pause", "Pause functionality will be implemented soon");
+  };
+
+  const handleDelete = async () => {
+    Alert.alert(
+      "Delete Hostel",
+      "Are you sure you want to delete this hostel service? This action cannot be undone.",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const result = await deleteHostelService(hostel._id);
+              if (result.success) {
+                Alert.alert("Success", "Hostel service deleted successfully");
+              } else {
+                Alert.alert(
+                  "Error",
+                  result.error || "Failed to delete hostel service"
+                );
+              }
+            } catch (error) {
+              Alert.alert("Error", "An unexpected error occurred");
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleViewRooms = () => {
+    // TODO: Implement view rooms functionality
+    router.push("/viewroom");
+  };
+
   return (
     <TouchableOpacity
       style={styles.hostelCard}
@@ -42,24 +132,36 @@ export default function HostelCard({
     >
       <Animated.View style={styles.cardContent} sharedTransitionTag="sharedTag">
         {/* Left side - Image */}
-        <Image source={Images.hostel1} style={styles.hostelImage} />
+        <Image
+          source={
+            hostel.hostelPhotos && hostel.hostelPhotos.length > 0
+              ? { uri: hostel.hostelPhotos[0] }
+              : Images.hostel1
+          }
+          style={styles.hostelImage}
+        />
 
         {/* Right side - Content */}
         <View style={styles.hostelInfo}>
           {/* Title and Rating Row */}
           <View style={styles.headerRow}>
             <Text style={styles.hostelName} numberOfLines={1}>
-              {hostel.name}
+              {hostel.hostelName}
             </Text>
           </View>
 
-          <Text style={styles.sublocation}>{hostel.location.landmark}</Text>
+          <Text style={styles.sublocation}>
+            {hostel.location.nearbyLandmarks || hostel.location.area}
+          </Text>
 
           <View style={styles.amenitiesRow}>
             {hostel?.facilities?.slice(0, 4)?.map((amenity: any) => (
               <View key={amenity} style={styles.amenityItem}>
                 <Ionicons
-                  name={(amenityIcons[amenity] as any) || "checkmark-circle"}
+                  name={
+                    (amenityIcons[amenity.toLowerCase()] as any) ||
+                    "checkmark-circle"
+                  }
                   size={16}
                   color="#6B7280"
                 />
@@ -72,18 +174,15 @@ export default function HostelCard({
           <View style={[styles.rowBetween]}>
             <View style={styles.infoBlock}>
               <Text style={styles.price}>
-                {hostel.pricing.length > 0 &&
-                  hostel.pricing[0].price.toFixed(2)}
-                <Text style={styles.deposit}>
-                  {hostel.pricing.length > 0 && hostel.pricing[0].type}
-                </Text>
+                ₹{hostel.pricing.price.toFixed(2)}
+                <Text style={styles.deposit}>/{hostel.pricing.type}</Text>
               </Text>
               <Text style={styles.deposit}>Rent</Text>
             </View>
 
             <View style={styles.infoBlock}>
               <Text style={styles.booking}>
-                {hostel.rooms.length > 0 && hostel.rooms[0].noOfBeds}
+                {hostel.rooms.length > 0 ? hostel.rooms[0].numberOfBeds : 0}
               </Text>
               <Text style={styles.deposit}>Available</Text>
             </View>
@@ -105,31 +204,18 @@ export default function HostelCard({
           </View>
 
           <View style={styles.actions}>
-            <TouchableOpacity
-              style={styles.button}
-              onPress={() => handleView(hostel)}
-            >
+            <TouchableOpacity style={styles.button} onPress={handleView}>
               <Image source={Images.view} style={styles.btnIcon} />
               <Text style={styles.btnText}>View</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.button}>
+            <TouchableOpacity style={styles.button} onPress={handleEdit}>
               <Image source={Images.edit} style={styles.btnIcon} />
               <Text style={styles.btnText}>Edit</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.button}>
-              <Image source={Images.pause} style={styles.btnIcon} />
-              <Text style={styles.btnText}>Pause</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.button}>
-              <Image source={Images.delete} style={styles.btnIcon} />
-              <Text style={styles.btnText}>Delete</Text>
             </TouchableOpacity>
           </View>
           <TouchableOpacity
             style={[styles.button, { width: "100%", marginTop: 16 }]}
-            onPress={() => {
-              router.push("/viewroom");
-            }}
+            onPress={handleViewRooms}
           >
             <Image source={Images.view} style={styles.btnIcon} />
             <Text style={styles.btnText}> View Rooms</Text>
@@ -221,11 +307,10 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     gap: 6,
-    // marginTop: 16,
   },
   infoBlock: {
     // flex: 1,
-    // alignItems: "center", // center each block
+    // alignItems: "center",
   },
   price: {
     fontFamily: fonts.interSemibold,
@@ -259,9 +344,8 @@ const styles = StyleSheet.create({
   },
   actions: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
     marginTop: 16,
+    gap: 7,
   },
   button: {
     flexDirection: "row",
@@ -272,15 +356,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 6,
     paddingHorizontal: 6,
-    // width: 56,
     gap: 2,
+    width: "50%",
   },
   btnIcon: {
     height: 16,
     width: 16,
   },
   btnText: {
-    // marginLeft: 6,
     fontSize: 10,
     color: Colors.grey,
     fontFamily: fonts.interRegular,

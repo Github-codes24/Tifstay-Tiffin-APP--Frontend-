@@ -2,8 +2,7 @@ import CommonHeader from "@/components/CommonHeader";
 import { Colors } from "@/constants/Colors";
 import { AMENITY_ICONS, DEFAULT_AMENITY_ICON } from "@/constants/iconMappings";
 import { fonts } from "@/constants/typography";
-import useAuthStore from "@/store/authStore";
-import { Hostel } from "@/types/hostel";
+import useServiceStore from "@/store/serviceStore";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -23,25 +22,35 @@ const { width } = Dimensions.get("window");
 
 export default function HostelDetails() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { hostelList, getHostelList, isLoading, error } = useAuthStore();
-  const [hostel, setHostel] = useState<Hostel | null>(null);
+  const {
+    hostelServices,
+    selectedHostelService,
+    getAllHostelServices,
+    getHostelServiceById,
+    isLoading,
+    error,
+  } = useServiceStore();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   useEffect(() => {
-    const fetchHostels = async () => {
-      if (hostelList.length === 0) {
-        await getHostelList();
+    const fetchHostelData = async () => {
+      if (id) {
+        // Try to get specific hostel service by ID
+        await getHostelServiceById(id);
+      } else {
+        // Fallback to get all services if no ID
+        if (hostelServices.length === 0) {
+          await getAllHostelServices();
+        }
       }
     };
-    fetchHostels();
-  }, []);
 
-  useEffect(() => {
-    if (id && hostelList.length > 0) {
-      const found = hostelList.find((h) => h._id === id);
-      setHostel(found || null);
-    }
-  }, [id, hostelList]);
+    fetchHostelData();
+  }, [id]);
+
+  const hostel =
+    selectedHostelService ||
+    (id ? hostelServices.find((h) => h._id === id) : null);
 
   if (isLoading) {
     return (
@@ -70,7 +79,7 @@ export default function HostelDetails() {
   // ==================== IMAGE CAROUSEL SECTION ====================
   const renderImageCarousel = () => {
     const imageWidth = width - 32;
-    const hasImages = hostel.photos && hostel.photos.length > 0;
+    const hasImages = hostel.hostelPhotos && hostel.hostelPhotos.length > 0;
 
     if (!hasImages) {
       return (
@@ -86,7 +95,7 @@ export default function HostelDetails() {
         sharedTransitionTag="sharedTag"
       >
         <FlatList
-          data={hostel.photos}
+          data={hostel.hostelPhotos}
           horizontal
           pagingEnabled
           showsHorizontalScrollIndicator={false}
@@ -100,7 +109,7 @@ export default function HostelDetails() {
           }}
           renderItem={({ item }) => (
             <Animated.Image
-              source={{ uri: `${item}` }}
+              source={{ uri: item }}
               style={styles.image}
               sharedTransitionTag="sharedTag"
               defaultSource={require("../../../assets/images/home.png")}
@@ -110,9 +119,9 @@ export default function HostelDetails() {
         />
 
         {/* Pagination dots */}
-        {hostel.photos.length > 1 && (
+        {hostel.hostelPhotos?.length > 1 && (
           <View style={styles.pagination}>
-            {hostel.photos.map((_: any, index: number) => (
+            {hostel.hostelPhotos?.map((_: any, index: number) => (
               <View
                 key={index}
                 style={[
@@ -132,7 +141,7 @@ export default function HostelDetails() {
     <View style={styles.basicInfo}>
       {/* Title */}
       <View style={styles.titleContainer}>
-        <Text style={styles.title}>{hostel.name}</Text>
+        <Text style={styles.title}>{hostel.hostelName}</Text>
       </View>
 
       {/* Tags for Hostel */}
@@ -149,8 +158,10 @@ export default function HostelDetails() {
       </View>
 
       {/* Hostel-specific location info */}
-      {hostel.location.landmark && (
-        <Text style={styles.sublocation}>{hostel.location.landmark}</Text>
+      {hostel.location.nearbyLandmarks && (
+        <Text style={styles.sublocation}>
+          {hostel.location.nearbyLandmarks}
+        </Text>
       )}
 
       {/* Hostel room availability */}
@@ -160,7 +171,10 @@ export default function HostelDetails() {
           <View style={styles.bedInfo}>
             <Ionicons name="bed-outline" size={16} color="#666" />
             <Text style={styles.roomText}>
-              {hostel.rooms.reduce((total, room) => total + room.noOfBeds, 0)}{" "}
+              {hostel.rooms.reduce(
+                (total, room) => total + room.numberOfBeds,
+                0
+              )}{" "}
               total beds
             </Text>
           </View>
@@ -177,12 +191,12 @@ export default function HostelDetails() {
 
   // ==================== PRICING SECTION ====================
   const renderPricingSection = () => {
-    if (!hostel.pricing || hostel.pricing.length === 0) {
+    if (!hostel.pricing) {
       return null;
     }
 
-    const pricing = hostel.pricing[0];
-    const hasOffer = pricing.offer && pricing.offer.trim() !== "";
+    const pricing = hostel.pricing;
+    const hasOffer = hostel.offers && hostel.offers.trim() !== "";
 
     return (
       <View style={styles.pricingBox}>
@@ -192,13 +206,13 @@ export default function HostelDetails() {
           </Text>
           {hasOffer && (
             <View style={styles.discountBadge}>
-              <Text style={styles.discountText}>{pricing.offer}</Text>
+              <Text style={styles.discountText}>{hostel.offers}</Text>
             </View>
           )}
         </View>
-        {pricing.securityDeposit > 0 && (
+        {hostel.securityDeposit > 0 && (
           <Text style={styles.depositNote}>
-            Note: You have to pay security deposit of ₹{pricing.securityDeposit}{" "}
+            Note: You have to pay security deposit of ₹{hostel.securityDeposit}{" "}
             on {pricing.type} booking. It will be refunded to you on check-out.
           </Text>
         )}
@@ -237,7 +251,7 @@ export default function HostelDetails() {
       )}
 
       {/* Rules & Policies */}
-      {hostel.rules && hostel.rules.length > 0 && (
+      {hostel.rulesAndPolicies && hostel.rulesAndPolicies.trim() !== "" && (
         <View style={[styles.section, styles.rulesSection]}>
           <Text style={styles.sectionTitle}>Rules & Policies</Text>
           <View style={styles.rulesBox}>
@@ -248,11 +262,7 @@ export default function HostelDetails() {
               style={styles.rulesIcon}
             />
             <View style={styles.rulesContent}>
-              {hostel.rules.map((rule: string, index: number) => (
-                <Text key={index} style={styles.rulesText}>
-                  • {rule}
-                </Text>
-              ))}
+              <Text style={styles.rulesText}>{hostel.rulesAndPolicies}</Text>
             </View>
           </View>
         </View>
@@ -263,7 +273,7 @@ export default function HostelDetails() {
         <Text style={styles.sectionTitle}>Location</Text>
         <View style={[styles.locationBox, { marginTop: 12 }]}>
           <Text style={styles.locationTitle}>
-            {hostel.location.landmark || hostel.location.area}
+            {hostel.location.nearbyLandmarks || hostel.location.area}
           </Text>
           <Text style={styles.locationAddress}>
             {hostel.location.fullAddress}
@@ -280,7 +290,7 @@ export default function HostelDetails() {
       <View style={styles.infoBoxsub}>
         <View style={styles.infoBox}>
           <Ionicons name="call-outline" size={20} color="#0A051F" />
-          <Text style={styles.infoValue}>{hostel.contact.phone}</Text>
+          <Text style={styles.infoValue}>{hostel.contactInfo.phone}</Text>
         </View>
         <View style={styles.infoBox}>
           <Ionicons
@@ -288,7 +298,7 @@ export default function HostelDetails() {
             size={20}
             color="#0A051F"
           />
-          <Text style={styles.infoValue}>{hostel.contact.whatsapp}</Text>
+          <Text style={styles.infoValue}>{hostel.contactInfo.whatsapp}</Text>
         </View>
       </View>
     </View>

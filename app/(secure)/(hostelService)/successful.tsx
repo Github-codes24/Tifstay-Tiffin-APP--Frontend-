@@ -1,13 +1,20 @@
-// app/(hostelService)/successful.tsx
 import CommonButton from "@/components/CommonButton";
 import { Colors } from "@/constants/Colors";
 import { Images } from "@/constants/Images";
 import { fonts } from "@/constants/typography";
+import useServiceStore from "@/store/serviceStore";
 import { router } from "expo-router";
-import React from "react";
+import React, { useEffect } from "react";
 import { Image, SafeAreaView, StyleSheet, Text, View } from "react-native";
 
 export default function SuccessFul() {
+  const { clearFormData } = useServiceStore();
+
+  useEffect(() => {
+    // Clear any remaining form data when component mounts
+    clearFormData();
+  }, []);
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={{ justifyContent: "center", flex: 1, alignItems: "center" }}>

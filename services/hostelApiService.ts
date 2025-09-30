@@ -1,4 +1,5 @@
 import useAuthStore from "@/store/authStore";
+import { CreateHostelServiceData, Room } from "@/types/hostel";
 import axios, { AxiosInstance } from "axios";
 
 class ApiService {
@@ -252,133 +253,263 @@ async deleteAddress(addressId: string) {
   }
 }
   // Create Hostel Listing
-  async createHostelListing(hostelData: any) {
+async createHostelService(data: CreateHostelServiceData) {
     try {
       const formData = new FormData();
 
       // Basic fields
-      formData.append("name", hostelData.hostelName);
-      formData.append(
-        "hostelType",
-        hostelData.hostelType === "boys"
-          ? "Boys Hostel"
-          : hostelData.hostelType === "girls"
-          ? "Girls Hostel"
-          : hostelData.hostelType === "coed"
-          ? "Co-ed Hostel"
-          : "Boys Hostel"
-      );
-      formData.append("description", hostelData.description);
+      formData.append("hostelName", data.hostelName);
+      formData.append("hostelType", data.hostelType);
+      formData.append("description", data.description);
 
       // Pricing as JSON string
-      const pricingData = [
-        {
-          type: "monthly",
-          price: hostelData.monthlyPrice,
-          securityDeposit: hostelData.securityDeposit,
-          offer: hostelData.offers || "",
-        },
-      ];
-      formData.append("pricing", JSON.stringify(pricingData));
+      formData.append("pricing", JSON.stringify(data.pricing));
+
+      // Security deposit
+      formData.append("securityDeposit", data.securityDeposit.toString());
+
+      // Offers
+      if (data.offers) {
+        formData.append("offers", data.offers);
+      }
 
       // Rooms as JSON string
-      const roomsData = [
-        {
-          roomNo: hostelData.roomNo,
-          noOfBeds: 3, // You might want to add this as a field
-          details: hostelData.roomDetails,
-        },
-      ];
-      formData.append("rooms", JSON.stringify(roomsData));
+      formData.append("rooms", JSON.stringify(data.rooms));
 
-      // Facilities as comma-separated string
-      const facilitiesList = Object.entries(hostelData.amenities || {})
-        .filter(([key, value]) => value)
-        .map(([key]) => {
-          const facilityMap: { [key: string]: string } = {
-            wifi: "Wifi",
-            meals: "Mess",
-            security: "Security",
-            studyHall: "Study Hall",
-            commonTV: "Common TV",
-            cctv: "CCTV",
-            acRooms: "AC Rooms",
-            laundry: "Laundry",
-          };
-          return facilityMap[key] || key;
-        });
-      formData.append("facilities", facilitiesList.join(", "));
-
-      // Rules
-      formData.append("rules", hostelData.rulesText || "");
+      // Facilities as JSON string
+      formData.append("facilities", JSON.stringify(data.facilities));
 
       // Location as JSON string
-      const locationData = {
-        area: hostelData.location || hostelData.nearbyLandmarks || "",
-        fullAddress: hostelData.fullAddress || "",
-      };
-      formData.append("location", JSON.stringify(locationData));
+      formData.append("location", JSON.stringify(data.location));
 
-      // Contact as JSON string
-      const contactData = {
-        phone: hostelData.phoneNumber || "",
-        whatsapp: hostelData.whatsappNumber || "",
-      };
-      formData.append("contact", JSON.stringify(contactData));
+      // Contact info as JSON string
+      formData.append("contactInfo", JSON.stringify(data.contactInfo));
 
-      // Photos (if any) - combine room photos and hostel photos
-      const allPhotos = [
-        ...(hostelData.roomPhotos || []),
-        ...(hostelData.photos || []),
-      ];
-      if (allPhotos.length > 0) {
-        allPhotos.forEach((photo: any) => {
+      // Rules and policies
+      formData.append("rulesAndPolicies", data.rulesAndPolicies);
+
+      // Hostel photos
+      if (data.hostelPhotos && data.hostelPhotos.length > 0) {
+        data.hostelPhotos.forEach((photo: any, index: number) => {
           if (photo.uri) {
-            formData.append("photos", {
+            formData.append("hostelPhotos", {
               uri: photo.uri,
               type: photo.type || "image/jpeg",
-              name: photo.name || `photo_${Date.now()}.jpg`,
+              name: photo.name || `hostel_photo_${index}_${Date.now()}.jpg`,
             } as any);
           }
         });
       }
 
-      const token = useAuthStore.getState().token;
+      // Room photos (if any)
+      if (data.roomPhotos && data.roomPhotos.length > 0) {
+        data.roomPhotos.forEach((photo: any, index: number) => {
+          if (photo.uri) {
+            formData.append("roomPhotos", {
+              uri: photo.uri,
+              type: photo.type || "image/jpeg",
+              name: photo.name || `room_photo_${index}_${Date.now()}.jpg`,
+            } as any);
+          }
+        });
+      }
 
       const response = await this.api.post("/api/hostelService/createHostelService", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${token}`,
         },
       });
 
       return {
         success: true,
-        data: response,
+        data: response.data,
       };
     } catch (error: any) {
-      console.error("Create Hostel Error:", error);
+      console.error("Create Hostel Service Error:", error);
       return {
         success: false,
-        error:
-          error.response?.data?.message || "Failed to create hostel listing.",
+        error: error.response?.data?.message || "Failed to create hostel service.",
       };
     }
   }
 
-  async getHostelList() {
+  async getAllHostelServices() {
     try {
-      const response = await this.api.get("/api/hostelService/getAllHostelServices");
-      console.log("Hostel List:", response.data);
+      const response = await this.api.get("https://tifstay-project-be.onrender.com/api/hostelService/getHostelServicesByOwner", {
+        headers: {
+          
+          "Content-Type": "application/json",
+        },
+      });
+
       return {
         success: true,
         data: response.data,
       };
     } catch (error: any) {
-      console.error("Get Hostel List Error:", error);
+      console.error("Get All Hostel Services Error:", error);
       return {
         success: false,
-        error: error.response?.data?.message || "Failed to get hostel list.",
+        error: error.response?.data?.message || "Failed to fetch hostel services.",
+      };
+    }
+  }
+
+  async getHostelServiceById(hostelServiceId: string) {
+    try {
+      const response = await this.api.get(
+        `/api/hostelService/getHostelServiceById/${hostelServiceId}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error("Get Hostel Service By ID Error:", error);
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to fetch hostel service details.",
+      };
+    }
+  }
+
+  async updateHostelService(hostelServiceId: string, data: CreateHostelServiceData & { rooms: (Room & { isNewRoom?: boolean })[] }) {
+    try {
+      const formData = new FormData();
+
+      // Basic fields
+      formData.append("hostelName", data.hostelName);
+      formData.append("hostelType", data.hostelType);
+      formData.append("description", data.description);
+
+      // Pricing as JSON string
+      formData.append("pricing", JSON.stringify(data.pricing));
+
+      // Security deposit
+      formData.append("securityDeposit", data.securityDeposit.toString());
+
+      // Offers
+      if (data.offers) {
+        formData.append("offers", data.offers);
+      }
+
+      // Rooms as JSON string (including isNewRoom flag and _id for existing rooms)
+      formData.append("rooms", JSON.stringify(data.rooms));
+
+      // Facilities as JSON string
+      formData.append("facilities", JSON.stringify(data.facilities));
+
+      // Location as JSON string
+      formData.append("location", JSON.stringify(data.location));
+
+      // Contact info as JSON string
+      formData.append("contactInfo", JSON.stringify(data.contactInfo));
+
+      // Rules and policies
+      formData.append("rulesAndPolicies", data.rulesAndPolicies);
+
+      // Hostel photos
+      if (data.hostelPhotos && data.hostelPhotos.length > 0) {
+        data.hostelPhotos.forEach((photo: any, index: number) => {
+          if (photo.uri) {
+            formData.append("hostelPhotos", {
+              uri: photo.uri,
+              type: photo.type || "image/jpeg",
+              name: photo.name || `hostel_photo_${index}_${Date.now()}.jpg`,
+            } as any);
+          }
+        });
+      }
+
+      // Room photos (if any)
+      if (data.roomPhotos && data.roomPhotos.length > 0) {
+        data.roomPhotos.forEach((photo: any, index: number) => {
+          if (photo.uri) {
+            formData.append("roomPhotos", {
+              uri: photo.uri,
+              type: photo.type || "image/jpeg",
+              name: photo.name || `room_photo_${index}_${Date.now()}.jpg`,
+            } as any);
+          }
+        });
+      }
+
+      const response = await this.api.put(
+        `/api/hostelService/updateHostelService/${hostelServiceId}`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error("Update Hostel Service Error:", error);
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to update hostel service.",
+      };
+    }
+  }
+
+  async deleteHostelService(hostelServiceId: string) {
+    try {
+      const response = await this.api.delete(
+        `/api/hostelService/deleteHostelService/${hostelServiceId}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error("Delete Hostel Service Error:", error);
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to delete hostel service.",
+      };
+    }
+  }
+
+  async deleteRoomPhotos(hostelServiceId: string, roomId: string, photoUrls: string[]) {
+    try {
+      const response = await this.api.delete(
+        `/api/hostelService/deleteRoomPhotos/${hostelServiceId}/${roomId}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+          data: {
+            photoUrls: photoUrls,
+          },
+        }
+      );
+
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error("Delete Room Photos Error:", error);
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to delete room photos.",
       };
     }
   }

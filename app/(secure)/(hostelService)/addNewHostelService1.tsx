@@ -3,8 +3,7 @@ import CommonHeader from "@/components/CommonHeader";
 import LabeledInput from "@/components/labeledInput";
 import { Colors } from "@/constants/Colors";
 import { fonts } from "@/constants/typography";
-import { useHostel } from "@/context/HostelProvider";
-import apiService from "@/services/hostelApiService";
+import useServiceStore from "@/store/serviceStore";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
@@ -18,30 +17,27 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import DropDownPicker from "react-native-dropdown-picker";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const AddNewHostelService1 = () => {
   const router = useRouter();
-  const { setCreateHostelPage2Data, getCompleteHostelData, clearHostelData } =
-    useHostel();
+  const {
+    setFormPage2Data,
+    getCompleteFormData,
+    clearFormData,
+    createHostelService,
+    isLoading,
+  } = useServiceStore();
 
   const [rulesText, setRulesText] = useState("");
-  const [locationOpen, setLocationOpen] = useState(false);
-  const [location, setLocation] = useState(null);
-  const [locationItems, setLocationItems] = useState([
-    { label: "Select Area", value: undefined },
-    { label: "Near VNIT, Medical College...", value: "vnit" },
-    { label: "Near IIM, IT Park", value: "iim" },
-    { label: "Near GMCH", value: "gmch" },
-  ]);
+
+  const [area, setArea] = useState("");
   const [nearbyLandmarks, setNearbyLandmarks] = useState("");
   const [fullAddress, setFullAddress] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [whatsappNumber, setWhatsappNumber] = useState("");
   const [photos, setPhotos] = useState<any[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
   const handleSubmit = async () => {
     try {
       // Validate required fields
@@ -53,9 +49,9 @@ const AddNewHostelService1 = () => {
       setIsSubmitting(true);
 
       // Save page 2 data
-      setCreateHostelPage2Data({
+      setFormPage2Data({
         rulesText,
-        location,
+        area,
         nearbyLandmarks,
         fullAddress,
         phoneNumber,
@@ -63,25 +59,75 @@ const AddNewHostelService1 = () => {
         photos,
       });
 
-      // Get complete data including room photos from page 1
-      const page1Data = getCompleteHostelData();
-      const completeData = {
-        ...page1Data,
-        rulesText,
-        location,
-        nearbyLandmarks,
-        fullAddress,
-        phoneNumber,
-        whatsappNumber,
-        photos,
+      // Get complete data including page 1 data
+      const completeFormData = getCompleteFormData();
+
+      if (!completeFormData) {
+        Alert.alert(
+          "Error",
+          "Missing form data. Please go back and fill all required fields."
+        );
+        return;
+      }
+
+      // Transform form data to API format
+      const apiData = {
+        hostelName: completeFormData.hostelName,
+        hostelType:
+          completeFormData.hostelType === "boys"
+            ? "Boys Hostel"
+            : completeFormData.hostelType === "girls"
+            ? "Girls Hostel"
+            : "Co-ed Hostel",
+        description: completeFormData.description,
+        pricing: {
+          type: "monthly",
+          price: completeFormData.monthlyPrice,
+        },
+        securityDeposit: completeFormData.securityDeposit,
+        offers: completeFormData.offers,
+        rooms: [
+          {
+            roomNumber: parseInt(completeFormData.roomNo) || 101,
+            numberOfBeds: 4, // Default value, you might want to add this to the form
+            roomDetails: completeFormData.roomDetails,
+          },
+        ],
+        facilities: Object.entries(completeFormData.amenities)
+          .filter(([_, value]) => value)
+          .map(([key]) => {
+            const facilityMap: { [key: string]: string } = {
+              wifi: "wifi",
+              meals: "mess",
+              security: "security",
+              studyHall: "study hall",
+              commonTV: "common tv",
+              cctv: "cctv",
+              acRooms: "ac rooms",
+              laundry: "laundry",
+            };
+            return facilityMap[key] || key;
+          }),
+        location: {
+          area: area || "Didwana",
+          nearbyLandmarks: nearbyLandmarks,
+          fullAddress: fullAddress,
+        },
+        contactInfo: {
+          phone: parseInt(phoneNumber),
+          whatsapp: parseInt(whatsappNumber),
+        },
+        rulesAndPolicies: rulesText,
+        hostelPhotos: photos,
+        roomPhotos: completeFormData.roomPhotos,
       };
 
       // Submit to API
-      const response = await apiService.createHostelListing(completeData);
+      const response = await createHostelService(apiData);
 
       if (response.success) {
-        // Clear context data
-        clearHostelData();
+        // Clear form data
+        clearFormData();
         // Navigate to success page
         router.replace("/(secure)/(hostelService)/successful");
       } else {
@@ -97,19 +143,20 @@ const AddNewHostelService1 = () => {
 
   const resetForm = () => {
     setRulesText("");
-    setLocation(null);
+    setArea("");
     setNearbyLandmarks("");
     setFullAddress("");
     setPhoneNumber("");
     setWhatsappNumber("");
     setPhotos([]);
+    clearFormData();
   };
 
   const handlePreview = () => {
     // Save current page data before preview
-    setCreateHostelPage2Data({
+    setFormPage2Data({
       rulesText,
-      location,
+      area,
       nearbyLandmarks,
       fullAddress,
       phoneNumber,
@@ -245,26 +292,15 @@ const AddNewHostelService1 = () => {
             <Ionicons name="location-outline" size={20} color="#374151" />
             <Text style={styles.sectionHeader}>Location Details</Text>
           </View>
-
-          <View style={[styles.dropdownContainer, { zIndex: 1000 }]}>
-            <Text style={styles.inputLabel}>Area/Locality *</Text>
-            <DropDownPicker
-              open={locationOpen}
-              value={location}
-              items={locationItems}
-              setOpen={setLocationOpen}
-              setValue={setLocation}
-              setItems={setLocationItems}
-              placeholder="Select Area"
-              style={styles.dropdown}
-              dropDownContainerStyle={styles.dropdownList}
-              placeholderStyle={styles.dropdownPlaceholder}
-              selectedItemContainerStyle={styles.selectedItem}
-              listItemLabelStyle={styles.dropdownItemLabel}
-              arrowIconStyle={styles.dropdownArrow}
-            />
-          </View>
-
+          <LabeledInput
+            label="Area/Locality *"
+            placeholder="Select area"
+            value={area}
+            onChangeText={setArea}
+            labelStyle={styles.inputLabel}
+            inputContainerStyle={{ height: 37, backgroundColor: "#fff" }}
+            containerStyle={{ paddingHorizontal: 0, marginBottom: 20 }}
+          />
           <LabeledInput
             label="Nearby Landmarks"
             placeholder="e.g., Near VNIT, Medical College..."
@@ -325,20 +361,20 @@ const AddNewHostelService1 = () => {
         </View>
 
         <CommonButton
-          title={isSubmitting ? "Submitting..." : "Submit Listing"}
+          title={isSubmitting || isLoading ? "Submitting..." : "Submit Listing"}
           onPress={handleSubmit}
           buttonStyle={
-            isSubmitting
+            isSubmitting || isLoading
               ? [styles.submitButton, { opacity: 0.7 }]
               : styles.submitButton
           }
-          disabled={isSubmitting}
+          disabled={isSubmitting || isLoading}
         />
 
         <TouchableOpacity
           style={styles.previewButton}
           onPress={handlePreview}
-          disabled={isSubmitting}
+          disabled={isSubmitting || isLoading}
         >
           <Text style={styles.previewText}>Preview</Text>
         </TouchableOpacity>
