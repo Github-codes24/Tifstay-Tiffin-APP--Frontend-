@@ -1,5 +1,5 @@
 import useAuthStore from "@/store/authStore";
-import { CreateHostelServiceData, Room } from "@/types/hostel";
+import { CreateHostelServiceRequest, UpdateHostelServiceRequest } from "@/types/hostel";
 import axios, { AxiosInstance } from "axios";
 
 class ApiService {
@@ -209,7 +209,7 @@ async deleteAddress(addressId: string) {
   // Create Hostel Listing
 // In hostelApiService.ts, replace the createHostelService method:
 
-async createHostelService(data: CreateHostelServiceData) {
+async createHostelService(data: CreateHostelServiceRequest) {
   try {
     const formData = new FormData();
 
@@ -342,7 +342,7 @@ async createHostelService(data: CreateHostelServiceData) {
     }
   }
 
-  async updateHostelService(hostelServiceId: string, data: CreateHostelServiceData & { rooms: (Room & { isNewRoom?: boolean })[] }) {
+  async updateHostelService(hostelServiceId: string, data: UpdateHostelServiceRequest) {
     try {
       const formData = new FormData();
 

@@ -40,27 +40,33 @@ export interface Room {
 // Main Hostel Service Interface
 export interface HostelService {
   _id: string;
-  userId?: User;
   hostelName: string;
-  name?: string; // for legacy support
-  hostelType: string; // "Boys Hostel" | "Girls Hostel" | "Co-ed Hostel"
+  hostelType: string;
   description: string;
-  location: Location;
-  contactInfo: ContactInfo;
-  contact?: ContactInfo; // for legacy support
-  pricing: Pricing;
+  pricing: {
+    perDay: number;
+    weekly: number;
+    monthly: number;
+  };
   securityDeposit: number;
   offers?: string;
   rooms: Room[];
-  hostelPhotos?: string[];
-  photos?: string[]; // for legacy support
   facilities: string[];
+  location: {
+    area: string;
+    nearbyLandmarks: string;
+    fullAddress: string;
+  };
+  contactInfo: {
+    phone: number;
+    whatsapp: number;
+  };
   rulesAndPolicies: string;
-  rules?: string[]; // for legacy support
-  status?: "published" | "draft";
-  createdAt?: string;
-  updatedAt?: string;
-  __v?: number;
+  hostelPhotos?: string[];
+  totalRooms: number;
+  totalBeds: number;
+  status: string;
+  ownerId: string;
 }
 
 // API Request/Response Interfaces
@@ -69,8 +75,9 @@ export interface CreateHostelServiceRequest {
   hostelType: string;
   description: string;
   pricing: {
-    type: string;
-    price: number;
+    perDay: number;
+    weekly: number;
+    monthly: number;
   };
   securityDeposit: number;
   offers?: string;
@@ -80,7 +87,6 @@ export interface CreateHostelServiceRequest {
       bedNumber: number;
     }[];
     roomDescription: string;
-    photos?: string[];
   }[];
   facilities: string[];
   location: {

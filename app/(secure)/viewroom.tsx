@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   imageWrapper: {
-    width: screenWidth - 32,
+    width: screenWidth - 39,
     height: 240,
   },
   roomImage: {

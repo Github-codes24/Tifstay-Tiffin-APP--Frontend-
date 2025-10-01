@@ -20,16 +20,22 @@ interface HostelService {
   hostelType: string;
   description: string;
   pricing: {
-    type: string;
-    price: number;
+    perDay: number;
+    weekly: number;
+    monthly: number;
   };
   securityDeposit: number;
   offers?: string;
   rooms: {
     _id?: string;
     roomNumber: number;
-    numberOfBeds: number;
-    roomDetails: string;
+    totalBeds: {
+      bedNumber: number;
+      status: "Occupied" | "Unoccupied";
+      _id: string;
+    }[];
+    roomDescription: string;
+    photos?: string[];
   }[];
   facilities: string[];
   location: {
@@ -43,6 +49,10 @@ interface HostelService {
   };
   rulesAndPolicies: string;
   hostelPhotos?: string[];
+  totalRooms?: number;
+  totalBeds?: number;
+  status?: string;
+  ownerId?: string;
 }
 
 interface HostelCardProps {
@@ -62,6 +72,7 @@ const amenityIcons: { [key: string]: string } = {
   acrooms: "snow",
   laundry: "shirt",
 };
+
 export default function HostelCard({
   hostel,
   onPress,
@@ -80,7 +91,7 @@ export default function HostelCard({
   };
 
   const handleViewRooms = () => {
-    if (hostel.rooms && hostel.rooms.length > 0) {
+    if (hostel.rooms && hostel.rooms.length > 0 && hostel.rooms[0]._id) {
       // Pass the first room's ID as a parameter
       router.push({
         pathname: "/viewroom",
@@ -90,6 +101,20 @@ export default function HostelCard({
       Alert.alert("No Rooms", "No rooms available for this hostel");
     }
   };
+
+  // Calculate available beds
+  const getAvailableBeds = () => {
+    let availableCount = 0;
+    hostel.rooms.forEach((room) => {
+      room.totalBeds.forEach((bed) => {
+        if (bed.status === "Unoccupied") {
+          availableCount++;
+        }
+      });
+    });
+    return availableCount;
+  };
+
   return (
     <TouchableOpacity
       style={styles.hostelCard}
@@ -143,23 +168,22 @@ export default function HostelCard({
             <View style={styles.infoBlock}>
               <Text style={styles.price}>
                 {(() => {
-                  const price = hostel?.pricing?.price;
-                  if (typeof price === "number" && isFinite(price)) {
-                    return `₹${price.toFixed(2)}`;
+                  const monthlyPrice = hostel?.pricing?.monthly;
+                  if (
+                    typeof monthlyPrice === "number" &&
+                    isFinite(monthlyPrice)
+                  ) {
+                    return `₹${monthlyPrice.toFixed(0)}`;
                   }
                   return "₹N/A";
                 })()}
-                <Text style={styles.deposit}>
-                  /{hostel?.pricing?.type ?? ""}
-                </Text>
+                <Text style={styles.deposit}>/month</Text>
               </Text>
               <Text style={styles.deposit}>Rent</Text>
             </View>
 
             <View style={styles.infoBlock}>
-              <Text style={styles.booking}>
-                {hostel.rooms.length > 0 ? hostel.rooms[0].numberOfBeds : 0}
-              </Text>
+              <Text style={styles.booking}>{getAvailableBeds()}</Text>
               <Text style={styles.deposit}>Available</Text>
             </View>
 
@@ -203,6 +227,7 @@ export default function HostelCard({
 }
 
 const styles = StyleSheet.create({
+  // ... keep all your existing styles as they are
   hostelCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 16,

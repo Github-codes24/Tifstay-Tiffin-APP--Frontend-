@@ -68,16 +68,14 @@ const AddNewHostelService1 = () => {
         photos,
       });
 
-      // Prepare rooms data in the exact format expected by API
+      // Prepare rooms data
       const roomsData = [];
 
-      // Add the room from formPage1Data
       if (formPage1Data.roomNo || formPage1Data.noOfBeds > 0) {
         const totalBeds = [];
         for (let i = 1; i <= formPage1Data.noOfBeds; i++) {
           totalBeds.push({
             bedNumber: i,
-            // Status is automatically set to "Unoccupied" by backend
           });
         }
 
@@ -88,7 +86,7 @@ const AddNewHostelService1 = () => {
         });
       }
 
-      // Transform complete form data to API format
+      // Transform complete form data to API format with UPDATED PRICING STRUCTURE
       const apiData = {
         hostelName: formPage1Data.hostelName,
         hostelType:
@@ -99,8 +97,9 @@ const AddNewHostelService1 = () => {
             : "Co-ed Hostel",
         description: formPage1Data.description,
         pricing: {
-          type: "per day",
-          price: formPage1Data.pricePerDay || 5000,
+          perDay: formPage1Data.pricePerDay || 5000,
+          weekly: formPage1Data.weeklyPrice || 10000,
+          monthly: formPage1Data.monthlyPrice || 60000,
         },
         securityDeposit: formPage1Data.securityDeposit || 15000,
         offers: formPage1Data.offers || "10%",
@@ -108,7 +107,6 @@ const AddNewHostelService1 = () => {
         facilities: Object.entries(formPage1Data.amenities)
           .filter(([_, value]) => value)
           .map(([key]) => {
-            // Map to exact facility names expected by API
             const facilityMap: { [key: string]: string } = {
               wifi: "WiFi",
               meals: "Mess",
@@ -155,7 +153,6 @@ const AddNewHostelService1 = () => {
       setIsSubmitting(false);
     }
   };
-
   const resetForm = () => {
     setRulesText("");
     setArea("");
