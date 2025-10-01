@@ -28,14 +28,14 @@ const AddNewHostelService = () => {
   // Form states
   const [hostelName, setHostelName] = useState("");
   const [description, setDescription] = useState("");
-  const [hostelType, setHostelType] = useState("boys");
+  const [hostelType, setHostelType] = useState<string | null>("boys");
   const [pricePerDay, setPricePerDay] = useState(0);
   const [monthlyPrice, setMonthlyPrice] = useState(0);
   const [weeklyPrice, setWeeklyPrice] = useState(0);
   const [securityDeposit, setSecurityDeposit] = useState(0);
   const [offers, setOffers] = useState("");
   const [roomNo, setRoomNo] = useState("");
-  const [monthlyDining, setMonthlyDining] = useState(0);
+  const [noOfBeds, setNoOfBeds] = useState(0);
   const [roomDetails, setRoomDetails] = useState("");
   const [roomPhotos, setRoomPhotos] = useState<any[]>([]);
   const [amenities, setAmenities] = useState({
@@ -87,6 +87,10 @@ const AddNewHostelService = () => {
       Alert.alert("Error", "Please enter description");
       return;
     }
+    if (!hostelType) {
+      Alert.alert("Error", "Please select hostel type");
+      return;
+    }
     if (monthlyPrice === 0) {
       Alert.alert("Error", "Please enter monthly price");
       return;
@@ -95,14 +99,14 @@ const AddNewHostelService = () => {
     setFormPage1Data({
       hostelName,
       description,
-      hostelType,
+      hostelType: hostelType as string,
       pricePerDay,
       monthlyPrice,
       weeklyPrice,
       securityDeposit,
       offers,
       roomNo,
-      monthlyDining,
+      noOfBeds,
       roomDetails,
       amenities,
       roomPhotos,
@@ -120,7 +124,7 @@ const AddNewHostelService = () => {
     setSecurityDeposit(0);
     setOffers("");
     setRoomNo("");
-    setMonthlyDining(0);
+    setNoOfBeds(0);
     setRoomDetails("");
     setRoomPhotos([]);
     setAmenities({
@@ -262,7 +266,7 @@ const AddNewHostelService = () => {
               onChange={setPricePerDay}
               step={1}
               min={50}
-              max={5000}
+              max={50000}
             />
             <StepperInput
               label="Weekly Price (₹)*"
@@ -270,7 +274,7 @@ const AddNewHostelService = () => {
               onChange={setWeeklyPrice}
               step={1}
               min={50}
-              max={5000}
+              max={50000}
             />
           </View>
 
@@ -373,12 +377,12 @@ const AddNewHostelService = () => {
                 containerStyle={styles.roomNoContainer}
               />
               <StepperInput
-                label="Monthly for Dining (₹)"
-                value={monthlyDining}
-                onChange={setMonthlyDining}
+                label="No of Beds"
+                value={noOfBeds}
+                onChange={setNoOfBeds}
                 step={1}
-                min={50}
-                max={10000}
+                min={1}
+                max={100}
               />
             </View>
 

@@ -59,21 +59,7 @@ export default function SecureLayout() {
           ),
         }}
       />
-      <Stack.Screen
-        name="(accountScreens)/addEditAddress"
-        options={{
-          header: () => (
-            <SafeAreaView
-              edges={["top"]}
-              style={{ backgroundColor: Colors.white }}
-            >
-              <View style={{ backgroundColor: Colors.white }}>
-                <CommonHeader title="Edit Profile" />
-              </View>
-            </SafeAreaView>
-          ),
-        }}
-      />
+      <Stack.Screen name="(accountScreens)/addEditAddress" />
       <Stack.Screen
         name="(accountScreens)/changePassword"
         options={{

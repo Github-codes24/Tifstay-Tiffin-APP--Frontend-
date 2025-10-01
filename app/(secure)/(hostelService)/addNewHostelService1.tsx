@@ -23,14 +23,13 @@ const AddNewHostelService1 = () => {
   const router = useRouter();
   const {
     setFormPage2Data,
-    getCompleteFormData,
-    clearFormData,
+    formPage1Data,
     createHostelService,
     isLoading,
+    clearFormData,
   } = useServiceStore();
 
   const [rulesText, setRulesText] = useState("");
-
   const [area, setArea] = useState("");
   const [nearbyLandmarks, setNearbyLandmarks] = useState("");
   const [fullAddress, setFullAddress] = useState("");
@@ -38,6 +37,7 @@ const AddNewHostelService1 = () => {
   const [whatsappNumber, setWhatsappNumber] = useState("");
   const [photos, setPhotos] = useState<any[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
   const handleSubmit = async () => {
     try {
       // Validate required fields
@@ -46,23 +46,8 @@ const AddNewHostelService1 = () => {
         return;
       }
 
-      setIsSubmitting(true);
-
-      // Save page 2 data
-      setFormPage2Data({
-        rulesText,
-        area,
-        nearbyLandmarks,
-        fullAddress,
-        phoneNumber,
-        whatsappNumber,
-        photos,
-      });
-
-      // Get complete data including page 1 data
-      const completeFormData = getCompleteFormData();
-
-      if (!completeFormData) {
+      // Check if we have page 1 data
+      if (!formPage1Data) {
         Alert.alert(
           "Error",
           "Missing form data. Please go back and fill all required fields."
@@ -70,57 +55,87 @@ const AddNewHostelService1 = () => {
         return;
       }
 
-      // Transform form data to API format
+      setIsSubmitting(true);
+
+      // Save page 2 data
+      setFormPage2Data({
+        rulesText,
+        area: area || null,
+        nearbyLandmarks,
+        fullAddress,
+        phoneNumber,
+        whatsappNumber,
+        photos,
+      });
+
+      // Prepare rooms data in the exact format expected by API
+      const roomsData = [];
+
+      // Add the room from formPage1Data
+      if (formPage1Data.roomNo || formPage1Data.noOfBeds > 0) {
+        const totalBeds = [];
+        for (let i = 1; i <= formPage1Data.noOfBeds; i++) {
+          totalBeds.push({
+            bedNumber: i,
+            // Status is automatically set to "Unoccupied" by backend
+          });
+        }
+
+        roomsData.push({
+          roomNumber: parseInt(formPage1Data.roomNo) || 101,
+          totalBeds: totalBeds,
+          roomDescription: formPage1Data.roomDetails || "This is a hostel room",
+        });
+      }
+
+      // Transform complete form data to API format
       const apiData = {
-        hostelName: completeFormData.hostelName,
+        hostelName: formPage1Data.hostelName,
         hostelType:
-          completeFormData.hostelType === "boys"
+          formPage1Data.hostelType === "boys"
             ? "Boys Hostel"
-            : completeFormData.hostelType === "girls"
+            : formPage1Data.hostelType === "girls"
             ? "Girls Hostel"
             : "Co-ed Hostel",
-        description: completeFormData.description,
+        description: formPage1Data.description,
         pricing: {
-          type: "monthly",
-          price: completeFormData.monthlyPrice,
+          type: "per day",
+          price: formPage1Data.pricePerDay || 5000,
         },
-        securityDeposit: completeFormData.securityDeposit,
-        offers: completeFormData.offers,
-        rooms: [
-          {
-            roomNumber: parseInt(completeFormData.roomNo) || 101,
-            numberOfBeds: 4, // Default value, you might want to add this to the form
-            roomDetails: completeFormData.roomDetails,
-          },
-        ],
-        facilities: Object.entries(completeFormData.amenities)
+        securityDeposit: formPage1Data.securityDeposit || 15000,
+        offers: formPage1Data.offers || "10%",
+        rooms: roomsData,
+        facilities: Object.entries(formPage1Data.amenities)
           .filter(([_, value]) => value)
           .map(([key]) => {
+            // Map to exact facility names expected by API
             const facilityMap: { [key: string]: string } = {
-              wifi: "wifi",
-              meals: "mess",
-              security: "security",
-              studyHall: "study hall",
-              commonTV: "common tv",
-              cctv: "cctv",
-              acRooms: "ac rooms",
-              laundry: "laundry",
+              wifi: "WiFi",
+              meals: "Mess",
+              security: "Security",
+              studyHall: "Study Hall",
+              commonTV: "Common TV",
+              cctv: "CCTV",
+              acRooms: "AC Rooms",
+              laundry: "Laundry",
             };
             return facilityMap[key] || key;
           }),
         location: {
           area: area || "Didwana",
-          nearbyLandmarks: nearbyLandmarks,
-          fullAddress: fullAddress,
+          nearbyLandmarks: nearbyLandmarks || "Jaipur",
+          fullAddress: fullAddress || "Rajasthan",
         },
         contactInfo: {
           phone: parseInt(phoneNumber),
           whatsapp: parseInt(whatsappNumber),
         },
-        rulesAndPolicies: rulesText,
+        rulesAndPolicies: rulesText || "No smoking inside premises",
         hostelPhotos: photos,
-        roomPhotos: completeFormData.roomPhotos,
+        roomPhotos: formPage1Data.roomPhotos || [],
       };
+
+      console.log("Submitting data:", JSON.stringify(apiData, null, 2));
 
       // Submit to API
       const response = await createHostelService(apiData);
@@ -150,13 +165,14 @@ const AddNewHostelService1 = () => {
     setWhatsappNumber("");
     setPhotos([]);
     clearFormData();
+    router.back();
   };
 
   const handlePreview = () => {
     // Save current page data before preview
     setFormPage2Data({
       rulesText,
-      area,
+      area: area || null,
       nearbyLandmarks,
       fullAddress,
       phoneNumber,
@@ -241,7 +257,7 @@ const AddNewHostelService1 = () => {
         <View style={styles.card}>
           <View style={styles.sectionHeaderContainer}>
             <Ionicons name="camera-outline" size={20} color="#374151" />
-            <Text style={styles.sectionHeader}>Photos</Text>
+            <Text style={styles.sectionHeader}>Hostel Photos</Text>
           </View>
 
           {photos.length > 0 && (
@@ -294,7 +310,7 @@ const AddNewHostelService1 = () => {
           </View>
           <LabeledInput
             label="Area/Locality *"
-            placeholder="Select area"
+            placeholder="Enter area"
             value={area}
             onChangeText={setArea}
             labelStyle={styles.inputLabel}

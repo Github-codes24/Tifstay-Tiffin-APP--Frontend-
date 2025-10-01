@@ -1,22 +1,23 @@
 import CommonButton from "@/components/CommonButton";
+import CommonHeader from "@/components/CommonHeader";
 import LabeledInput from "@/components/labeledInput";
 import { Colors } from "@/constants/Colors";
 import { Images } from "@/constants/Images";
 import { fonts } from "@/constants/typography";
 import useAddressStore from "@/store/addressStore";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, Stack, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Image,
-  SafeAreaView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const AddEditAddress = () => {
   const params = useLocalSearchParams();
@@ -128,6 +129,22 @@ const AddEditAddress = () => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <Stack.Screen
+        options={{
+          header: () => (
+            <SafeAreaView
+              edges={["top"]}
+              style={{ backgroundColor: Colors.white }}
+            >
+              <View style={{ backgroundColor: Colors.white }}>
+                <CommonHeader
+                  title={mode === "edit" ? "Edit Address" : "Add New Address"}
+                />
+              </View>
+            </SafeAreaView>
+          ),
+        }}
+      />
       <KeyboardAwareScrollView
         style={styles.container}
         contentContainerStyle={styles.contentContainer}

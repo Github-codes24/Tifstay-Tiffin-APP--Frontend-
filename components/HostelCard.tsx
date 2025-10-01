@@ -82,45 +82,7 @@ export default function HostelCard({
     Alert.alert("Edit", "Edit functionality will be implemented soon");
   };
 
-  const handlePause = () => {
-    // TODO: Implement pause functionality
-    Alert.alert("Pause", "Pause functionality will be implemented soon");
-  };
-
-  const handleDelete = async () => {
-    Alert.alert(
-      "Delete Hostel",
-      "Are you sure you want to delete this hostel service? This action cannot be undone.",
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              const result = await deleteHostelService(hostel._id);
-              if (result.success) {
-                Alert.alert("Success", "Hostel service deleted successfully");
-              } else {
-                Alert.alert(
-                  "Error",
-                  result.error || "Failed to delete hostel service"
-                );
-              }
-            } catch (error) {
-              Alert.alert("Error", "An unexpected error occurred");
-            }
-          },
-        },
-      ]
-    );
-  };
-
   const handleViewRooms = () => {
-    // TODO: Implement view rooms functionality
     router.push("/viewroom");
   };
 

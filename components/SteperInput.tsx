@@ -1,9 +1,16 @@
 // components/StepperInput.tsx
-import React, { useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, TextInput, ViewStyle } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { fonts } from "@/constants/typography";
 import { Colors } from "@/constants/Colors";
+import { fonts } from "@/constants/typography";
+import { Ionicons } from "@expo/vector-icons";
+import React, { useState } from "react";
+import {
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  ViewStyle,
+} from "react-native";
 
 interface StepperInputProps {
   label?: string;
@@ -13,18 +20,18 @@ interface StepperInputProps {
   min?: number;
   max?: number;
   currency?: string;
-  containerStyle?: ViewStyle
+  containerStyle?: ViewStyle;
 }
 
 const StepperInput: React.FC<StepperInputProps> = ({
   label,
   value,
   onChange,
-  step = 10,
+  step = 0,
   min = 0,
   max = 1000,
   currency = "₹",
-  containerStyle
+  containerStyle,
 }) => {
   const [inputValue, setInputValue] = useState(String(value));
 
@@ -55,7 +62,7 @@ const StepperInput: React.FC<StepperInputProps> = ({
   }, [value]);
 
   return (
-    <View style={[styles.wrapper , containerStyle]}>
+    <View style={[styles.wrapper, containerStyle]}>
       {label && <Text style={styles.label}>{label}</Text>}
       <View style={styles.container}>
         <Text style={styles.currency}>{currency}</Text>
@@ -106,7 +113,6 @@ const styles = StyleSheet.create({
     color: Colors.grey,
     // marginRight: 4,
     fontFamily: fonts.interRegular,
-
   },
   input: {
     flex: 1,

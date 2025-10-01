@@ -28,13 +28,13 @@ export interface Pricing {
 export interface Room {
   _id?: string;
   roomNumber: number;
-  roomNo?: string; // for legacy support
-  numberOfBeds: number;
-  noOfBeds?: number; // for legacy support
-  roomDetails: string;
-  details?: string; // for legacy support
+  totalBeds: {
+    bedNumber: number;
+    status?: string; // This is set by backend
+    _id?: string;
+  }[];
+  roomDescription: string;
   photos?: string[];
-  isNewRoom?: boolean; // for update operations
 }
 
 // Main Hostel Service Interface
@@ -74,7 +74,14 @@ export interface CreateHostelServiceRequest {
   };
   securityDeposit: number;
   offers?: string;
-  rooms: Room[];
+  rooms: {
+    roomNumber: number;
+    totalBeds: {
+      bedNumber: number;
+    }[];
+    roomDescription: string;
+    photos?: string[];
+  }[];
   facilities: string[];
   location: {
     area: string;
@@ -86,9 +93,10 @@ export interface CreateHostelServiceRequest {
     whatsapp: number;
   };
   rulesAndPolicies: string;
-  hostelPhotos?: any[];
-  roomPhotos?: any[];
+  hostelPhotos: any[];
+  roomPhotos: any[];
 }
+
 
 export interface UpdateHostelServiceRequest extends CreateHostelServiceRequest {
   rooms: (Room & { isNewRoom?: boolean })[];
@@ -124,7 +132,7 @@ export interface FormPage1Data {
   securityDeposit: number;
   offers: string;
   roomNo: string;
-  monthlyDining: number;
+  noOfBeds: number;
   roomDetails: string;
   amenities: {
     wifi: boolean;
