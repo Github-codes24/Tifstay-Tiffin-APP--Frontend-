@@ -227,3 +227,32 @@ export interface DeleteRoomPhotosResponse {
     hostelPhotos?: any[];
     roomPhotos?: any[];
   }
+  export interface BedDetails {
+    bedNumber: number;
+    status: "Occupied" | "Unoccupied";
+    _id: string;
+    availability: string;
+  }
+  
+  export interface RoomDetails {
+    _id: string;
+    roomNumber: number;
+    totalBeds: BedDetails[];
+    totalBedsCount: number;
+    roomDescription: string;
+    photos: string[];
+  }
+  
+  export interface RoomApiResponse {
+    success: boolean;
+    message: string;
+    room: RoomDetails;
+  }
+  export interface RoomData {
+    _id: string;
+    roomNumber: number;
+    totalBeds: BedDetails[];
+    totalBedsCount: number;
+    roomDescription: string;
+    photos: string[];
+  }

@@ -80,9 +80,16 @@ export default function HostelCard({
   };
 
   const handleViewRooms = () => {
-    router.push("/viewroom");
+    if (hostel.rooms && hostel.rooms.length > 0) {
+      // Pass the first room's ID as a parameter
+      router.push({
+        pathname: "/viewroom",
+        params: { roomId: hostel.rooms[0]._id },
+      });
+    } else {
+      Alert.alert("No Rooms", "No rooms available for this hostel");
+    }
   };
-
   return (
     <TouchableOpacity
       style={styles.hostelCard}

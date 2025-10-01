@@ -303,7 +303,21 @@ async createHostelService(data: CreateHostelServiceData) {
       };
     }
   }
-
+  async getRoomById(roomId: string) {
+    try {
+      const response = await this.api.get(`/api/hostelService/getRoomById/${roomId}`);
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error("Get Room By ID Error:", error);
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to fetch room details.",
+      };
+    }
+  }
   async getHostelServiceById(hostelServiceId: string) {
     try {
       const response = await this.api.get(
