@@ -1,7 +1,6 @@
 import { Colors } from "@/constants/Colors";
 import { Images } from "@/constants/Images";
 import { fonts } from "@/constants/typography";
-import useServiceStore from "@/store/serviceStore";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";
@@ -53,23 +52,21 @@ interface HostelCardProps {
 }
 
 const amenityIcons: { [key: string]: string } = {
-  WiFi: "wifi",
-  Mess: "restaurant",
-  Security: "shield-checkmark",
-  StudyHall: "book",
-  CommonTV: "tv",
-  CCTV: "videocam",
-  ACRooms: "snow",
-  Laundry: "shirt",
+  // keys normalized to lowercase for robust lookup
+  wifi: "wifi",
+  mess: "restaurant",
+  security: "shield-checkmark",
+  studyhall: "book",
+  commontv: "tv",
+  cctv: "videocam",
+  acrooms: "snow",
+  laundry: "shirt",
 };
-
 export default function HostelCard({
   hostel,
   onPress,
   onBookPress,
 }: HostelCardProps) {
-  const { deleteHostelService, isLoading } = useServiceStore();
-
   const handleView = () => {
     router.push({
       pathname: "/hostelDetails",
@@ -117,27 +114,37 @@ export default function HostelCard({
           </Text>
 
           <View style={styles.amenitiesRow}>
-            {hostel?.facilities?.slice(0, 4)?.map((amenity: any) => (
-              <View key={amenity} style={styles.amenityItem}>
-                <Ionicons
-                  name={
-                    (amenityIcons[amenity.toLowerCase()] as any) ||
-                    "checkmark-circle"
-                  }
-                  size={16}
-                  color="#6B7280"
-                />
-                <Text style={styles.amenityText}>{amenity}</Text>
-              </View>
-            ))}
+            {hostel?.facilities
+              ?.slice(0, 4)
+              ?.map((amenity: any, idx: number) => {
+                const label =
+                  typeof amenity === "string" ? amenity : String(amenity ?? "");
+                const key = label.replace(/\s+/g, "").toLowerCase();
+                const iconName =
+                  (amenityIcons[key] as any) || "checkmark-circle";
+                return (
+                  <View key={`${key}-${idx}`} style={styles.amenityItem}>
+                    <Ionicons name={iconName} size={16} color="#6B7280" />
+                    <Text style={styles.amenityText}>{label}</Text>
+                  </View>
+                );
+              })}
           </View>
 
           {/* Fixed Row Section */}
           <View style={[styles.rowBetween]}>
             <View style={styles.infoBlock}>
               <Text style={styles.price}>
-                ₹{hostel.pricing.price.toFixed(2)}
-                <Text style={styles.deposit}>/{hostel.pricing.type}</Text>
+                {(() => {
+                  const price = hostel?.pricing?.price;
+                  if (typeof price === "number" && isFinite(price)) {
+                    return `₹${price.toFixed(2)}`;
+                  }
+                  return "₹N/A";
+                })()}
+                <Text style={styles.deposit}>
+                  /{hostel?.pricing?.type ?? ""}
+                </Text>
               </Text>
               <Text style={styles.deposit}>Rent</Text>
             </View>
