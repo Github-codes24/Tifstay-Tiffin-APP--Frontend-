@@ -1,16 +1,17 @@
 import {
-    ApiResponse,
-    CompleteFormData,
-    CreateHostelServiceRequest,
-    FormPage1Data,
-    FormPage2Data,
-    HostelService,
-    UpdateHostelServiceRequest,
+  ApiResponse,
+  CompleteFormData,
+  CreateHostelServiceRequest,
+  FormPage1Data,
+  FormPage2Data,
+  HostelService,
+  UpdateHostelServiceRequest,
 } from "@/types/hostel";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { createJSONStorage, persist } from 'zustand/middleware';
 import hostelServiceApiService from "../services/hostelApiService";
+
 
 interface ServiceState {
   // Data
@@ -18,6 +19,7 @@ interface ServiceState {
   selectedHostelService: HostelService | null;
   isLoading: boolean;
   error: string | null;
+  cancelledServicesCount: number;
 
   // Form data for multi-step form
   formPage1Data: FormPage1Data | null;
@@ -30,6 +32,8 @@ interface ServiceState {
   updateHostelService: (hostelServiceId: string, data: UpdateHostelServiceRequest) => Promise<ApiResponse<HostelService>>;
   deleteHostelService: (hostelServiceId: string) => Promise<ApiResponse<any>>;
   deleteRoomPhotos: (hostelServiceId: string, roomId: string, photoUrls: string[]) => Promise<ApiResponse<any>>;
+  getCancelledServicesCount: () => Promise<ApiResponse<any>>;
+
   
   // Form management
   setFormPage1Data: (data: FormPage1Data) => void;
@@ -49,6 +53,7 @@ const useServiceStore = create<ServiceState>()(
       hostelServices: [],
       selectedHostelService: null,
       isLoading: false,
+      cancelledServicesCount: 0,
       error: null,
       formPage1Data: null,
       formPage2Data: null,
@@ -89,7 +94,34 @@ const useServiceStore = create<ServiceState>()(
           return { success: false, error: error.message };
         }
       },
+getCancelledServicesCount: async () => {
+  set({ isLoading: true, error: null });
 
+  try {
+    const response = await hostelServiceApiService.getCancelledHostelServicesCount();
+
+    if (response.success) {
+      set({
+        cancelledServicesCount: response.data?.data?.cancelledServicesCount || 0,
+        isLoading: false,
+        error: null,
+      });
+      return { success: true, data: response.data };
+    } else {
+      set({
+        isLoading: false,
+        error: response.error || "Failed to fetch cancelled services count",
+      });
+      return { success: false, error: response.error };
+    }
+  } catch (error: any) {
+    set({
+      isLoading: false,
+      error: error.message || "Failed to fetch cancelled services count",
+    });
+    return { success: false, error: error.message };
+  }
+},
       getAllHostelServices: async () => {
         set({ isLoading: true, error: null });
 

@@ -23,14 +23,20 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ServiceOfflineScreen() {
   const { getUserProfile, user, userServiceType } = useAuthStore();
-  const { hostelServices, getAllHostelServices } = useServiceStore();
+  const {
+    hostelServices,
+    getAllHostelServices,
+    getCancelledServicesCount,
+    cancelledServicesCount,
+  } = useServiceStore();
   const [isOnline, setIsOnline] = useState(false);
   const isTiffinProvider = userServiceType === "tiffin_provider";
 
   useEffect(() => {
     getAllHostelServices();
     getUserProfile(userServiceType);
-  }, [userServiceType, getAllHostelServices, getUserProfile]);
+    getCancelledServicesCount(); // This will now work for both types
+  }, [userServiceType]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -123,7 +129,9 @@ export default function ServiceOfflineScreen() {
             </View>
             <View style={styles.card}>
               <Image source={Images.cancel} style={styles.icon24} />
-              <Text style={[styles.cardNumber, { color: Colors.red }]}>01</Text>
+              <Text style={[styles.cardNumber, { color: Colors.red }]}>
+                {cancelledServicesCount}
+              </Text>
               <Text style={[styles.cardText, { color: Colors.red }]}>
                 {isTiffinProvider ? "Canceled Orders" : "Canceled"}
               </Text>

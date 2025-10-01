@@ -207,7 +207,6 @@ async deleteAddress(addressId: string) {
   }
 }
   // Create Hostel Listing
-// In hostelApiService.ts, replace the createHostelService method:
 
 async createHostelService(data: CreateHostelServiceRequest) {
   try {
@@ -476,7 +475,20 @@ async createHostelService(data: CreateHostelServiceRequest) {
       };
     }
   }
-
+async getCancelledHostelServicesCount() {
+  try {
+    const response = await this.api.get("/api/hostelService/getCancelledHostelServicesCount");
+    return {
+      success: true,
+      data: response.data,
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.response?.data?.message || "Failed to get cancelled hostel services count",
+    };
+  }
+}
  //privacy policy and term & condition
 
 async getPrivacyPolicy() {

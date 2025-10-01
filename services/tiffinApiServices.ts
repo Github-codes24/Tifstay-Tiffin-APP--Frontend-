@@ -167,7 +167,21 @@ class TiffinApiService {
       return { success: false, error: "Logout failed" };
     }
   }
-
+// In tiffinApiServices.ts
+async getCancelledTiffinServicesCount() {
+  try {
+    const response = await this.api.get("/api/tiffinService/getCancelledTiffinServicesCount");
+    return {
+      success: true,
+      data: response.data,
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.response?.data?.message || "Failed to get cancelled tiffin services count",
+    };
+  }
+}
   // Address Management APIs for Tiffin Provider
   async addAddress(addressData: {
     address: string;
