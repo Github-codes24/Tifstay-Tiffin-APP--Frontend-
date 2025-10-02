@@ -108,71 +108,73 @@ const useServiceStore = create<ServiceState>()(
       },
 
       // Get Requested Services Count
-      getRequestedServicesCount: async () => {
+      getRequestedServicesCount:  async () => {
         set({ isLoading: true, error: null });
 
         try {
           const userServiceType = useAuthStore.getState().userServiceType;
-          let response;
+          let response: AxiosResponse;
 
           if (userServiceType === "hostel_owner") {
             response = await hostelServiceApiService.getRequestedHostelServicesCount();
           } else {
-            response = await tiffinApiService.getRequestedTiffinServicesCount();
+            response = await tiffinApiService.getRequestedTiffinServicesCount();    
           }
+          console.log("getRequestedServicesCount API Response:", response.data.data.requestedHostelServices);
 
-          if (response.success) {
-            const count = response.data || 0;
+          if (response.status === 200) {
+            const count = response.data.data.requestedHostelServices || 0;
             set({
               requestedServicesCount: count,
               isLoading: false,
               error: null,
             });
-            return { success: true, data: response.data };
+            return { success: true, data: response.data.data.requestedHostelService };
           } else {
             set({
               isLoading: false,
-              error: response.error || "Failed to fetch requested services count",
+              error: response.data.message || "Failed to fetch total services count",
             });
-            return { success: false, error: response.error };
+            return { success: false, error: response.data.message };
           }
         } catch (error: any) {
           set({
             isLoading: false,
-            error: error.message || "Failed to fetch requested services count",
+            error: error.message || "Failed to fetch total services count",
           });
           return { success: false, error: error.message };
         }
       },
 
       // Get Accepted Services Count
-      getAcceptedServicesCount: async () => {
+      getAcceptedServicesCount:async () => {
         set({ isLoading: true, error: null });
 
         try {
           const userServiceType = useAuthStore.getState().userServiceType;
-          let response;
+          let response: AxiosResponse;
 
           if (userServiceType === "hostel_owner") {
             response = await hostelServiceApiService.getAcceptedHostelServicesCount();
           } else {
             response = await tiffinApiService.getAcceptedTiffinServicesCount();
           }
+          console.log("getAcceptedServicesCount API Response:", response.data.data.acceptedHostelServices);
 
-          if (response.success) {
-            const count = response.data || 0;
+          if (response.status === 200) {
+            const count = response.data.data.acceptedHostelServices || 0;
             set({
               acceptedServicesCount: count,
               isLoading: false,
               error: null,
             });
-            return { success: true, data: response.data };
+            return { success: true, data: response.data.data.acceptedHostelService };
           } else {
             set({
               isLoading: false,
-              error: response.error || "Failed to fetch accepted services count",
+              error: response.data.message || "Failed to fetch accepted services count",
             });
-            return { success: false, error: response.error };
+            return { success: false, error: response.data.message };
           }
         } catch (error: any) {
           set({
@@ -182,35 +184,35 @@ const useServiceStore = create<ServiceState>()(
           return { success: false, error: error.message };
         }
       },
-
       // Get Cancelled Services Count
-      getCancelledServicesCount: async () => {
+      getCancelledServicesCount:async () => {
         set({ isLoading: true, error: null });
 
         try {
           const userServiceType = useAuthStore.getState().userServiceType;
-          let response;
+          let response: AxiosResponse;
 
           if (userServiceType === "hostel_owner") {
             response = await hostelServiceApiService.getCancelledHostelServicesCount();
           } else {
             response = await tiffinApiService.getCancelledTiffinServicesCount();
           }
+          console.log("getCancelledServicesCount API Response:", response.data.data.cancelledHostelServices);
 
-          if (response.success) {
-            const count = response.data || 0;
+          if (response.status === 200) {
+            const count = response.data.data.cancelledHostelServices || 0;
             set({
               cancelledServicesCount: count,
               isLoading: false,
               error: null,
             });
-            return { success: true, data: response.data };
+            return { success: true, data: response.data.data.cancelledHostelService };
           } else {
             set({
               isLoading: false,
-              error: response.error || "Failed to fetch cancelled services count",
+              error: response.data.message || "Failed to fetch cancelled services count",
             });
-            return { success: false, error: response.error };
+            return { success: false, error: response.data.message };
           }
         } catch (error: any) {
           set({
@@ -220,7 +222,6 @@ const useServiceStore = create<ServiceState>()(
           return { success: false, error: error.message };
         }
       },
-
       // API Actions
       createHostelService: async (data: CreateHostelServiceRequest) => {
         set({ isLoading: true, error: null });

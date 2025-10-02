@@ -481,51 +481,15 @@ async createHostelService(data: CreateHostelServiceRequest) {
   }
 
   async getRequestedHostelServicesCount() {
-    try {
-      const response = await this.api.get("/api/hostelService/getRequestedHostelServicesCount");
-      console.log(response.data?.requestedHostelService);
-      return {
-        success: true,
-        data: response.data?.requestedHostelService,
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.response?.data?.message || "Failed to get requested hostel services count",
-      };
-    }
+   return this.api.get("/api/hostelService/getRequestedHostelServicesCount");
   }
 
   async getAcceptedHostelServicesCount() {
-    try {
-      const response = await this.api.get("/api/hostelService/getAcceptedHostelServicesCount");
-      console.log(response.data?.acceptedHostelService);
-      return {
-        success: true,
-        data: response.data?.acceptedHostelService,
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.response?.data?.message || "Failed to get accepted hostel services count",
-      };
-    }
+    return this.api.get("/api/hostelService/getAcceptedHostelServicesCount");
     }
 
   async getCancelledHostelServicesCount() {
-  try {
-    const response = await this.api.get("/api/hostelService/getCancelledHostelServicesCount");
-    console.log(response.data?.cancelledHostelService);
-    return {
-      success: true,
-      data: response.data?.cancelledHostelService,
-    };
-  } catch (error: any) {
-    return {
-      success: false,
-      error: error.response?.data?.message || "Failed to get cancelled hostel services count",
-    };
-  }
+    return this.api.get("/api/hostelService/getCancelledHostelServicesCount");
   }
  //privacy policy and term & condition
 

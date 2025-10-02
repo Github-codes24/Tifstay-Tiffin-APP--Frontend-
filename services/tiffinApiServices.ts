@@ -169,49 +169,16 @@ class TiffinApiService {
   }
 // In tiffinApiServices.ts
 async getRequestedTiffinServicesCount() {
-  try {
-    const response = await this.api.get("/api/tiffinService/getRequestedTiffinServicesCount");
-    return {
-      success: true,
-      data: response.data,
-    };
-  } catch (error: any) {
-    return {
-      success: false,
-      error: error.response?.data?.message || "Failed to get request tiffin services count",
-    };
-  }
+  return this.api.get("/api/tiffinService/getRequestedTiffinServicesCount");
 }
 async getTotalTiffinServicesCount() {
   return this.api.get("/api/tiffinService/getTotalTiffinServicesCount");
 }
  async getAcceptedTiffinServicesCount() {
-  try {
-    const response = await this.api.get("/api/tiffinService/getAcceptedTiffinServicesCount");
-    return {
-      success: true,
-      data: response.data,
-    };
-  } catch (error: any) {
-    return {
-      success: false,
-      error: error.response?.data?.message || "Failed to get accepted tiffin services count",
-    };
-  }
+  return this.api.get("/api/tiffinService/getAcceptedTiffinServicesCount");
 }
 async getCancelledTiffinServicesCount() {
-  try {
-    const response = await this.api.get("/api/tiffinService/getCancelledTiffinServicesCount");
-    return {
-      success: true,
-      data: response.data,
-    };
-  } catch (error: any) {
-    return {
-      success: false,
-      error: error.response?.data?.message || "Failed to get cancelled tiffin services count",
-    };
-  }
+  return this.api.get("/api/tiffinService/getCancelledTiffinServicesCount");
 }
   // Address Management APIs for Tiffin Provider
   async addAddress(addressData: {
