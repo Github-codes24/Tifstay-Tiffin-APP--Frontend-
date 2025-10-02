@@ -26,6 +26,12 @@ export default function ServiceOfflineScreen() {
   const {
     hostelServices,
     getAllHostelServices,
+    getTotalServicesCount,
+    totalServicesCount,
+    getRequestedServicesCount,
+    requestedServicesCount,
+    getAcceptedServicesCount,
+    acceptedServicesCount,
     getCancelledServicesCount,
     cancelledServicesCount,
   } = useServiceStore();
@@ -35,7 +41,10 @@ export default function ServiceOfflineScreen() {
   useEffect(() => {
     getAllHostelServices();
     getUserProfile(userServiceType);
-    getCancelledServicesCount(); // This will now work for both types
+    getTotalServicesCount();
+    getRequestedServicesCount();
+    getAcceptedServicesCount();
+    getCancelledServicesCount();
   }, [userServiceType]);
 
   return (
@@ -97,7 +106,7 @@ export default function ServiceOfflineScreen() {
                 style={styles.icon24}
               />
               <Text style={[styles.cardNumber, { color: Colors.primary }]}>
-                02
+                {totalServicesCount}
               </Text>
               <Text style={[styles.cardText, { color: Colors.primary }]}>
                 {isTiffinProvider ? "New Orders" : "Total Hostels"}
@@ -106,7 +115,7 @@ export default function ServiceOfflineScreen() {
             <View style={styles.card}>
               <Image source={Images.req} style={styles.icon24} />
               <Text style={[styles.cardNumber, { color: Colors.orange }]}>
-                0
+                {requestedServicesCount}
               </Text>
               <Text style={[styles.cardText, { color: Colors.orange }]}>
                 {isTiffinProvider ? "Order Request" : "Request"}
@@ -121,7 +130,7 @@ export default function ServiceOfflineScreen() {
                 style={styles.icon24}
               />
               <Text style={[styles.cardNumber, { color: Colors.green }]}>
-                01
+                {acceptedServicesCount}
               </Text>
               <Text style={[styles.cardText, { color: Colors.green }]}>
                 {isTiffinProvider ? "Completed Orders" : "Accepted"}

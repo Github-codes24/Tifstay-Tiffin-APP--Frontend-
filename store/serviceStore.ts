@@ -8,10 +8,12 @@ import {
   UpdateHostelServiceRequest,
 } from "@/types/hostel";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { AxiosResponse } from "axios";
 import { create } from "zustand";
 import { createJSONStorage, persist } from 'zustand/middleware';
 import hostelServiceApiService from "../services/hostelApiService";
-
+import tiffinApiService from "../services/tiffinApiServices";
+import useAuthStore from "./authStore";
 
 interface ServiceState {
   // Data
@@ -19,6 +21,9 @@ interface ServiceState {
   selectedHostelService: HostelService | null;
   isLoading: boolean;
   error: string | null;
+  totalServicesCount: number;
+  requestedServicesCount: number;
+  acceptedServicesCount: number;
   cancelledServicesCount: number;
 
   // Form data for multi-step form
@@ -32,15 +37,17 @@ interface ServiceState {
   updateHostelService: (hostelServiceId: string, data: UpdateHostelServiceRequest) => Promise<ApiResponse<HostelService>>;
   deleteHostelService: (hostelServiceId: string) => Promise<ApiResponse<any>>;
   deleteRoomPhotos: (hostelServiceId: string, roomId: string, photoUrls: string[]) => Promise<ApiResponse<any>>;
+  getTotalServicesCount: () => Promise<ApiResponse<any>>;
+  getRequestedServicesCount: () => Promise<ApiResponse<any>>;
+  getAcceptedServicesCount: () => Promise<ApiResponse<any>>;
   getCancelledServicesCount: () => Promise<ApiResponse<any>>;
 
-  
   // Form management
   setFormPage1Data: (data: FormPage1Data) => void;
   setFormPage2Data: (data: FormPage2Data) => void;
   getCompleteFormData: () => CompleteFormData | null;
   clearFormData: () => void;
-  
+
   // Utility
   clearError: () => void;
   setSelectedHostelService: (hostelService: HostelService | null) => void;
@@ -53,10 +60,166 @@ const useServiceStore = create<ServiceState>()(
       hostelServices: [],
       selectedHostelService: null,
       isLoading: false,
+      totalServicesCount: 0,
+      requestedServicesCount: 0,
+      acceptedServicesCount: 0,
       cancelledServicesCount: 0,
       error: null,
       formPage1Data: null,
       formPage2Data: null,
+
+      // Get Total Services Count
+      getTotalServicesCount: async () => {
+        set({ isLoading: true, error: null });
+
+        try {
+          const userServiceType = useAuthStore.getState().userServiceType;
+          let response: AxiosResponse;
+
+          if (userServiceType === "hostel_owner") {
+            response = await hostelServiceApiService.getTotalHostelServicesCount();
+          } else {
+            response = await tiffinApiService.getTotalTiffinServicesCount();
+          }
+          console.log("getTotalServicesCount API Response:", response.data.data.totalHostelServices);
+
+          if (response.status === 200) {
+            const count = response.data.data.totalHostelServices || 0;
+            set({
+              totalServicesCount: count,
+              isLoading: false,
+              error: null,
+            });
+            return { success: true, data: response.data.data.totalHostelService };
+          } else {
+            set({
+              isLoading: false,
+              error: response.data.message || "Failed to fetch total services count",
+            });
+            return { success: false, error: response.data.message };
+          }
+        } catch (error: any) {
+          set({
+            isLoading: false,
+            error: error.message || "Failed to fetch total services count",
+          });
+          return { success: false, error: error.message };
+        }
+      },
+
+      // Get Requested Services Count
+      getRequestedServicesCount: async () => {
+        set({ isLoading: true, error: null });
+
+        try {
+          const userServiceType = useAuthStore.getState().userServiceType;
+          let response;
+
+          if (userServiceType === "hostel_owner") {
+            response = await hostelServiceApiService.getRequestedHostelServicesCount();
+          } else {
+            response = await tiffinApiService.getRequestedTiffinServicesCount();
+          }
+
+          if (response.success) {
+            const count = response.data || 0;
+            set({
+              requestedServicesCount: count,
+              isLoading: false,
+              error: null,
+            });
+            return { success: true, data: response.data };
+          } else {
+            set({
+              isLoading: false,
+              error: response.error || "Failed to fetch requested services count",
+            });
+            return { success: false, error: response.error };
+          }
+        } catch (error: any) {
+          set({
+            isLoading: false,
+            error: error.message || "Failed to fetch requested services count",
+          });
+          return { success: false, error: error.message };
+        }
+      },
+
+      // Get Accepted Services Count
+      getAcceptedServicesCount: async () => {
+        set({ isLoading: true, error: null });
+
+        try {
+          const userServiceType = useAuthStore.getState().userServiceType;
+          let response;
+
+          if (userServiceType === "hostel_owner") {
+            response = await hostelServiceApiService.getAcceptedHostelServicesCount();
+          } else {
+            response = await tiffinApiService.getAcceptedTiffinServicesCount();
+          }
+
+          if (response.success) {
+            const count = response.data || 0;
+            set({
+              acceptedServicesCount: count,
+              isLoading: false,
+              error: null,
+            });
+            return { success: true, data: response.data };
+          } else {
+            set({
+              isLoading: false,
+              error: response.error || "Failed to fetch accepted services count",
+            });
+            return { success: false, error: response.error };
+          }
+        } catch (error: any) {
+          set({
+            isLoading: false,
+            error: error.message || "Failed to fetch accepted services count",
+          });
+          return { success: false, error: error.message };
+        }
+      },
+
+      // Get Cancelled Services Count
+      getCancelledServicesCount: async () => {
+        set({ isLoading: true, error: null });
+
+        try {
+          const userServiceType = useAuthStore.getState().userServiceType;
+          let response;
+
+          if (userServiceType === "hostel_owner") {
+            response = await hostelServiceApiService.getCancelledHostelServicesCount();
+          } else {
+            response = await tiffinApiService.getCancelledTiffinServicesCount();
+          }
+
+          if (response.success) {
+            const count = response.data || 0;
+            set({
+              cancelledServicesCount: count,
+              isLoading: false,
+              error: null,
+            });
+            return { success: true, data: response.data };
+          } else {
+            set({
+              isLoading: false,
+              error: response.error || "Failed to fetch cancelled services count",
+            });
+            return { success: false, error: response.error };
+          }
+        } catch (error: any) {
+          set({
+            isLoading: false,
+            error: error.message || "Failed to fetch cancelled services count",
+          });
+          return { success: false, error: error.message };
+        }
+      },
 
       // API Actions
       createHostelService: async (data: CreateHostelServiceRequest) => {
@@ -94,34 +257,7 @@ const useServiceStore = create<ServiceState>()(
           return { success: false, error: error.message };
         }
       },
-getCancelledServicesCount: async () => {
-  set({ isLoading: true, error: null });
 
-  try {
-    const response = await hostelServiceApiService.getCancelledHostelServicesCount();
-
-    if (response.success) {
-      set({
-        cancelledServicesCount: response.data?.data?.cancelledServicesCount || 0,
-        isLoading: false,
-        error: null,
-      });
-      return { success: true, data: response.data };
-    } else {
-      set({
-        isLoading: false,
-        error: response.error || "Failed to fetch cancelled services count",
-      });
-      return { success: false, error: response.error };
-    }
-  } catch (error: any) {
-    set({
-      isLoading: false,
-      error: error.message || "Failed to fetch cancelled services count",
-    });
-    return { success: false, error: error.message };
-  }
-},
       getAllHostelServices: async () => {
         set({ isLoading: true, error: null });
 
