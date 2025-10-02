@@ -115,6 +115,16 @@ export default function HostelCard({
     return availableCount;
   };
 
+  const getTotalBeds = () => {
+    let bedsCount = 0;
+    hostel.rooms.forEach((room) => {
+      room.totalBeds.forEach((bed) => {
+        bedsCount++;
+      });
+    });
+    return bedsCount;
+  };
+
   return (
     <TouchableOpacity
       style={styles.hostelCard}
@@ -183,7 +193,9 @@ export default function HostelCard({
             </View>
 
             <View style={styles.infoBlock}>
-              <Text style={styles.booking}>{getAvailableBeds()}</Text>
+              <Text
+                style={styles.booking}
+              >{`${getAvailableBeds()}/${getTotalBeds()}`}</Text>
               <Text style={styles.deposit}>Available</Text>
             </View>
 

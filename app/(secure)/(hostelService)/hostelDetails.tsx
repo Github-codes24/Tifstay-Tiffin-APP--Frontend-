@@ -52,6 +52,9 @@ export default function HostelDetails() {
     selectedHostelService ||
     (id ? hostelServices.find((h) => h._id === id) : null);
 
+  let totalBeds = 0;
+  hostel?.rooms.map((room: any) => (totalBeds += room.totalBeds?.length));
+
   if (isLoading) {
     return (
       <View style={styles.center}>
@@ -170,13 +173,7 @@ export default function HostelDetails() {
         {hostel.rooms.length > 0 && (
           <View style={styles.bedInfo}>
             <Ionicons name="bed-outline" size={16} color="#666" />
-            <Text style={styles.roomText}>
-              {hostel.rooms.reduce(
-                (total, room) => total + room.numberOfBeds,
-                0
-              )}{" "}
-              total beds
-            </Text>
+            <Text style={styles.roomText}> {totalBeds} total beds</Text>
           </View>
         )}
       </View>
