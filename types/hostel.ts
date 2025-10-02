@@ -44,9 +44,8 @@ export interface HostelService {
   hostelType: string;
   description: string;
   pricing: {
-    perDay: number;
-    weekly: number;
-    monthly: number;
+    price: number;
+    type: string;
   };
   securityDeposit: number;
   offers?: string;

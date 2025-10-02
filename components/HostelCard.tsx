@@ -20,9 +20,11 @@ interface HostelService {
   hostelType: string;
   description: string;
   pricing: {
-    perDay: number;
-    weekly: number;
-    monthly: number;
+    // perDay: number;
+    // weekly: number;
+    // monthly: number;
+    price: number;
+    type: string;
   };
   securityDeposit: number;
   offers?: string;
@@ -177,17 +179,10 @@ export default function HostelCard({
           <View style={[styles.rowBetween]}>
             <View style={styles.infoBlock}>
               <Text style={styles.price}>
-                {(() => {
-                  const monthlyPrice = hostel?.pricing?.monthly;
-                  if (
-                    typeof monthlyPrice === "number" &&
-                    isFinite(monthlyPrice)
-                  ) {
-                    return `₹${monthlyPrice.toFixed(0)}`;
-                  }
-                  return "₹N/A";
-                })()}
-                <Text style={styles.deposit}>/month</Text>
+                {hostel.pricing.price || "N/A"}
+                <Text style={styles.deposit}>{`${
+                  hostel.pricing.type ? " / " : ""
+                }${hostel.pricing.type}`}</Text>
               </Text>
               <Text style={styles.deposit}>Rent</Text>
             </View>
