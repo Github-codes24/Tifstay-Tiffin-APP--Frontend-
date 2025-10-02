@@ -32,6 +32,8 @@ export default function HostelDetails() {
   } = useServiceStore();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
+  console.log("hostel id", id);
+
   useEffect(() => {
     const fetchHostelData = async () => {
       if (id) {
@@ -122,7 +124,7 @@ export default function HostelDetails() {
         />
 
         {/* Pagination dots */}
-        {hostel.hostelPhotos?.length > 1 && (
+        {!!hostel.hostelPhotos && hostel?.hostelPhotos?.length > 1 && (
           <View style={styles.pagination}>
             {hostel.hostelPhotos?.map((_: any, index: number) => (
               <View
@@ -192,14 +194,13 @@ export default function HostelDetails() {
       return null;
     }
 
-    const pricing = hostel.pricing;
     const hasOffer = hostel.offers && hostel.offers.trim() !== "";
 
     return (
       <View style={styles.pricingBox}>
         <View style={styles.priceMainRow}>
           <Text style={styles.currentPrice}>
-            ₹{pricing.price}/{pricing.type}
+            ₹{hostel.pricing.price}/{hostel.pricing.type}
           </Text>
           {hasOffer && (
             <View style={styles.discountBadge}>
@@ -210,7 +211,8 @@ export default function HostelDetails() {
         {hostel.securityDeposit > 0 && (
           <Text style={styles.depositNote}>
             Note: You have to pay security deposit of ₹{hostel.securityDeposit}{" "}
-            on {pricing.type} booking. It will be refunded to you on check-out.
+            on {hostel.pricing.type} booking. It will be refunded to you on
+            check-out.
           </Text>
         )}
       </View>
