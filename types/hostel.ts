@@ -1,4 +1,3 @@
-// Base interfaces
 export interface User {
   _id: string;
   name: string;
@@ -136,9 +135,6 @@ export interface FormPage1Data {
   weeklyPrice: number;
   securityDeposit: number;
   offers: string;
-  roomNo: string;
-  noOfBeds: number;
-  roomDetails: string;
   amenities: {
     wifi: boolean;
     meals: boolean;
@@ -150,6 +146,12 @@ export interface FormPage1Data {
     laundry: boolean;
   };
   roomPhotos: any[];
+  rooms: {
+    roomNo: string;
+    noOfBeds: number;
+    roomDetails: string;
+    roomPhotos: any[];
+  }[];
 }
 
 export interface FormPage2Data {

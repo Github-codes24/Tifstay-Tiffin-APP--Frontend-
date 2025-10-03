@@ -68,25 +68,23 @@ const AddNewHostelService1 = () => {
         photos,
       });
 
-      // Prepare rooms data
-      const roomsData = [];
-
-      if (formPage1Data.roomNo || formPage1Data.noOfBeds > 0) {
+      // Prepare rooms data from multiple rooms
+      const roomsData = formPage1Data.rooms.map((room) => {
         const totalBeds = [];
-        for (let i = 1; i <= formPage1Data.noOfBeds; i++) {
+        for (let i = 1; i <= room.noOfBeds; i++) {
           totalBeds.push({
             bedNumber: i,
           });
         }
 
-        roomsData.push({
-          roomNumber: parseInt(formPage1Data.roomNo) || 101,
+        return {
+          roomNumber: parseInt(room.roomNo) || 101,
           totalBeds: totalBeds,
-          roomDescription: formPage1Data.roomDetails || "This is a hostel room",
-        });
-      }
+          roomDescription: room.roomDetails || "This is a hostel room",
+        };
+      });
 
-      // Transform complete form data to API format with UPDATED PRICING STRUCTURE
+      // Transform complete form data to API format
       const apiData = {
         hostelName: formPage1Data.hostelName,
         hostelType:
