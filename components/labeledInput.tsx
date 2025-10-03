@@ -1,20 +1,20 @@
+import { Colors } from "@/constants/Colors";
+import { IS_IOS } from "@/constants/Platform";
+import { fonts } from "@/constants/typography";
 import * as React from "react";
 import {
+  Image,
+  ImageSourcePropType,
+  ImageStyle,
   StyleSheet,
   Text,
   TextInput,
   TextInputProps,
+  TextStyle,
+  TouchableOpacity,
   View,
   ViewStyle,
-  TextStyle,
-  Image,
-  ImageStyle,
-  ImageSourcePropType,
-  TouchableOpacity,
 } from "react-native";
-import { fonts } from "@/constants/typography";
-import { Colors } from "@/constants/Colors";
-import { IS_IOS } from "@/constants/Platform";
 
 type LabeledInputProps = TextInputProps & {
   label?: string;
@@ -31,7 +31,7 @@ type LabeledInputProps = TextInputProps & {
   onPress?: () => void;
 };
 
-export default function  LabeledInput({
+export default function LabeledInput({
   label,
   containerStyle,
   labelStyle,
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
     marginTop: IS_IOS ? 0 : 4,
     color: Colors.grey,
-  },  
+  },
   adornment: {
     marginRight: 20,
   },

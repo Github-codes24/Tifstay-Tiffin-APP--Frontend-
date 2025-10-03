@@ -215,7 +215,7 @@ export default function Order() {
     : [
         { key: "requests", title: "Requests" },
         { key: "accepted", title: "Accepted" },
-        { key: "completed", title: "Completed" },
+        { key: "completed", title: "Rejected" },
       ];
 
   const renderScene = () => {

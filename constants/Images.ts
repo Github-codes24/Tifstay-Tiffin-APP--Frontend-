@@ -86,6 +86,8 @@ work: require("@/assets/images/work.png"),
   hostel1 : require('@/assets/images/Hostel/hostel1.png'),
   pause: require('@/assets/images/Hostel/pause.png'),
   bad1: require('@/assets/images/Hostel/bad1.png'),
+  googleIcon: require('@/assets/images/Hostel/googleIcon.png'),
+  appleIcon: require('@/assets/images/Hostel/appleIcon.png'),
 } as const;
 
 

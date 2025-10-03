@@ -28,10 +28,8 @@ export default function Register() {
 
   const handleRegister = async () => {
     try {
-      // Clear any previous errors
       clearError();
 
-      // Validation
       if (!name.trim()) {
         Alert.alert("Error", "Please enter your name");
         return;
@@ -42,7 +40,6 @@ export default function Register() {
         return;
       }
 
-      // Email validation
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
         Alert.alert("Error", "Please enter a valid email address");
@@ -54,7 +51,6 @@ export default function Register() {
         return;
       }
 
-      // Password length validation
       if (password.length < 6) {
         Alert.alert("Error", "Password must be at least 6 characters");
         return;
@@ -62,7 +58,6 @@ export default function Register() {
 
       console.log("Registering with profile:", userServiceType);
 
-      // Call register function from store
       const response = await register(
         name.trim(),
         email.trim().toLowerCase(),
@@ -80,6 +75,21 @@ export default function Register() {
         error.message || "Failed to register. Please try again."
       );
     }
+  };
+
+  // ✅ Fix: Add missing functions
+  const handleGoogleLogin = () => {
+    Alert.alert("Info", "Google login not implemented yet");
+  };
+
+  const handleAppleLogin = () => {
+    Alert.alert("Info", "Apple login not implemented yet");
+  };
+
+  // ✅ Fix: Add placeholder SocialIcons
+  const SocialIcons = {
+    googleIcon: Images.googleIcon,
+    appleIcon: Images.appleIcon,
   };
 
   return (
@@ -142,11 +152,44 @@ export default function Register() {
             disabled={isLoading}
           />
         </View>
+
+        <View style={styles.dividerContainer}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>or</Text>
+          <View style={styles.dividerLine} />
+        </View>
+
+        {/* Social Login Buttons */}
+        <TouchableOpacity
+          style={styles.socialButton}
+          onPress={handleGoogleLogin}
+          activeOpacity={0.7}
+        >
+          <Image
+            source={SocialIcons.googleIcon}
+            style={styles.socialIcon}
+            resizeMode="contain"
+          />
+          <Text style={styles.socialButtonText}>Continue with Google</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.socialButton, { marginTop: 12 }]}
+          onPress={handleAppleLogin}
+          activeOpacity={0.7}
+        >
+          <Image
+            source={SocialIcons.appleIcon}
+            style={styles.socialIcon}
+            resizeMode="contain"
+          />
+          <Text style={styles.socialButtonText}>Continue with Apple</Text>
+        </TouchableOpacity>
       </ScrollView>
 
       <View style={styles.footer}>
         <Text style={styles.footerText}>Already have an account? </Text>
-        <TouchableOpacity onPress={() => router.push("/login")}>
+        <TouchableOpacity onPress={() => router.back()}>
           <Text style={styles.registerText}>Log In</Text>
         </TouchableOpacity>
       </View>
@@ -160,9 +203,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
   },
   slide: {
-    marginTop: 71,
+    marginTop: 65,
     justifyContent: "center",
-    paddingBottom: 120, // Add padding to account for footer
   },
   appLogo: {
     width: 87,
@@ -209,5 +251,43 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: fonts.interRegular,
     textAlign: "center",
+  },
+  dividerContainer: {
+    marginHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 24,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: Colors.grey,
+  },
+  dividerText: {
+    marginHorizontal: 16,
+    color: Colors.grey,
+    fontSize: 14,
+    fontFamily: fonts.interRegular,
+  },
+  socialButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.inputBorder,
+    backgroundColor: Colors.inputColor,
+  },
+  socialIcon: {
+    width: 24,
+    height: 24,
+    marginRight: 12,
+  },
+  socialButtonText: {
+    fontSize: 16,
+    fontFamily: fonts.interRegular,
+    color: Colors.title,
   },
 });
