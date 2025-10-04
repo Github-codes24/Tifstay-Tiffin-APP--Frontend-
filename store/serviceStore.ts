@@ -80,7 +80,7 @@ const useServiceStore = create<ServiceState>()(
           } else {
             response = await tiffinApiService.getTotalTiffinServicesCount();
           }
-          console.log("getTotalServicesCount API Response:", response.data.data.totalHostelServices);
+          // console.log("getTotalServicesCount API Response:", response.data.data.totalHostelServices);
 
           if (response.status === 200) {
             const count = response.data.data.totalHostelServices || 0;
@@ -119,7 +119,7 @@ const useServiceStore = create<ServiceState>()(
           } else {
             response = await tiffinApiService.getRequestedTiffinServicesCount();    
           }
-          console.log("getRequestedServicesCount API Response:", response.data.data.requestedHostelServices);
+          // console.log("getRequestedServicesCount API Response:", response.data.data.requestedHostelServices);
 
           if (response.status === 200) {
             const count = response.data.data.requestedHostelServices || 0;
@@ -158,7 +158,7 @@ const useServiceStore = create<ServiceState>()(
           } else {
             response = await tiffinApiService.getAcceptedTiffinServicesCount();
           }
-          console.log("getAcceptedServicesCount API Response:", response.data.data.acceptedHostelServices);
+          // console.log("getAcceptedServicesCount API Response:", response.data.data.acceptedHostelServices);
 
           if (response.status === 200) {
             const count = response.data.data.acceptedHostelServices || 0;
@@ -196,7 +196,7 @@ const useServiceStore = create<ServiceState>()(
           } else {
             response = await tiffinApiService.getCancelledTiffinServicesCount();
           }
-          console.log("getCancelledServicesCount API Response:", response.data.data.cancelledHostelServices);
+          // console.log("getCancelledServicesCount API Response:", response.data.data.cancelledHostelServices);
 
           if (response.status === 200) {
             const count = response.data.data.cancelledHostelServices || 0;
