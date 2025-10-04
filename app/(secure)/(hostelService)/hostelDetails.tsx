@@ -2,7 +2,8 @@ import CommonHeader from "@/components/CommonHeader";
 import { Colors } from "@/constants/Colors";
 import { AMENITY_ICONS, DEFAULT_AMENITY_ICON } from "@/constants/iconMappings";
 import { fonts } from "@/constants/typography";
-import useServiceStore from "@/store/serviceStore";
+import hostelApiService from "@/services/hostelApiService";
+import { HostelDetails as HostelDetailsType } from "@/types/hostel";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -22,62 +23,79 @@ const { width } = Dimensions.get("window");
 
 export default function HostelDetails() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const {
-    hostelServices,
-    selectedHostelService,
-    getAllHostelServices,
-    getHostelServiceById,
-    isLoading,
-    error,
-  } = useServiceStore();
+  const [hostel, setHostel] = useState<HostelDetailsType | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  console.log("hostel id", id);
-
   useEffect(() => {
-    const fetchHostelData = async () => {
-      if (id) {
-        // Try to get specific hostel service by ID
-        await getHostelServiceById(id);
-      } else {
-        // Fallback to get all services if no ID
-        if (hostelServices.length === 0) {
-          await getAllHostelServices();
-        }
-      }
-    };
-
-    fetchHostelData();
+    fetchHostelDetails();
   }, [id]);
 
-  const hostel =
-    selectedHostelService ||
-    (id ? hostelServices.find((h) => h._id === id) : null);
+  const fetchHostelDetails = async () => {
+    if (!id) {
+      setError("No hostel ID provided");
+      setIsLoading(false);
+      return;
+    }
 
-  let totalBeds = 0;
-  hostel?.rooms.map((room: any) => (totalBeds += room.totalBeds?.length));
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await hostelApiService.getHostelServiceById(id);
+
+      if (response.success && response.data?.data) {
+        setHostel(response.data.data);
+      } else {
+        setError(response.error || "Failed to fetch hostel details");
+      }
+    } catch (err: any) {
+      setError(err.message || "An error occurred");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   if (isLoading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
+      <SafeAreaView style={styles.container}>
+        <CommonHeader
+          title="Hostel Details"
+          onActionPress={() => router.back()}
+        />
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+        </View>
+      </SafeAreaView>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.error}>{error}</Text>
-      </View>
+      <SafeAreaView style={styles.container}>
+        <CommonHeader
+          title="Hostel Details"
+          onActionPress={() => router.back()}
+        />
+        <View style={styles.center}>
+          <Text style={styles.error}>{error}</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
   if (!hostel) {
     return (
-      <View style={styles.center}>
-        <Text>No hostel found</Text>
-      </View>
+      <SafeAreaView style={styles.container}>
+        <CommonHeader
+          title="Hostel Details"
+          onActionPress={() => router.back()}
+        />
+        <View style={styles.center}>
+          <Text>No hostel found</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -124,9 +142,9 @@ export default function HostelDetails() {
         />
 
         {/* Pagination dots */}
-        {!!hostel.hostelPhotos && hostel?.hostelPhotos?.length > 1 && (
+        {hostel.hostelPhotos.length > 1 && (
           <View style={styles.pagination}>
-            {hostel.hostelPhotos?.map((_: any, index: number) => (
+            {hostel.hostelPhotos.map((_: any, index: number) => (
               <View
                 key={index}
                 style={[
@@ -156,34 +174,29 @@ export default function HostelDetails() {
         </View>
         <View style={styles.locationTag}>
           <Ionicons name="location-outline" size={16} color="#666" />
-          <Text style={styles.locationTagText}>
-            {hostel.location.area || hostel.location.fullAddress}
-          </Text>
+          <Text style={styles.locationTagText}>{hostel.location.area}</Text>
         </View>
       </View>
 
       {/* Hostel-specific location info */}
       {hostel.location.nearbyLandmarks && (
-        <Text style={styles.sublocation}>
-          {hostel.location.nearbyLandmarks}
+        <Text style={styles.subLocation}>
+          Near {hostel.location.nearbyLandmarks}
         </Text>
       )}
 
       {/* Hostel room availability */}
       <View style={styles.roomAvailability}>
-        <Text style={styles.roomText}>Total Rooms: {hostel.rooms.length}</Text>
-        {hostel.rooms.length > 0 && (
-          <View style={styles.bedInfo}>
-            <Ionicons name="bed-outline" size={16} color="#666" />
-            <Text style={styles.roomText}> {totalBeds} total beds</Text>
-          </View>
-        )}
+        <Text style={styles.roomText}>Total Rooms: {hostel.totalRooms}</Text>
+        <View style={styles.bedInfo}>
+          <Ionicons name="bed-outline" size={16} color="#666" />
+          <Text style={styles.roomText}> {hostel.totalBeds} total beds</Text>
+        </View>
       </View>
 
       {/* Description */}
       <Text style={styles.description}>{hostel.description}</Text>
 
-      {/* Pricing Section */}
       {renderPricingSection()}
     </View>
   );
@@ -194,25 +207,58 @@ export default function HostelDetails() {
       return null;
     }
 
+    const { perDay, weekly, monthly } = hostel.pricing;
     const hasOffer = hostel.offers && hostel.offers.trim() !== "";
+
+    let primaryPrice = null;
+    let primaryLabel = "";
+    let primaryPeriod = "";
+
+    if (monthly && monthly > 0) {
+      primaryPrice = monthly;
+      primaryLabel = "/month";
+      primaryPeriod = "monthly";
+    } else if (weekly && weekly > 0) {
+      primaryPrice = weekly;
+      primaryLabel = "/week";
+      primaryPeriod = "weekly";
+    } else if (perDay && perDay > 0) {
+      primaryPrice = perDay;
+      primaryLabel = "/day";
+      primaryPeriod = "daily";
+    }
+
+    if (!primaryPrice) return null;
 
     return (
       <View style={styles.pricingBox}>
-        <View style={styles.priceMainRow}>
-          <Text style={styles.currentPrice}>
-            ₹{hostel.pricing.price}/{hostel.pricing.type}
+        <View style={styles.secondaryPricesContainer}>
+          {perDay > 0 && primaryPrice !== perDay && (
+            <Text style={styles.secondaryPrice}>₹{perDay}/day</Text>
+          )}
+          {weekly > 0 && primaryPrice !== weekly && (
+            <Text style={styles.secondaryPrice}>₹{weekly}/week</Text>
+          )}
+        </View>
+
+        <View style={styles.primaryPriceRow}>
+          <Text style={styles.primaryPrice}>
+            ₹{primaryPrice}
+            <Text style={styles.primaryPeriod}>{primaryLabel}</Text>
           </Text>
+
           {hasOffer && (
             <View style={styles.discountBadge}>
-              <Text style={styles.discountText}>{hostel.offers}</Text>
+              <Text style={styles.discountText}>{hostel.offers} OFF</Text>
             </View>
           )}
         </View>
+
         {hostel.securityDeposit > 0 && (
           <Text style={styles.depositNote}>
-            Note: You have to pay security deposit of ₹{hostel.securityDeposit}{" "}
-            on {hostel.pricing.type} booking. It will be refunded to you on
-            check-out.
+            Note: You have to pay security deposit of ₹
+            {hostel.securityDeposit.toLocaleString()} on {primaryPeriod}{" "}
+            booking. It will be refunded to you on check-out.
           </Text>
         )}
       </View>
@@ -257,7 +303,7 @@ export default function HostelDetails() {
             <Ionicons
               name="alert-circle"
               size={20}
-              color="#FFA726"
+              color="#DE9809"
               style={styles.rulesIcon}
             />
             <View style={styles.rulesContent}>
@@ -271,9 +317,11 @@ export default function HostelDetails() {
       <View style={[styles.section, styles.locationSection]}>
         <Text style={styles.sectionTitle}>Location</Text>
         <View style={[styles.locationBox, { marginTop: 12 }]}>
-          <Text style={styles.locationTitle}>
-            {hostel.location.nearbyLandmarks || hostel.location.area}
-          </Text>
+          {hostel.location.nearbyLandmarks && (
+            <Text style={styles.locationTitle}>
+              Near {hostel.location.nearbyLandmarks}
+            </Text>
+          )}
           <Text style={styles.locationAddress}>
             {hostel.location.fullAddress}
           </Text>
@@ -286,17 +334,13 @@ export default function HostelDetails() {
   const renderContactInfo = () => (
     <View style={styles.infoContainer}>
       <Text style={styles.infoHeaderTitle}>Contact Information</Text>
-      <View style={styles.infoBoxsub}>
+      <View style={styles.infoBoxSub}>
         <View style={styles.infoBox}>
           <Ionicons name="call-outline" size={20} color="#0A051F" />
           <Text style={styles.infoValue}>{hostel.contactInfo.phone}</Text>
         </View>
         <View style={styles.infoBox}>
-          <Ionicons
-            name="chatbubble-ellipses-outline"
-            size={20}
-            color="#0A051F"
-          />
+          <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
           <Text style={styles.infoValue}>{hostel.contactInfo.whatsapp}</Text>
         </View>
       </View>
@@ -333,6 +377,8 @@ const styles = StyleSheet.create({
   error: {
     color: "red",
     fontSize: 16,
+    textAlign: "center",
+    paddingHorizontal: 20,
   },
   imageContainer: {
     height: 250,
@@ -378,8 +424,6 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
   },
-
-  // Basic info styles
   basicInfo: {
     padding: 16,
     flex: 1,
@@ -391,32 +435,23 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   title: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "700",
-    marginBottom: 8,
     color: "#000",
-  },
-  ratingContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  rating: {
-    marginLeft: 4,
-    color: "#666",
-    fontSize: 14,
+    fontFamily: fonts.interBold,
   },
   tagsContainer: {
     flexDirection: "row",
     marginBottom: 8,
     alignItems: "center",
+    flexWrap: "wrap",
+    gap: 8,
   },
   tag: {
     backgroundColor: "#5E9BED",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
-    marginRight: 8,
   },
   tagText: {
     fontSize: 12,
@@ -426,69 +461,77 @@ const styles = StyleSheet.create({
   locationTag: {
     flexDirection: "row",
     alignItems: "center",
-    marginRight: 8,
+    gap: 4,
   },
   locationTagText: {
-    fontSize: 12,
+    fontSize: 13,
     color: "#666060",
     fontWeight: "500",
+    fontFamily: fonts.interMedium,
   },
-  sublocation: {
+  subLocation: {
     fontSize: 14,
     color: "#666",
-    marginBottom: 8,
+    marginBottom: 12,
+    fontFamily: fonts.interRegular,
   },
   roomAvailability: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 12,
+    marginBottom: 12,
   },
   roomText: {
-    fontSize: 12,
+    fontSize: 13,
     color: "#666",
-    marginRight: 12,
     fontFamily: fonts.interMedium,
-    lineHeight: 20,
-    paddingVertical: 8,
   },
   bedInfo: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 4,
   },
   description: {
-    fontSize: 16,
+    fontSize: 15,
     color: "#666060",
-    lineHeight: 20,
+    lineHeight: 22,
     marginBottom: 16,
     fontFamily: fonts.interRegular,
   },
-
-  // Pricing styles
   pricingBox: {
-    backgroundColor: "#F8F9FA",
+    backgroundColor: "#F5F5F5",
     padding: 16,
     borderRadius: 12,
   },
-  priceRow: {
+  secondaryPricesContainer: {
+    gap: 2,
     marginBottom: 4,
   },
-  priceMainRow: {
+  secondaryPrice: {
+    fontSize: 14,
+    color: "#666",
+    fontFamily: fonts.interRegular,
+  },
+  primaryPriceRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    marginBottom: 12,
   },
-  oldPrice: {
-    fontSize: 12,
-    color: "#666",
-    fontFamily: fonts.interMedium,
-  },
-  currentPrice: {
-    fontSize: 20,
-    fontFamily: fonts.interSemibold,
+  primaryPrice: {
+    fontSize: 32,
+    fontWeight: "700",
     color: "#004AAD",
+    fontFamily: fonts.interBold,
+  },
+  primaryPeriod: {
+    fontSize: 18,
+    fontWeight: "400",
+    color: "#666",
+    fontFamily: fonts.interRegular,
   },
   discountBadge: {
-    backgroundColor: "#3A88FE",
+    backgroundColor: "#5E9BED",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
@@ -496,21 +539,17 @@ const styles = StyleSheet.create({
   discountText: {
     fontSize: 12,
     color: "#fff",
-    fontFamily: fonts.interRegular,
+    fontWeight: "600",
+    fontFamily: fonts.interSemibold,
   },
   depositNote: {
-    fontSize: 10,
+    fontSize: 12,
     color: "#666",
-    marginTop: 8,
-    lineHeight: 18,
-    fontFamily: fonts.interMedium,
-    maxWidth: 257,
+    lineHeight: 16,
+    fontFamily: fonts.interRegular,
+    width: "83%",
   },
-
-  // Details container
-  detailsContainer: {
-    // padding: 16,
-  },
+  detailsContainer: {},
   section: {
     paddingHorizontal: 16,
   },
@@ -518,12 +557,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
     color: "#000",
+    fontFamily: fonts.interSemibold,
   },
-
-  // Hostel details specific styles
   facilitiesSection: {
     marginBottom: 20,
-    borderColor: "#E0E0E0",
+    borderColor: Colors.inputBorder,
     borderWidth: 1,
     borderRadius: 12,
     marginHorizontal: 16,
@@ -531,43 +569,38 @@ const styles = StyleSheet.create({
   },
   facilitiesContainer: {
     borderRadius: 12,
-    padding: 16,
+    paddingTop: 12,
   },
   facilitiesGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    marginHorizontal: -8,
     gap: 8,
   },
   facilityItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderColor: "#E0E0E0",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderColor: Colors.inputBorder,
     borderWidth: 1,
-    borderRadius: 15,
-    marginVertical: 4,
+    borderRadius: 20,
+    gap: 6,
   },
   facilityIcon: {
-    marginRight: 6,
+    marginRight: 2,
   },
   facilityText: {
     fontSize: 13,
     color: "#333",
-    flexShrink: 1,
-  },
-  unavailableFacility: {
-    color: "#ccc",
+    fontFamily: fonts.interMedium,
   },
   rulesSection: {
     marginBottom: 20,
-    borderColor: "#E0E0E0",
+    borderColor: Colors.inputBorder,
     borderWidth: 1,
     borderRadius: 12,
     marginHorizontal: 16,
-    padding: 10,
-    gap: 10,
+    padding: 16,
   },
   rulesBox: {
     backgroundColor: "#FFFDF0",
@@ -577,84 +610,78 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     borderWidth: 1,
     borderColor: "#DE9809",
+    marginTop: 12,
+    gap: 10,
   },
   rulesIcon: {
     marginTop: 2,
-    marginRight: 10,
   },
   rulesContent: {
     flex: 1,
   },
   rulesText: {
-    fontSize: 12,
+    fontSize: 13,
     color: "#DE9809",
     fontFamily: fonts.interMedium,
     lineHeight: 20,
-    marginBottom: 4,
   },
-
-  // Location section styles
   locationSection: {
-    marginBottom: 0,
-    borderColor: "#E0E0E0",
+    marginBottom: 20,
+    borderColor: Colors.inputBorder,
     borderWidth: 1,
     borderRadius: 12,
     marginHorizontal: 16,
-    marginVertical: 16,
     padding: 16,
   },
   locationBox: {
-    // padding: 16,
+    gap: 8,
   },
   locationTitle: {
-    fontSize: 12,
-    fontFamily: fonts.interMedium,
-    marginBottom: 4,
-    color: "#666060",
+    fontSize: 14,
+    fontFamily: fonts.interSemibold,
+    color: "#333",
   },
   locationAddress: {
-    fontSize: 12,
+    fontSize: 13,
     color: "#666",
-    fontFamily: fonts.interMedium,
-    marginBottom: 4,
+    fontFamily: fonts.interRegular,
     lineHeight: 20,
   },
   infoContainer: {
     padding: 16,
     marginHorizontal: 16,
-    marginVertical: 16,
-    borderColor: "#E0E0E0",
+    marginBottom: 24,
+    borderColor: Colors.inputBorder,
     borderWidth: 1,
     borderRadius: 12,
   },
   infoBox: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 8,
+    justifyContent: "center",
     gap: 8,
     borderWidth: 1,
-    borderColor: "#E0E0E0",
-    borderRadius: 20,
-    padding: 6,
-    justifyContent: "center",
+    borderColor: Colors.inputBorder,
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
   },
   infoHeaderTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "600",
-    marginBottom: 4,
+    marginBottom: 12,
     color: "#000",
+    fontFamily: fonts.interSemibold,
   },
-  infoBoxsub: {
+  infoBoxSub: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    marginTop: 8,
+    gap: 12,
   },
   infoValue: {
     fontSize: 14,
     color: "#0A051F",
-    lineHeight: 20,
-    padding: 5,
     fontFamily: fonts.interMedium,
   },
 });

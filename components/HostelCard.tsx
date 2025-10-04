@@ -13,49 +13,7 @@ import {
   View,
 } from "react-native";
 import Animated from "react-native-reanimated";
-
-interface HostelService {
-  _id: string;
-  hostelName: string;
-  hostelType: string;
-  description: string;
-  pricing: {
-    // perDay: number;
-    // weekly: number;
-    // monthly: number;
-    price: number;
-    type: string;
-  };
-  securityDeposit: number;
-  offers?: string;
-  rooms: {
-    _id?: string;
-    roomNumber: number;
-    totalBeds: {
-      bedNumber: number;
-      status: "Occupied" | "Unoccupied";
-      _id: string;
-    }[];
-    roomDescription: string;
-    photos?: string[];
-  }[];
-  facilities: string[];
-  location: {
-    area: string;
-    nearbyLandmarks: string;
-    fullAddress: string;
-  };
-  contactInfo: {
-    phone: number;
-    whatsapp: number;
-  };
-  rulesAndPolicies: string;
-  hostelPhotos?: string[];
-  totalRooms?: number;
-  totalBeds?: number;
-  status?: string;
-  ownerId?: string;
-}
+import { HostelService } from "../types/hostel";
 
 interface HostelCardProps {
   hostel: HostelService;
@@ -64,9 +22,9 @@ interface HostelCardProps {
 }
 
 const amenityIcons: { [key: string]: string } = {
-  // keys normalized to lowercase for robust lookup
   wifi: "wifi",
   mess: "restaurant",
+  meals: "restaurant",
   security: "shield-checkmark",
   studyhall: "book",
   commontv: "tv",
@@ -88,13 +46,11 @@ export default function HostelCard({
   };
 
   const handleEdit = () => {
-    // TODO: Implement edit functionality
     Alert.alert("Edit", "Edit functionality will be implemented soon");
   };
 
   const handleViewRooms = () => {
     if (hostel.rooms && hostel.rooms.length > 0 && hostel.rooms[0]._id) {
-      // Pass the first room's ID as a parameter
       router.push({
         pathname: "/viewroom",
         params: { roomId: hostel.rooms[0]._id },
@@ -104,33 +60,43 @@ export default function HostelCard({
     }
   };
 
-  // Calculate available beds
-  const getAvailableBeds = () => {
-    let availableCount = 0;
-    hostel.rooms.forEach((room) => {
-      room.totalBeds.forEach((bed) => {
-        if (bed.status === "Unoccupied") {
-          availableCount++;
-        }
-      });
+  const handleViewReviews = () => {
+    router.push({
+      pathname: "/review",
+      params: { hostelId: hostel._id },
     });
-    return availableCount;
   };
 
-  const getTotalBeds = () => {
-    let bedsCount = 0;
-    hostel.rooms.forEach((room) => {
-      room.totalBeds.forEach((bed) => {
-        bedsCount++;
-      });
-    });
-    return bedsCount;
+  // Get primary pricing with priority: monthly > weekly > perDay
+  const getPrimaryPricing = () => {
+    const pricing = hostel.pricing;
+
+    if (pricing.monthly && pricing.monthly > 0) {
+      return {
+        price: pricing.monthly,
+        label: "/month",
+      };
+    } else if (pricing.weekly && pricing.weekly > 0) {
+      return {
+        price: pricing.weekly,
+        label: "/week",
+      };
+    } else if (pricing.perDay && pricing.perDay > 0) {
+      return {
+        price: pricing.perDay,
+        label: "/day",
+      };
+    }
+
+    return { price: 0, label: "/day" };
   };
+
+  const primaryPricing = getPrimaryPricing();
 
   return (
     <TouchableOpacity
       style={styles.hostelCard}
-      onPress={onPress}
+      onPress={onPress || handleView}
       activeOpacity={0.7}
     >
       <Animated.View style={styles.cardContent} sharedTransitionTag="sharedTag">
@@ -153,7 +119,7 @@ export default function HostelCard({
             </Text>
           </View>
 
-          <Text style={styles.sublocation}>
+          <Text style={styles.subLocation} numberOfLines={1}>
             {hostel.location.nearbyLandmarks || hostel.location.area}
           </Text>
 
@@ -168,29 +134,29 @@ export default function HostelCard({
                   (amenityIcons[key] as any) || "checkmark-circle";
                 return (
                   <View key={`${key}-${idx}`} style={styles.amenityItem}>
-                    <Ionicons name={iconName} size={16} color="#6B7280" />
-                    <Text style={styles.amenityText}>{label}</Text>
+                    <Ionicons name={iconName} size={13} color="#6B7280" />
+                    <Text style={styles.amenityText} numberOfLines={1}>
+                      {label}
+                    </Text>
                   </View>
                 );
               })}
           </View>
 
           {/* Fixed Row Section */}
-          <View style={[styles.rowBetween]}>
+          <View style={styles.rowBetween}>
             <View style={styles.infoBlock}>
               <Text style={styles.price}>
-                {hostel.pricing.price || "N/A"}
-                <Text style={styles.deposit}>{`${
-                  hostel.pricing.type ? " / " : ""
-                }${hostel.pricing.type}`}</Text>
+                ₹{primaryPricing.price}
+                <Text style={styles.deposit}>{primaryPricing.label}</Text>
               </Text>
               <Text style={styles.deposit}>Rent</Text>
             </View>
 
             <View style={styles.infoBlock}>
-              <Text
-                style={styles.booking}
-              >{`${getAvailableBeds()}/${getTotalBeds()}`}</Text>
+              <Text style={styles.booking}>
+                {hostel.availability.availabilityString}
+              </Text>
               <Text style={styles.deposit}>Available</Text>
             </View>
 
@@ -198,14 +164,17 @@ export default function HostelCard({
               <View style={styles.ratingRow}>
                 <Image source={Images.star} style={styles.starIcon} />
                 <Text style={styles.rating}>
-                  4.7 <Text style={styles.review}>(8)</Text>
+                  {hostel.overallRating.toFixed(1)}{" "}
+                  <Text style={styles.review}>({hostel.totalReviews})</Text>
                 </Text>
               </View>
               <Text style={styles.deposit}>Rating</Text>
             </View>
 
             <View style={styles.infoBlock}>
-              <Text style={styles.type}>{hostel.hostelType}</Text>
+              <Text style={styles.type} numberOfLines={1}>
+                {hostel.hostelType}
+              </Text>
               <Text style={styles.deposit}>Type</Text>
             </View>
           </View>
@@ -220,13 +189,16 @@ export default function HostelCard({
               <Text style={styles.btnText}>Edit</Text>
             </TouchableOpacity>
           </View>
-          <TouchableOpacity
-            style={[styles.button, { width: "100%", marginTop: 16 }]}
-            onPress={handleViewRooms}
-          >
-            <Image source={Images.view} style={styles.btnIcon} />
-            <Text style={styles.btnText}> View Rooms</Text>
-          </TouchableOpacity>
+          <View style={styles.actions}>
+            <TouchableOpacity style={styles.button} onPress={handleViewRooms}>
+              <Image source={Images.view} style={styles.btnIcon} />
+              <Text style={styles.btnText}>View Rooms</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.button} onPress={handleViewReviews}>
+              <Image source={Images.star} style={styles.btnIcon} />
+              <Text style={styles.btnText}>View Reviews</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </Animated.View>
     </TouchableOpacity>
@@ -234,7 +206,6 @@ export default function HostelCard({
 }
 
 const styles = StyleSheet.create({
-  // ... keep all your existing styles as they are
   hostelCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 16,
@@ -273,28 +244,31 @@ const styles = StyleSheet.create({
     color: "#1A1A1A",
     flex: 1,
     marginRight: 8,
+    fontFamily: fonts.interSemibold,
   },
   rating: {
     fontSize: 14,
     fontWeight: "600",
     color: "#1A1A1A",
+    fontFamily: fonts.interSemibold,
   },
-  sublocation: {
+  subLocation: {
     fontSize: 13,
     color: "#6B7280",
     marginBottom: 6,
+    fontFamily: fonts.interRegular,
   },
   amenitiesRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
     gap: 2,
     marginBottom: 8,
+    flexWrap: "wrap",
   },
   amenityItem: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    borderColor: "#9C9BA6",
+    borderColor: Colors.lightGrey,
     borderWidth: 1,
     borderRadius: 12,
     padding: 3,
@@ -317,8 +291,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   infoBlock: {
-    // flex: 1,
-    // alignItems: "center",
+    flex: 1,
   },
   price: {
     fontFamily: fonts.interSemibold,
@@ -339,7 +312,7 @@ const styles = StyleSheet.create({
   type: {
     fontSize: 12,
     color: Colors.title,
-    textAlign: "center",
+    textAlign: "left",
     fontFamily: fonts.interSemibold,
   },
   starIcon: {
@@ -352,7 +325,7 @@ const styles = StyleSheet.create({
   },
   actions: {
     flexDirection: "row",
-    marginTop: 16,
+    marginTop: 7,
     gap: 7,
   },
   button: {
@@ -374,10 +347,6 @@ const styles = StyleSheet.create({
   btnText: {
     fontSize: 10,
     color: Colors.grey,
-    fontFamily: fonts.interRegular,
-  },
-  label: {
-    fontSize: 10,
     fontFamily: fonts.interRegular,
   },
 });

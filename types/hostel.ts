@@ -43,8 +43,9 @@ export interface HostelService {
   hostelType: string;
   description: string;
   pricing: {
-    price: number;
-    type: string;
+    perDay: number;
+    weekly: number;
+    monthly: number;
   };
   securityDeposit: number;
   offers?: string;
@@ -63,8 +64,25 @@ export interface HostelService {
   hostelPhotos?: string[];
   totalRooms: number;
   totalBeds: number;
+  availability: {
+    totalBeds: number;
+    occupiedBeds: number;
+    unoccupiedBeds: number;
+    availabilityString: string;
+  };
   status: string;
   ownerId: string;
+  overallRating: number;
+  totalReviews: number;
+  offlineDetails: {
+    comeBackAt: null,
+    comeBackOption: null,
+    isOffline: false,
+    isPermanent: false,
+    offlineAt: null,
+    offlineType: null,
+    reason: null
+},
 }
 
 // API Request/Response Interfaces
@@ -113,6 +131,60 @@ export interface HostelServiceResponse {
   error?: string;
 }
 
+export interface HostelDetails {
+  _id: string;
+  hostelName: string;
+  hostelType: string;
+  description: string;
+  pricing: {
+    perDay: number;
+    weekly: number;
+    monthly: number;
+  };
+  securityDeposit: number;
+  offers?: string;
+  rooms: {
+    _id: string;
+    roomNumber: number;
+    totalBeds: {
+      bedNumber: number;
+      status: "Occupied" | "Unoccupied";
+      _id: string;
+    }[];
+    roomDescription: string;
+    photos: string[];
+  }[];
+  facilities: string[];
+  location: {
+    area: string;
+    nearbyLandmarks: string;
+    fullAddress: string;
+  };
+  contactInfo: {
+    phone: number;
+    whatsapp: number;
+  };
+  rulesAndPolicies: string;
+  hostelPhotos: string[];
+  totalRooms: number;
+  totalBeds: number;
+  ownerId: {
+    _id: string;
+    email: string;
+  };
+  status: string;
+  isAvailable: boolean;
+  updatedAt: string;
+  offlineDetails: {
+    comeBackAt: null | string;
+    comeBackOption: null | string;
+    isOffline: boolean;
+    isPermanent: boolean;
+    offlineAt: null | string;
+    offlineType: null | string;
+    reason: null | string;
+  };
+}
 export interface HostelServicesListResponse {
   success: boolean;
   message?: string;

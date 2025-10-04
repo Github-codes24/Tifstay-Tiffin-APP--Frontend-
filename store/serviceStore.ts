@@ -33,7 +33,6 @@ interface ServiceState {
   // Actions
   createHostelService: (data: CreateHostelServiceRequest) => Promise<ApiResponse<HostelService>>;
   getAllHostelServices: () => Promise<ApiResponse<any>>;
-  getHostelServiceById: (hostelServiceId: string) => Promise<ApiResponse<HostelService>>;
   updateHostelService: (hostelServiceId: string, data: UpdateHostelServiceRequest) => Promise<ApiResponse<HostelService>>;
   deleteHostelService: (hostelServiceId: string) => Promise<ApiResponse<any>>;
   deleteRoomPhotos: (hostelServiceId: string, roomId: string, photoUrls: string[]) => Promise<ApiResponse<any>>;
@@ -288,34 +287,7 @@ const useServiceStore = create<ServiceState>()(
         }
       },
 
-      getHostelServiceById: async (hostelServiceId: string) => {
-        set({ isLoading: true, error: null });
-
-        try {
-          const response = await hostelServiceApiService.getHostelServiceById(hostelServiceId);
-
-          if (response.success) {
-            set({
-              selectedHostelService: response.data?.data || null,
-              isLoading: false,
-              error: null,
-            });
-            return { success: true, data: response.data };
-          } else {
-            set({
-              isLoading: false,
-              error: response.error || "Failed to fetch hostel service details",
-            });
-            return { success: false, error: response.error };
-          }
-        } catch (error: any) {
-          set({
-            isLoading: false,
-            error: error.message || "Failed to fetch hostel service details",
-          });
-          return { success: false, error: error.message };
-        }
-      },
+    
 
       updateHostelService: async (hostelServiceId: string, data: UpdateHostelServiceRequest) => {
         set({ isLoading: true, error: null });

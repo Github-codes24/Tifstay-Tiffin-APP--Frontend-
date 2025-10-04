@@ -522,6 +522,10 @@ async getTermAndCondition() {
     };
   }
 }
+
+//Rating
+
+
   // Get current user (example endpoint - adjust based on your API)
   async getCurrentUser() {
     try {
@@ -607,8 +611,7 @@ async getTermAndCondition() {
       };
     }
   }
-// Add to your existing hostelApiService class
-
+//chat APi
 async sendMessageToAdmin(message: string) {
   try {
     const response = await this.api.post("/api/message/sendMessage", {
