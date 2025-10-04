@@ -72,7 +72,7 @@ const AddNewHostelService = () => {
         allowsEditing: true,
         aspect: [4, 3],
         quality: 0.8,
-        allowsMultipleSelection: false,
+        allowsMultipleSelection: true,
       });
 
       if (!result.canceled && result.assets[0]) {

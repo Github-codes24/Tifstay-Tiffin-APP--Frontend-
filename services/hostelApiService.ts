@@ -607,7 +607,39 @@ async getTermAndCondition() {
       };
     }
   }
+// Add to your existing hostelApiService class
 
+async sendMessageToAdmin(message: string) {
+  try {
+    const response = await this.api.post("/api/message/sendMessage", {
+      message,
+    });
+    return {
+      success: true,
+      data: response.data,
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.response?.data?.message || "Failed to send message",
+    };
+  }
+}
+
+async getHostelOwnerPreviousChat() {
+  try {
+    const response = await this.api.get("/api/message/getHostelOwnerPreviousChat");
+    return {
+      success: true,
+      data: response.data,
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.response?.data?.message || "Failed to load messages",
+    };
+  }
+}
 }
 
 export default new ApiService();

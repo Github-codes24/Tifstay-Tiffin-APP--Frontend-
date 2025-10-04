@@ -265,6 +265,39 @@ async getCancelledTiffinServicesCount() {
       };
     }
   }
+  // Add to your existing tiffinApiService class
+
+async sendMessageToAdmin(message: string) {
+  try {
+    const response = await this.api.post("/api/message/sendMessage", {
+      message,
+    });
+    return {
+      success: true,
+      data: response.data,
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.response?.data?.message || "Failed to send message",
+    };
+  }
+}
+
+async getTiffinProviderPreviousChat() {
+  try {
+    const response = await this.api.get("/api/message/getTiffinProviderPreviousChat");
+    return {
+      success: true,
+      data: response.data,
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.response?.data?.message || "Failed to load messages",
+    };
+  }
+}
 }
 
 export default new TiffinApiService();

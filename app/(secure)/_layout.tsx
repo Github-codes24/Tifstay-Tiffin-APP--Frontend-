@@ -261,6 +261,12 @@ export default function SecureLayout() {
           headerShown: false,
         }}
       />
+      <Stack.Screen
+        name="(accountScreens)/chatScreen"
+        options={{
+          headerShown: false,
+        }}
+      />
     </Stack>
   );
 }
