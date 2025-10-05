@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
   inputWrapper: {
     backgroundColor: Colors.inputColor,
     borderRadius: 8,
-    height: 48,
+    height: "auto",
     paddingHorizontal: 12,
     borderWidth: 1,
     borderColor: Colors.inputBorder,

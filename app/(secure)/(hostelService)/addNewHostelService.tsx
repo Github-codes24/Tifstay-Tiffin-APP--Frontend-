@@ -451,7 +451,7 @@ const AddNewHostelService = () => {
       >
         {/* Basic Information Section */}
         <View style={styles.infoBox}>
-          <View style={[styles.card, styles.basicCard]}>
+          <View style={styles.card}>
             <View style={styles.sectionHeaderContainer}>
               <Ionicons
                 name="document-text-outline"
@@ -635,7 +635,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     backgroundColor: Colors.white,
   },
-  basicCard: { paddingBottom: 60 },
   sectionHeaderContainer: {
     flexDirection: "row",
     alignItems: "center",
