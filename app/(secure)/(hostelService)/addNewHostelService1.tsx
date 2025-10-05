@@ -68,12 +68,13 @@ const AddNewHostelService1 = () => {
         photos,
       });
 
-      // Prepare rooms data from multiple rooms
+      // ✅ Prepare rooms data (without status - backend will set it)
       const roomsData = formPage1Data.rooms.map((room) => {
         const totalBeds = [];
         for (let i = 1; i <= room.noOfBeds; i++) {
           totalBeds.push({
             bedNumber: i,
+            // Don't include status - backend sets "Unoccupied" by default
           });
         }
 
@@ -84,7 +85,7 @@ const AddNewHostelService1 = () => {
         };
       });
 
-      // Transform complete form data to API format
+      // ✅ Transform complete form data to API format
       const apiData = {
         hostelName: formPage1Data.hostelName,
         hostelType:
@@ -95,13 +96,13 @@ const AddNewHostelService1 = () => {
             : "Co-ed Hostel",
         description: formPage1Data.description,
         pricing: {
-          perDay: formPage1Data.pricePerDay || 5000,
-          weekly: formPage1Data.weeklyPrice || 10000,
-          monthly: formPage1Data.monthlyPrice || 60000,
+          perDay: formPage1Data.pricePerDay || 0,
+          weekly: formPage1Data.weeklyPrice || 0,
+          monthly: formPage1Data.monthlyPrice || 0,
         },
-        securityDeposit: formPage1Data.securityDeposit || 15000,
-        offers: formPage1Data.offers || "10%",
-        rooms: roomsData,
+        securityDeposit: formPage1Data.securityDeposit || 0,
+        offers: formPage1Data.offers || "",
+        rooms: roomsData, // ✅ Properly formatted rooms array
         facilities: Object.entries(formPage1Data.amenities)
           .filter(([_, value]) => value)
           .map(([key]) => {
@@ -128,19 +129,32 @@ const AddNewHostelService1 = () => {
         },
         rulesAndPolicies: rulesText || "No smoking inside premises",
         hostelPhotos: photos,
-        roomPhotos: formPage1Data.roomPhotos || [],
+        roomsWithPhotos: formPage1Data.rooms, // ✅ Pass rooms with photos
       };
 
-      console.log("Submitting data:", JSON.stringify(apiData, null, 2));
+      console.log("=== SUBMITTING DATA ===");
+      console.log("Total Rooms:", roomsData.length);
+      console.log("Rooms Data:", JSON.stringify(roomsData, null, 2));
+      console.log("Rooms With Photos Count:", formPage1Data.rooms.length);
+      formPage1Data.rooms.forEach((room, index) => {
+        console.log(
+          `Room ${index} (${room.roomNo}): ${room.roomPhotos.length} photos`
+        );
+      });
 
       // Submit to API
       const response = await createHostelService(apiData);
 
       if (response.success) {
-        // Clear form data
-        clearFormData();
-        // Navigate to success page
-        router.replace("/(secure)/(hostelService)/successful");
+        Alert.alert("Success", "Hostel service created successfully!", [
+          {
+            text: "OK",
+            onPress: () => {
+              clearFormData();
+              router.replace("/(secure)/(hostelService)/successful");
+            },
+          },
+        ]);
       } else {
         Alert.alert("Error", response.error || "Failed to submit listing");
       }
@@ -151,6 +165,7 @@ const AddNewHostelService1 = () => {
       setIsSubmitting(false);
     }
   };
+
   const resetForm = () => {
     setRulesText("");
     setArea("");
@@ -164,7 +179,6 @@ const AddNewHostelService1 = () => {
   };
 
   const handlePreview = () => {
-    // Save current page data before preview
     setFormPage2Data({
       rulesText,
       area: area || null,
@@ -180,7 +194,7 @@ const AddNewHostelService1 = () => {
   const pickImage = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ["images"], // ✅ FIXED
         allowsEditing: true,
         aspect: [4, 3],
         quality: 0.8,
@@ -490,41 +504,6 @@ const styles = StyleSheet.create({
     right: -8,
     backgroundColor: "white",
     borderRadius: 12,
-  },
-  dropdownContainer: {
-    marginBottom: 16,
-  },
-  dropdown: {
-    backgroundColor: "#ffffffff",
-    borderColor: "#E5E7EB",
-    borderWidth: 1,
-    borderRadius: 8,
-    minHeight: 37,
-    paddingHorizontal: 12,
-  },
-  dropdownList: {
-    backgroundColor: Colors.white,
-    borderColor: "#E5E7EB",
-    borderWidth: 1,
-    borderRadius: 8,
-    marginTop: 4,
-  },
-  dropdownPlaceholder: {
-    color: "#9CA3AF",
-    fontSize: 14,
-    fontFamily: fonts.interRegular,
-  },
-  selectedItem: {
-    backgroundColor: "#EFF6FF",
-  },
-  dropdownItemLabel: {
-    fontSize: 14,
-    fontFamily: fonts.interRegular,
-    color: "#374151",
-  },
-  dropdownArrow: {
-    width: 24,
-    height: 24,
   },
   submitButton: {
     borderRadius: 8,

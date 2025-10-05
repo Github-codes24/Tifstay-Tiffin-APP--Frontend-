@@ -101,6 +101,7 @@ export interface CreateHostelServiceRequest {
     roomNumber: number;
     totalBeds: {
       bedNumber: number;
+      status?: string;
     }[];
     roomDescription: string;
   }[];
@@ -116,9 +117,14 @@ export interface CreateHostelServiceRequest {
   };
   rulesAndPolicies: string;
   hostelPhotos: any[];
-  roomPhotos: any[];
+  roomPhotos?: any[]; // Legacy - kept for backward compatibility
+  roomsWithPhotos?: {
+    roomNo: string;
+    noOfBeds: number;
+    roomDetails: string;
+    roomPhotos: any[];
+  }[]; // ✅ NEW: Properly typed
 }
-
 
 export interface UpdateHostelServiceRequest extends CreateHostelServiceRequest {
   rooms: (Room & { isNewRoom?: boolean })[];

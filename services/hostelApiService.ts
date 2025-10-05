@@ -208,78 +208,99 @@ async deleteAddress(addressId: string) {
 }
   // Create Hostel Listing
 
-async createHostelService(data: CreateHostelServiceRequest) {
-  try {
-    const formData = new FormData();
-
-    // Basic fields - as TEXT not JSON
-    formData.append("hostelName", data.hostelName);
-    formData.append("hostelType", data.hostelType);
-    formData.append("description", data.description);
-    formData.append("securityDeposit", data.securityDeposit.toString());
-    
-    // Offers
-    if (data.offers) {
-      formData.append("offers", data.offers);
-    }
-
-    // Complex objects as JSON strings
-    formData.append("location", JSON.stringify(data.location));
-    formData.append("contactInfo", JSON.stringify(data.contactInfo));
-    formData.append("rooms", JSON.stringify(data.rooms));
-    formData.append("facilities", JSON.stringify(data.facilities));
-    formData.append("pricing", JSON.stringify(data.pricing));
-    
-    // Rules and policies
-    formData.append("rulesAndPolicies", data.rulesAndPolicies);
-
-    // Hostel photos
-    if (data.hostelPhotos && data.hostelPhotos.length > 0) {
-      data.hostelPhotos.forEach((photo: any, index: number) => {
-        if (photo.uri) {
-          formData.append("hostelPhotos", {
-            uri: photo.uri,
-            type: photo.type || "image/jpeg",
-            name: photo.name || `hostel_photo_${index}.jpg`,
-          } as any);
-        }
+  async createHostelService(data: CreateHostelServiceRequest) {
+    try {
+      const formData = new FormData();
+  
+      // ✅ Log what we're sending
+      console.log("=== CREATE HOSTEL SERVICE ===");
+      console.log("Rooms to create:", data.rooms.length);
+      console.log("RoomsWithPhotos:", data.roomsWithPhotos?.length || 0);
+  
+      // Basic fields - as TEXT not JSON
+      formData.append("hostelName", data.hostelName);
+      formData.append("hostelType", data.hostelType);
+      formData.append("description", data.description);
+      formData.append("securityDeposit", data.securityDeposit.toString());
+      
+      // Offers
+      if (data.offers) {
+        formData.append("offers", data.offers);
+      }
+  
+      // ✅ Complex objects as JSON strings
+      formData.append("location", JSON.stringify(data.location));
+      formData.append("contactInfo", JSON.stringify(data.contactInfo));
+      formData.append("rooms", JSON.stringify(data.rooms)); // ✅ This is the rooms array
+      formData.append("facilities", JSON.stringify(data.facilities));
+      formData.append("pricing", JSON.stringify(data.pricing));
+      
+      // Rules and policies
+      formData.append("rulesAndPolicies", data.rulesAndPolicies);
+  
+      // ✅ Hostel photos
+      if (data.hostelPhotos && data.hostelPhotos.length > 0) {
+        data.hostelPhotos.forEach((photo: any, index: number) => {
+          if (photo.uri) {
+            formData.append("hostelPhotos", {
+              uri: photo.uri,
+              type: photo.type || "image/jpeg",
+              name: photo.name || `hostel_photo_${index}.jpg`,
+            } as any);
+          }
+        });
+      }
+  
+      // ✅ CRITICAL FIX: Room photos - Properly append each room's photos with correct index
+      if (data.roomsWithPhotos && data.roomsWithPhotos.length > 0) {
+        data.roomsWithPhotos.forEach((room: any, roomIndex: number) => {
+          console.log(`Processing Room ${roomIndex} (${room.roomNo}): ${room.roomPhotos?.length || 0} photos`);
+          
+          if (room.roomPhotos && room.roomPhotos.length > 0) {
+            room.roomPhotos.forEach((photo: any, photoIndex: number) => {
+              if (photo && photo.uri) {
+                // ✅ KEY FIX: Use roomPhotos_0, roomPhotos_1, roomPhotos_2, etc.
+                const fieldName = `roomPhotos_${roomIndex}`;
+                console.log(`Appending photo to ${fieldName}`);
+                
+                formData.append(fieldName, {
+                  uri: photo.uri,
+                  type: photo.type || "image/jpeg",
+                  name: photo.name || `room_${roomIndex}_photo_${photoIndex}.jpg`,
+                } as any);
+              }
+            });
+          } else {
+            console.warn(`⚠️ Room ${roomIndex} has no photos!`);
+          }
+        });
+      } else {
+        console.warn("⚠️ No roomsWithPhotos provided!");
+      }
+  
+      console.log("FormData prepared - sending to API...");
+  
+      const response = await this.api.post("/api/hostelService/createHostelService", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          "Accept": "application/json",
+        },
       });
+  
+      console.log("✅ API Response:", response.data);
+  
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error("❌ Create Hostel Service Error:", error.response?.data || error.message);
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to create hostel service.",
+      };
     }
-
-    // Room photos
-    if (data.roomPhotos && data.roomPhotos.length > 0) {
-      data.roomPhotos.forEach((photo: any, index: number) => {
-        if (photo.uri) {
-          formData.append("roomPhotos_0", {
-            uri: photo.uri,
-            type: photo.type || "image/jpeg",
-            name: photo.name || `room_photo_${index}.jpg`,
-          } as any);
-        }
-      });
-    }
-
-    console.log("FormData prepared for API");
-
-    const response = await this.api.post("/api/hostelService/createHostelService", formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-        "Accept": "application/json",
-      },
-    });
-
-    return {
-      success: true,
-      data: response.data,
-    };
-  } catch (error: any) {
-    console.error("Create Hostel Service Error:", error.response?.data || error);
-    return {
-      success: false,
-      error: error.response?.data?.message || "Failed to create hostel service.",
-    };
   }
-}
 
   async getAllHostelServices() {
     try {
