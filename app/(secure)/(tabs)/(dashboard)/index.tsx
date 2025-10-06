@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 import CommonButton from "@/components/CommonButton";
 import TiffinCard from "@/components/CommonServiceCard";
 import HostelCard from "@/components/HostelCard";
@@ -10,7 +9,7 @@ import useAuthStore from "@/store/authStore";
 import useServiceStore from "@/store/serviceStore";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -21,6 +20,68 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+// Constants
+const ITEMS_PER_PAGE = 10;
+const SCROLL_BOTTOM_PADDING = { paddingBottom: IS_IOS ? 120 : 20 };
+
+// Extracted Components for better performance
+const StatsCard = React.memo<{
+  icon: any;
+  count: number;
+  label: string;
+  color: string;
+}>(function StatsCard({ icon, count, label, color }) {
+  return (
+    <View style={styles.card}>
+      <Image source={icon} style={styles.icon24} />
+      <Text style={[styles.cardNumber, { color }]}>{count}</Text>
+      <Text style={[styles.cardText, { color }]}>{label}</Text>
+    </View>
+  );
+});
+
+const PaginationButton = React.memo<{
+  onPress: () => void;
+  disabled: boolean;
+  iconName: "chevron-back" | "chevron-forward";
+}>(function PaginationButton({ onPress, disabled, iconName }) {
+  return (
+    <TouchableOpacity
+      style={[
+        styles.paginationButton,
+        disabled && styles.paginationButtonDisabled,
+      ]}
+      onPress={onPress}
+      disabled={disabled}
+    >
+      <Ionicons
+        name={iconName}
+        size={20}
+        color={disabled ? Colors.grey : Colors.primary}
+      />
+    </TouchableOpacity>
+  );
+});
+
+const PageNumber = React.memo<{
+  page: number;
+  isActive: boolean;
+  onPress: () => void;
+}>(function PageNumber({ page, isActive, onPress }) {
+  return (
+    <TouchableOpacity
+      style={[styles.pageNumber, isActive && styles.pageNumberActive]}
+      onPress={onPress}
+    >
+      <Text
+        style={[styles.pageNumberText, isActive && styles.pageNumberTextActive]}
+      >
+        {page}
+      </Text>
+    </TouchableOpacity>
+  );
+});
 
 export default function ServiceOfflineScreen() {
   const { getUserProfile, user, userServiceType } = useAuthStore();
@@ -41,131 +102,223 @@ export default function ServiceOfflineScreen() {
   const [isOnline, setIsOnline] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
-  const isTiffinProvider = userServiceType === "tiffin_provider";
+
+  const isTiffinProvider = useMemo(
+    () => userServiceType === "tiffin_provider",
+    [userServiceType]
+  );
+
+  // Memoized values
+  const profileImage = useMemo(
+    () => (isTiffinProvider ? Images.user : { uri: user?.profileImage }),
+    [isTiffinProvider, user?.profileImage]
+  );
+
+  const headerTitle = useMemo(
+    () =>
+      isTiffinProvider ? "Maharashtrian Ghar Ka Khana" : user?.fullName || "",
+    [isTiffinProvider, user?.fullName]
+  );
+
+  const headerSubtitle = useMemo(
+    () =>
+      isTiffinProvider
+        ? "Manage your tiffin services"
+        : "Manage your hostel properties",
+    [isTiffinProvider]
+  );
+
+  const serviceTitle = useMemo(
+    () => (isTiffinProvider ? "My Tiffin/Restaurant" : "My PG/Hostel"),
+    [isTiffinProvider]
+  );
+
+  const totalServices = useMemo(
+    () => pagination?.totalCount || hostelServices?.length || 0,
+    [pagination?.totalCount, hostelServices?.length]
+  );
+
+  const serviceCountText = useMemo(
+    () => `${totalServices} service${totalServices !== 1 ? "s" : ""}`,
+    [totalServices]
+  );
+
+  // Optimized data loading with Promise.all
+  const loadData = useCallback(
+    async (page: number) => {
+      setLoading(true);
+      try {
+        await Promise.all([
+          getAllHostelServices(page, ITEMS_PER_PAGE),
+          getUserProfile(userServiceType),
+          getTotalServicesCount(),
+          getRequestedServicesCount(),
+          getAcceptedServicesCount(),
+          getCancelledServicesCount(),
+        ]);
+      } catch (error) {
+        console.error("Error loading data:", error);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [
+      getAllHostelServices,
+      getUserProfile,
+      userServiceType,
+      getTotalServicesCount,
+      getRequestedServicesCount,
+      getAcceptedServicesCount,
+      getCancelledServicesCount,
+    ]
+  );
+
+  // Optimized page change handler
+  const handlePageChange = useCallback(
+    (page: number) => {
+      if (
+        page !== currentPage &&
+        page >= 1 &&
+        page <= (pagination?.totalPages || 1)
+      ) {
+        setCurrentPage(page);
+        loadData(page);
+      }
+    },
+    [currentPage, pagination?.totalPages, loadData]
+  );
+
+  // Optimized toggle handler
+  const handleToggleOnline = useCallback(() => {
+    const newOnlineState = !isOnline;
+    setIsOnline(newOnlineState);
+    if (newOnlineState && isTiffinProvider) {
+      router.push("/(secure)/(tabs)/(dashboard)/service");
+    }
+  }, [isOnline, isTiffinProvider]);
+
+  // Navigation handlers
+  const handleAddService = useCallback(() => {
+    const route = isTiffinProvider
+      ? "/(secure)/(service)/addNewService"
+      : "/(secure)/(hostelService)/addNewHostelService";
+    router.push(route);
+  }, [isTiffinProvider]);
+
+  const handleViewEarnings = useCallback(() => {
+    router.push("/(secure)/(tabs)/earnings");
+  }, []);
+
+  const handleViewReviews = useCallback(() => {
+    router.push("/review");
+  }, []);
+
+  // Stats configuration
+  const statsConfig = useMemo(
+    () => [
+      {
+        icon: isTiffinProvider ? Images.order : Images.hostel,
+        count: totalServicesCount,
+        label: isTiffinProvider ? "New Orders" : "Total Hostels",
+        color: Colors.primary,
+      },
+      {
+        icon: Images.req,
+        count: requestedServicesCount,
+        label: isTiffinProvider ? "Order Request" : "Request",
+        color: Colors.orange,
+      },
+      {
+        icon: isTiffinProvider ? Images.complete : Images.bad,
+        count: acceptedServicesCount,
+        label: isTiffinProvider ? "Completed Orders" : "Accepted",
+        color: Colors.green,
+      },
+      {
+        icon: Images.cancel,
+        count: cancelledServicesCount,
+        label: isTiffinProvider ? "Canceled Orders" : "Canceled",
+        color: Colors.red,
+      },
+    ],
+    [
+      isTiffinProvider,
+      totalServicesCount,
+      requestedServicesCount,
+      acceptedServicesCount,
+      cancelledServicesCount,
+    ]
+  );
+
+  // Optimized pagination rendering
+  const renderPagination = useCallback(() => {
+    if (!pagination || pagination.totalCount <= ITEMS_PER_PAGE) return null;
+
+    const { currentPage: current, totalPages, hasNext, hasPrev } = pagination;
+
+    return (
+      <View style={styles.paginationContainer}>
+        <PaginationButton
+          onPress={() => handlePageChange(current - 1)}
+          disabled={!hasPrev}
+          iconName="chevron-back"
+        />
+
+        <View style={styles.pageNumbersContainer}>
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+            <PageNumber
+              key={page}
+              page={page}
+              isActive={current === page}
+              onPress={() => handlePageChange(page)}
+            />
+          ))}
+        </View>
+
+        <PaginationButton
+          onPress={() => handlePageChange(current + 1)}
+          disabled={!hasNext}
+          iconName="chevron-forward"
+        />
+      </View>
+    );
+  }, [pagination, handlePageChange]);
+
+  // Optimized service list rendering
+  const renderServices = useMemo(() => {
+    if (loading) {
+      return (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+        </View>
+      );
+    }
+
+    if (isTiffinProvider) {
+      return <TiffinCard />;
+    }
+
+    return hostelServices?.map((hostel: any) => (
+      <HostelCard hostel={hostel} key={hostel._id} />
+    ));
+  }, [loading, isTiffinProvider, hostelServices]);
 
   useEffect(() => {
     loadData(1);
   }, [userServiceType]);
 
-  const loadData = async (page: number) => {
-    setLoading(true);
-    await getAllHostelServices(page);
-    await getUserProfile(userServiceType);
-    await getTotalServicesCount();
-    await getRequestedServicesCount();
-    await getAcceptedServicesCount();
-    await getCancelledServicesCount();
-    setLoading(false);
-  };
-
-  const handlePageChange = (page: number) => {
-    if (
-      page !== currentPage &&
-      page >= 1 &&
-      page <= (pagination?.totalPages || 1)
-    ) {
-      setCurrentPage(page);
-      loadData(page);
-    }
-  };
-
-  const renderPagination = () => {
-    if (!pagination || pagination.totalCount <= 10) return null;
-
-    const { currentPage: current, totalPages, hasNext, hasPrev } = pagination;
-    const pages = [];
-
-    // Generate page numbers
-    for (let i = 1; i <= totalPages; i++) {
-      pages.push(i);
-    }
-
-    return (
-      <View style={styles.paginationContainer}>
-        {/* Previous Button */}
-        <TouchableOpacity
-          style={[
-            styles.paginationButton,
-            !hasPrev && styles.paginationButtonDisabled,
-          ]}
-          onPress={() => handlePageChange(current - 1)}
-          disabled={!hasPrev}
-        >
-          <Ionicons
-            name="chevron-back"
-            size={20}
-            color={hasPrev ? Colors.primary : Colors.grey}
-          />
-        </TouchableOpacity>
-
-        {/* Page Numbers */}
-        <View style={styles.pageNumbersContainer}>
-          {pages.map((page) => (
-            <TouchableOpacity
-              key={page}
-              style={[
-                styles.pageNumber,
-                current === page && styles.pageNumberActive,
-              ]}
-              onPress={() => handlePageChange(page)}
-            >
-              <Text
-                style={[
-                  styles.pageNumberText,
-                  current === page && styles.pageNumberTextActive,
-                ]}
-              >
-                {page}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Next Button */}
-        <TouchableOpacity
-          style={[
-            styles.paginationButton,
-            !hasNext && styles.paginationButtonDisabled,
-          ]}
-          onPress={() => handlePageChange(current + 1)}
-          disabled={!hasNext}
-        >
-          <Ionicons
-            name="chevron-forward"
-            size={20}
-            color={hasNext ? Colors.primary : Colors.grey}
-          />
-        </TouchableOpacity>
-      </View>
-    );
-  };
-
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Image
-          source={isTiffinProvider ? Images.user : { uri: user?.profileImage }}
-          style={styles.logo}
-        />
+        <Image source={profileImage} style={styles.logo} />
         <View style={styles.headerText}>
-          <Text style={styles.title}>
-            {isTiffinProvider ? "Maharashtrian Ghar Ka Khana" : user?.fullName}
-          </Text>
-          <Text style={styles.subtitle}>
-            {isTiffinProvider
-              ? "Manage your tiffin services"
-              : "Manage your hostel properties"}
-          </Text>
+          <Text style={styles.title}>{headerTitle}</Text>
+          <Text style={styles.subtitle}>{headerSubtitle}</Text>
         </View>
         <TouchableOpacity
           style={styles.onlineButton}
-          onPress={() => {
-            setIsOnline(!isOnline);
-            if (!isOnline && isTiffinProvider) {
-              router.push("/(secure)/(tabs)/(dashboard)/service");
-            }
-          }}
+          onPress={handleToggleOnline}
         >
           <Text style={styles.onlineButtonText}>
             {isOnline ? "Go Offline" : "Go Online"}
@@ -187,56 +340,18 @@ export default function ServiceOfflineScreen() {
       ) : (
         <ScrollView
           style={styles.scrollContainer}
-          contentContainerStyle={{ paddingBottom: IS_IOS ? 120 : 20 }}
+          contentContainerStyle={SCROLL_BOTTOM_PADDING}
           showsVerticalScrollIndicator={false}
         >
           {/* Stats */}
           <View style={styles.statsRow}>
-            <View style={styles.card}>
-              <Image
-                source={isTiffinProvider ? Images.order : Images.hostel}
-                style={styles.icon24}
-              />
-              <Text style={[styles.cardNumber, { color: Colors.primary }]}>
-                {totalServicesCount}
-              </Text>
-              <Text style={[styles.cardText, { color: Colors.primary }]}>
-                {isTiffinProvider ? "New Orders" : "Total Hostels"}
-              </Text>
-            </View>
-            <View style={styles.card}>
-              <Image source={Images.req} style={styles.icon24} />
-              <Text style={[styles.cardNumber, { color: Colors.orange }]}>
-                {requestedServicesCount}
-              </Text>
-              <Text style={[styles.cardText, { color: Colors.orange }]}>
-                {isTiffinProvider ? "Order Request" : "Request"}
-              </Text>
-            </View>
+            <StatsCard {...statsConfig[0]} />
+            <StatsCard {...statsConfig[1]} />
           </View>
 
-          <View style={[styles.statsRow, { marginBottom: 24 }]}>
-            <View style={styles.card}>
-              <Image
-                source={isTiffinProvider ? Images.complete : Images.bad}
-                style={styles.icon24}
-              />
-              <Text style={[styles.cardNumber, { color: Colors.green }]}>
-                {acceptedServicesCount}
-              </Text>
-              <Text style={[styles.cardText, { color: Colors.green }]}>
-                {isTiffinProvider ? "Completed Orders" : "Accepted"}
-              </Text>
-            </View>
-            <View style={styles.card}>
-              <Image source={Images.cancel} style={styles.icon24} />
-              <Text style={[styles.cardNumber, { color: Colors.red }]}>
-                {cancelledServicesCount}
-              </Text>
-              <Text style={[styles.cardText, { color: Colors.red }]}>
-                {isTiffinProvider ? "Canceled Orders" : "Canceled"}
-              </Text>
-            </View>
+          <View style={styles.statsRowLast}>
+            <StatsCard {...statsConfig[2]} />
+            <StatsCard {...statsConfig[3]} />
           </View>
 
           {/* Quick Actions */}
@@ -247,17 +362,8 @@ export default function ServiceOfflineScreen() {
             </View>
             <View style={styles.quickActions}>
               <TouchableOpacity
-                style={[
-                  styles.actionButton,
-                  { backgroundColor: Colors.primary },
-                ]}
-                onPress={() => {
-                  isTiffinProvider
-                    ? router.push("/(secure)/(service)/addNewService")
-                    : router.push(
-                        "/(secure)/(hostelService)/addNewHostelService"
-                      );
-                }}
+                style={styles.actionButtonPrimary}
+                onPress={handleAddService}
               >
                 <Ionicons
                   name="add-circle-outline"
@@ -267,13 +373,8 @@ export default function ServiceOfflineScreen() {
                 <Text style={styles.actionText}>Add Service</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[
-                  styles.actionButton,
-                  { backgroundColor: Colors.orange },
-                ]}
-                onPress={() => {
-                  router.push("/(secure)/(tabs)/earnings");
-                }}
+                style={styles.actionButtonOrange}
+                onPress={handleViewEarnings}
               >
                 <Ionicons
                   name="trending-up-outline"
@@ -295,7 +396,7 @@ export default function ServiceOfflineScreen() {
               <Text style={styles.earningsValue}>₹3250</Text>
               <Text style={styles.earningsChange}>+18%</Text>
             </View>
-            <View style={[styles.earningsRow, { marginTop: 0 }]}>
+            <View style={styles.earningsRowSecond}>
               <Text style={styles.subText}>{"This week's total"}</Text>
               <Text style={styles.subText}>vs last week</Text>
             </View>
@@ -305,11 +406,7 @@ export default function ServiceOfflineScreen() {
           <View style={styles.reviewBox}>
             <View style={styles.reviewHeader}>
               <Text style={styles.reviewTitle}>Reviews</Text>
-              <TouchableOpacity
-                onPress={() => {
-                  router.push("/review");
-                }}
-              >
+              <TouchableOpacity onPress={handleViewReviews}>
                 <Text style={styles.linkText}>See All Reviews</Text>
               </TouchableOpacity>
             </View>
@@ -322,46 +419,16 @@ export default function ServiceOfflineScreen() {
 
           {/* Services */}
           <View style={styles.serviceHeader}>
-            <Text style={styles.serviceTitle}>
-              {isTiffinProvider ? "My Tiffin/Restaurant" : "My PG/Hostel"}
-            </Text>
-            <Text style={styles.serviceCount}>
-              {pagination?.totalCount || hostelServices?.length} service
-              {(pagination?.totalCount || hostelServices?.length) !== 1
-                ? "s"
-                : ""}
-            </Text>
+            <Text style={styles.serviceTitle}>{serviceTitle}</Text>
+            <Text style={styles.serviceCount}>{serviceCountText}</Text>
           </View>
 
-          {loading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={Colors.primary} />
-            </View>
-          ) : (
-            <>
-              {isTiffinProvider ? (
-                <TiffinCard />
-              ) : (
-                <>
-                  {hostelServices?.map((hostel: any) => (
-                    <HostelCard hostel={hostel} key={hostel._id} />
-                  ))}
-                </>
-              )}
-            </>
-          )}
+          {renderServices}
 
           {/* Pagination */}
           {renderPagination()}
 
-          <CommonButton
-            title="+ Add New Service"
-            onPress={() => {
-              isTiffinProvider
-                ? router.push("/(secure)/(service)/addNewService")
-                : router.push("/(secure)/(hostelService)/addNewHostelService");
-            }}
-          />
+          <CommonButton title="+ Add New Service" onPress={handleAddService} />
         </ScrollView>
       )}
     </SafeAreaView>
@@ -421,6 +488,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     gap: 10,
   },
+  statsRowLast: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 24,
+    gap: 10,
+  },
   card: {
     flex: 1,
     marginHorizontal: 6,
@@ -460,12 +533,21 @@ const styles = StyleSheet.create({
     gap: 16,
     marginTop: 20,
   },
-  actionButton: {
+  actionButtonPrimary: {
     flex: 1,
     paddingVertical: 18,
     borderRadius: 10,
     alignItems: "center",
     gap: 12,
+    backgroundColor: Colors.primary,
+  },
+  actionButtonOrange: {
+    flex: 1,
+    paddingVertical: 18,
+    borderRadius: 10,
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: Colors.orange,
   },
   actionText: {
     color: Colors.white,
@@ -478,6 +560,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginTop: 20,
+  },
+  earningsRowSecond: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 0,
   },
   earningsValue: {
     fontSize: 30,
