@@ -16,9 +16,17 @@ export interface ContactInfo {
   whatsapp: number | string;
 }
 
+export interface PaginationData {
+  currentPage: number;
+  totalPages: number;
+  totalCount: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}
+
 export interface Pricing {
   _id?: string;
-  type: string; // "monthly", "daily", "yearly", etc.
+  type: string;
   price: number;
   securityDeposit?: number;
   offer?: string;
@@ -29,14 +37,13 @@ export interface Room {
   roomNumber: number;
   totalBeds: {
     bedNumber: number;
-    status?: string; // This is set by backend
+    status?: string;
     _id?: string;
   }[];
   roomDescription: string;
   photos?: string[];
 }
 
-// Main Hostel Service Interface
 export interface HostelService {
   _id: string;
   hostelName: string;
@@ -75,17 +82,16 @@ export interface HostelService {
   overallRating: number;
   totalReviews: number;
   offlineDetails: {
-    comeBackAt: null,
-    comeBackOption: null,
-    isOffline: false,
-    isPermanent: false,
-    offlineAt: null,
-    offlineType: null,
-    reason: null
-},
+    comeBackAt: null | string;
+    comeBackOption: null | string;
+    isOffline: boolean;
+    isPermanent: boolean;
+    offlineAt: null | string;
+    offlineType: null | string;
+    reason: null | string;
+  };
 }
 
-// API Request/Response Interfaces
 export interface CreateHostelServiceRequest {
   hostelName: string;
   hostelType: string;
@@ -117,13 +123,13 @@ export interface CreateHostelServiceRequest {
   };
   rulesAndPolicies: string;
   hostelPhotos: any[];
-  roomPhotos?: any[]; // Legacy - kept for backward compatibility
+  roomPhotos?: any[];
   roomsWithPhotos?: {
     roomNo: string;
     noOfBeds: number;
     roomDetails: string;
     roomPhotos: any[];
-  }[]; // ✅ NEW: Properly typed
+  }[];
 }
 
 export interface UpdateHostelServiceRequest extends CreateHostelServiceRequest {
@@ -191,19 +197,17 @@ export interface HostelDetails {
     reason: null | string;
   };
 }
+
 export interface HostelServicesListResponse {
   success: boolean;
   message?: string;
   data?: {
     hostelServices: HostelService[];
-    total?: number;
-    page?: number;
-    limit?: number;
+    pagination: PaginationData;
   };
   error?: string;
 }
 
-// Form Data Interfaces (for multi-step forms)
 export interface FormPage1Data {
   hostelName: string;
   description: string;
@@ -244,7 +248,6 @@ export interface FormPage2Data {
 
 export interface CompleteFormData extends FormPage1Data, FormPage2Data {}
 
-// Legacy Hostel Interface (for backward compatibility)
 export interface LegacyHostel {
   _id: string;
   userId: User;
@@ -264,7 +267,6 @@ export interface LegacyHostel {
   __v: number;
 }
 
-// API Service Response Types
 export interface ApiResponse<T = any> {
   success: boolean;
   data?: T;
@@ -272,7 +274,6 @@ export interface ApiResponse<T = any> {
   message?: string;
 }
 
-// Delete Room Photos Request
 export interface DeleteRoomPhotosRequest {
   photoUrls: string[];
 }
@@ -287,57 +288,60 @@ export interface DeleteRoomPhotosResponse {
   };
   error?: string;
 }
-  export interface CreateHostelServiceData {
-    hostelName: string;
-    hostelType: string;
-    description: string;
-    pricing: {
-      type: string;
-      price: number;
-    };
-    securityDeposit: number;
-    offers?: string;
-    rooms: Room[];
-    facilities: string[];
-    location: {
-      area: string;
-      nearbyLandmarks: string;
-      fullAddress: string;
-    };
-    contactInfo: {
-      phone: number;
-      whatsapp: number;
-    };
-    rulesAndPolicies: string;
-    hostelPhotos?: any[];
-    roomPhotos?: any[];
-  }
-  export interface BedDetails {
-    bedNumber: number;
-    status: "Occupied" | "Unoccupied";
-    _id: string;
-    availability: string;
-  }
-  
-  export interface RoomDetails {
-    _id: string;
-    roomNumber: number;
-    totalBeds: BedDetails[];
-    totalBedsCount: number;
-    roomDescription: string;
-    photos: string[];
-  }
-  
-  export interface RoomApiResponse {
-    success: boolean;
-    message: string;
-    room: RoomDetails;
-  }
-  export interface RoomData {
-    _id: string;
-    roomNumber: number;
-    totalBeds: BedDetails[];
-    totalBedsCount: number;
-    roomDescription: string;
-    photos: string[];
-  }
+
+export interface CreateHostelServiceData {
+  hostelName: string;
+  hostelType: string;
+  description: string;
+  pricing: {
+    type: string;
+    price: number;
+  };
+  securityDeposit: number;
+  offers?: string;
+  rooms: Room[];
+  facilities: string[];
+  location: {
+    area: string;
+    nearbyLandmarks: string;
+    fullAddress: string;
+  };
+  contactInfo: {
+    phone: number;
+    whatsapp: number;
+  };
+  rulesAndPolicies: string;
+  hostelPhotos?: any[];
+  roomPhotos?: any[];
+}
+
+export interface BedDetails {
+  bedNumber: number;
+  status: "Occupied" | "Unoccupied";
+  _id: string;
+  availability: string;
+}
+
+export interface RoomDetails {
+  _id: string;
+  roomNumber: number;
+  totalBeds: BedDetails[];
+  totalBedsCount: number;
+  roomDescription: string;
+  photos: string[];
+}
+
+export interface RoomApiResponse {
+  success: boolean;
+  message: string;
+  room: RoomDetails;
+}
+
+export interface RoomData {
+  _id: string;
+  roomNumber: number;
+  totalBeds: BedDetails[];
+  totalBedsCount: number;
+  roomDescription: string;
+  photos: string[];
+}

@@ -5,6 +5,7 @@ import {
   FormPage1Data,
   FormPage2Data,
   HostelService,
+  PaginationData,
   UpdateHostelServiceRequest,
 } from "@/types/hostel";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -25,6 +26,7 @@ interface ServiceState {
   requestedServicesCount: number;
   acceptedServicesCount: number;
   cancelledServicesCount: number;
+  pagination: PaginationData | null;
 
   // Form data for multi-step form
   formPage1Data: FormPage1Data | null;
@@ -32,7 +34,7 @@ interface ServiceState {
 
   // Actions
   createHostelService: (data: CreateHostelServiceRequest) => Promise<ApiResponse<HostelService>>;
-  getAllHostelServices: () => Promise<ApiResponse<any>>;
+  getAllHostelServices: (page?: number, limit?: number) => Promise<ApiResponse<any>>;
   updateHostelService: (hostelServiceId: string, data: UpdateHostelServiceRequest) => Promise<ApiResponse<HostelService>>;
   deleteHostelService: (hostelServiceId: string) => Promise<ApiResponse<any>>;
   deleteRoomPhotos: (hostelServiceId: string, roomId: string, photoUrls: string[]) => Promise<ApiResponse<any>>;
@@ -66,6 +68,7 @@ const useServiceStore = create<ServiceState>()(
       error: null,
       formPage1Data: null,
       formPage2Data: null,
+      pagination: null,
 
       // Get Total Services Count
       getTotalServicesCount: async () => {
@@ -80,7 +83,6 @@ const useServiceStore = create<ServiceState>()(
           } else {
             response = await tiffinApiService.getTotalTiffinServicesCount();
           }
-          // console.log("getTotalServicesCount API Response:", response.data.data.totalHostelServices);
 
           if (response.status === 200) {
             const count = response.data.data.totalHostelServices || 0;
@@ -107,7 +109,7 @@ const useServiceStore = create<ServiceState>()(
       },
 
       // Get Requested Services Count
-      getRequestedServicesCount:  async () => {
+      getRequestedServicesCount: async () => {
         set({ isLoading: true, error: null });
 
         try {
@@ -117,9 +119,8 @@ const useServiceStore = create<ServiceState>()(
           if (userServiceType === "hostel_owner") {
             response = await hostelServiceApiService.getRequestedHostelServicesCount();
           } else {
-            response = await tiffinApiService.getRequestedTiffinServicesCount();    
+            response = await tiffinApiService.getRequestedTiffinServicesCount();
           }
-          // console.log("getRequestedServicesCount API Response:", response.data.data.requestedHostelServices);
 
           if (response.status === 200) {
             const count = response.data.data.requestedHostelServices || 0;
@@ -132,21 +133,21 @@ const useServiceStore = create<ServiceState>()(
           } else {
             set({
               isLoading: false,
-              error: response.data.message || "Failed to fetch total services count",
+              error: response.data.message || "Failed to fetch requested services count",
             });
             return { success: false, error: response.data.message };
           }
         } catch (error: any) {
           set({
             isLoading: false,
-            error: error.message || "Failed to fetch total services count",
+            error: error.message || "Failed to fetch requested services count",
           });
           return { success: false, error: error.message };
         }
       },
 
       // Get Accepted Services Count
-      getAcceptedServicesCount:async () => {
+      getAcceptedServicesCount: async () => {
         set({ isLoading: true, error: null });
 
         try {
@@ -158,7 +159,6 @@ const useServiceStore = create<ServiceState>()(
           } else {
             response = await tiffinApiService.getAcceptedTiffinServicesCount();
           }
-          // console.log("getAcceptedServicesCount API Response:", response.data.data.acceptedHostelServices);
 
           if (response.status === 200) {
             const count = response.data.data.acceptedHostelServices || 0;
@@ -183,8 +183,9 @@ const useServiceStore = create<ServiceState>()(
           return { success: false, error: error.message };
         }
       },
+
       // Get Cancelled Services Count
-      getCancelledServicesCount:async () => {
+      getCancelledServicesCount: async () => {
         set({ isLoading: true, error: null });
 
         try {
@@ -196,7 +197,6 @@ const useServiceStore = create<ServiceState>()(
           } else {
             response = await tiffinApiService.getCancelledTiffinServicesCount();
           }
-          // console.log("getCancelledServicesCount API Response:", response.data.data.cancelledHostelServices);
 
           if (response.status === 200) {
             const count = response.data.data.cancelledHostelServices || 0;
@@ -221,6 +221,7 @@ const useServiceStore = create<ServiceState>()(
           return { success: false, error: error.message };
         }
       },
+
       // API Actions
       createHostelService: async (data: CreateHostelServiceRequest) => {
         set({ isLoading: true, error: null });
@@ -229,11 +230,12 @@ const useServiceStore = create<ServiceState>()(
           const response = await hostelServiceApiService.createHostelService(data);
 
           if (response.success) {
-            // Refresh the hostel services list
-            const allServices = await hostelServiceApiService.getAllHostelServices();
+            // Refresh the hostel services list (first page)
+            const allServices = await hostelServiceApiService.getAllHostelServices(1, 10);
             if (allServices.success) {
               set({
                 hostelServices: allServices.data?.data?.hostelServices || [],
+                pagination: allServices.data?.data?.pagination || null,
                 isLoading: false,
                 error: null,
               });
@@ -258,15 +260,16 @@ const useServiceStore = create<ServiceState>()(
         }
       },
 
-      getAllHostelServices: async () => {
+      getAllHostelServices: async (page = 1, limit = 10) => {
         set({ isLoading: true, error: null });
 
         try {
-          const response = await hostelServiceApiService.getAllHostelServices();
+          const response = await hostelServiceApiService.getAllHostelServices(page, limit);
 
           if (response.success) {
             set({
               hostelServices: response.data?.data?.hostelServices || [],
+              pagination: response.data?.data?.pagination || null,
               isLoading: false,
               error: null,
             });
@@ -286,8 +289,6 @@ const useServiceStore = create<ServiceState>()(
           return { success: false, error: error.message };
         }
       },
-
-    
 
       updateHostelService: async (hostelServiceId: string, data: UpdateHostelServiceRequest) => {
         set({ isLoading: true, error: null });
@@ -339,8 +340,8 @@ const useServiceStore = create<ServiceState>()(
 
             set({
               hostelServices: updatedServices,
-              selectedHostelService: get().selectedHostelService?._id === hostelServiceId 
-                ? null 
+              selectedHostelService: get().selectedHostelService?._id === hostelServiceId
+                ? null
                 : get().selectedHostelService,
               isLoading: false,
               error: null,
@@ -373,10 +374,10 @@ const useServiceStore = create<ServiceState>()(
             // Update the room photos in the selected hostel service
             if (get().selectedHostelService?._id === hostelServiceId) {
               const updatedService = { ...get().selectedHostelService! };
-              updatedService.rooms = updatedService.rooms.map(room => 
+              updatedService.rooms = updatedService.rooms.map(room =>
                 room._id === roomId ? response.data?.data?.room || room : room
               );
-              
+
               set({
                 selectedHostelService: updatedService,
                 isLoading: false,
@@ -426,8 +427,8 @@ const useServiceStore = create<ServiceState>()(
 
       // Utility actions
       clearError: () => set({ error: null }),
-      
-      setSelectedHostelService: (hostelService: HostelService | null) => 
+
+      setSelectedHostelService: (hostelService: HostelService | null) =>
         set({ selectedHostelService: hostelService }),
     }),
     {

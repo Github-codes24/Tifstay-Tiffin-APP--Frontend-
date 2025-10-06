@@ -1,5 +1,5 @@
 import useAuthStore from "@/store/authStore";
-import { CreateHostelServiceRequest, UpdateHostelServiceRequest } from "@/types/hostel";
+import { ApiResponse, CreateHostelServiceRequest, HostelServicesListResponse, UpdateHostelServiceRequest } from "@/types/hostel";
 import axios, { AxiosInstance } from "axios";
 
 class ApiService {
@@ -212,10 +212,6 @@ async deleteAddress(addressId: string) {
     try {
       const formData = new FormData();
   
-      // ✅ Log what we're sending
-      console.log("=== CREATE HOSTEL SERVICE ===");
-      console.log("Rooms to create:", data.rooms.length);
-      console.log("RoomsWithPhotos:", data.roomsWithPhotos?.length || 0);
   
       // Basic fields - as TEXT not JSON
       formData.append("hostelName", data.hostelName);
@@ -302,14 +298,19 @@ async deleteAddress(addressId: string) {
     }
   }
 
-  async getAllHostelServices() {
+  async getAllHostelServices(
+    page: number = 1,
+    limit: number = 10
+  ): Promise<ApiResponse<HostelServicesListResponse>> {
     try {
-      const response = await this.api.get("https://tifstay-project-be.onrender.com/api/hostelService/getHostelServicesByOwner", {
-        headers: {
-          
-          "Content-Type": "application/json",
-        },
-      });
+      const response = await this.api.get(
+        `/api/hostelService/getHostelServicesByOwner?page=${page}&limit=${limit}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
       return {
         success: true,

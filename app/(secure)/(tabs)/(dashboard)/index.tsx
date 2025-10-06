@@ -1,4 +1,4 @@
-/* eslint-disable no-unused-expressions */
+/* eslint-disable react-hooks/exhaustive-deps */
 import CommonButton from "@/components/CommonButton";
 import TiffinCard from "@/components/CommonServiceCard";
 import HostelCard from "@/components/HostelCard";
@@ -12,6 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Image,
   ScrollView,
   StyleSheet,
@@ -34,18 +35,110 @@ export default function ServiceOfflineScreen() {
     acceptedServicesCount,
     getCancelledServicesCount,
     cancelledServicesCount,
+    pagination,
   } = useServiceStore();
+
   const [isOnline, setIsOnline] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [loading, setLoading] = useState(false);
   const isTiffinProvider = userServiceType === "tiffin_provider";
 
   useEffect(() => {
-    getAllHostelServices();
-    getUserProfile(userServiceType);
-    getTotalServicesCount();
-    getRequestedServicesCount();
-    getAcceptedServicesCount();
-    getCancelledServicesCount();
+    loadData(1);
   }, [userServiceType]);
+
+  const loadData = async (page: number) => {
+    setLoading(true);
+    await getAllHostelServices(page);
+    await getUserProfile(userServiceType);
+    await getTotalServicesCount();
+    await getRequestedServicesCount();
+    await getAcceptedServicesCount();
+    await getCancelledServicesCount();
+    setLoading(false);
+  };
+
+  const handlePageChange = (page: number) => {
+    if (
+      page !== currentPage &&
+      page >= 1 &&
+      page <= (pagination?.totalPages || 1)
+    ) {
+      setCurrentPage(page);
+      loadData(page);
+    }
+  };
+
+  const renderPagination = () => {
+    if (!pagination || pagination.totalCount <= 10) return null;
+
+    const { currentPage: current, totalPages, hasNext, hasPrev } = pagination;
+    const pages = [];
+
+    // Generate page numbers
+    for (let i = 1; i <= totalPages; i++) {
+      pages.push(i);
+    }
+
+    return (
+      <View style={styles.paginationContainer}>
+        {/* Previous Button */}
+        <TouchableOpacity
+          style={[
+            styles.paginationButton,
+            !hasPrev && styles.paginationButtonDisabled,
+          ]}
+          onPress={() => handlePageChange(current - 1)}
+          disabled={!hasPrev}
+        >
+          <Ionicons
+            name="chevron-back"
+            size={20}
+            color={hasPrev ? Colors.primary : Colors.grey}
+          />
+        </TouchableOpacity>
+
+        {/* Page Numbers */}
+        <View style={styles.pageNumbersContainer}>
+          {pages.map((page) => (
+            <TouchableOpacity
+              key={page}
+              style={[
+                styles.pageNumber,
+                current === page && styles.pageNumberActive,
+              ]}
+              onPress={() => handlePageChange(page)}
+            >
+              <Text
+                style={[
+                  styles.pageNumberText,
+                  current === page && styles.pageNumberTextActive,
+                ]}
+              >
+                {page}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Next Button */}
+        <TouchableOpacity
+          style={[
+            styles.paginationButton,
+            !hasNext && styles.paginationButtonDisabled,
+          ]}
+          onPress={() => handlePageChange(current + 1)}
+          disabled={!hasNext}
+        >
+          <Ionicons
+            name="chevron-forward"
+            size={20}
+            color={hasNext ? Colors.primary : Colors.grey}
+          />
+        </TouchableOpacity>
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -68,8 +161,7 @@ export default function ServiceOfflineScreen() {
         <TouchableOpacity
           style={styles.onlineButton}
           onPress={() => {
-            setIsOnline(!isOnline); // toggle online/offline
-            // if you want navigation only when going online
+            setIsOnline(!isOnline);
             if (!isOnline && isTiffinProvider) {
               router.push("/(secure)/(tabs)/(dashboard)/service");
             }
@@ -231,22 +323,37 @@ export default function ServiceOfflineScreen() {
           {/* Services */}
           <View style={styles.serviceHeader}>
             <Text style={styles.serviceTitle}>
-              {" "}
               {isTiffinProvider ? "My Tiffin/Restaurant" : "My PG/Hostel"}
             </Text>
             <Text style={styles.serviceCount}>
-              {hostelServices?.length} service
+              {pagination?.totalCount || hostelServices?.length} service
+              {(pagination?.totalCount || hostelServices?.length) !== 1
+                ? "s"
+                : ""}
             </Text>
           </View>
-          {isTiffinProvider ? (
-            <TiffinCard />
+
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={Colors.primary} />
+            </View>
           ) : (
             <>
-              {hostelServices?.map((hostel: any) => (
-                <HostelCard hostel={hostel} key={hostel._id} />
-              ))}
+              {isTiffinProvider ? (
+                <TiffinCard />
+              ) : (
+                <>
+                  {hostelServices?.map((hostel: any) => (
+                    <HostelCard hostel={hostel} key={hostel._id} />
+                  ))}
+                </>
+              )}
             </>
           )}
+
+          {/* Pagination */}
+          {renderPagination()}
+
           <CommonButton
             title="+ Add New Service"
             onPress={() => {
@@ -424,6 +531,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     marginTop: 20,
+    marginBottom: 16,
   },
   serviceTitle: {
     fontFamily: fonts.interSemibold,
@@ -440,6 +548,62 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.white,
     padding: 12,
+  },
+
+  loadingContainer: {
+    paddingVertical: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  // Pagination Styles
+  paginationContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 24,
+    gap: 8,
+  },
+  paginationButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.white,
+  },
+  paginationButtonDisabled: {
+    borderColor: Colors.lightGrey,
+    backgroundColor: "#F5F5F5",
+  },
+  pageNumbersContainer: {
+    flexDirection: "row",
+    gap: 8,
+    marginHorizontal: 12,
+  },
+  pageNumber: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.lightGrey,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.white,
+  },
+  pageNumberActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  pageNumberText: {
+    fontSize: 14,
+    fontFamily: fonts.interMedium,
+    color: Colors.title,
+  },
+  pageNumberTextActive: {
+    color: Colors.white,
   },
 
   icon16: { height: 16, width: 16 },
