@@ -96,6 +96,9 @@ export default function ServiceOfflineScreen() {
     acceptedServicesCount,
     getCancelledServicesCount,
     cancelledServicesCount,
+    getReviewsSummary,
+    overallRating,
+    totalReviews,
     pagination,
   } = useServiceStore();
 
@@ -143,6 +146,16 @@ export default function ServiceOfflineScreen() {
     [totalServices]
   );
 
+  // Format rating for display
+  const displayRating = useMemo(() => {
+    return overallRating > 0 ? overallRating.toFixed(1) : "0.0";
+  }, [overallRating]);
+
+  // Format review count
+  const displayReviewCount = useMemo(() => {
+    return `(${totalReviews})`;
+  }, [totalReviews]);
+
   // Optimized data loading with Promise.all
   const loadData = useCallback(
     async (page: number) => {
@@ -155,6 +168,7 @@ export default function ServiceOfflineScreen() {
           getRequestedServicesCount(),
           getAcceptedServicesCount(),
           getCancelledServicesCount(),
+          getReviewsSummary(),
         ]);
       } catch (error) {
         console.error("Error loading data:", error);
@@ -170,6 +184,7 @@ export default function ServiceOfflineScreen() {
       getRequestedServicesCount,
       getAcceptedServicesCount,
       getCancelledServicesCount,
+      getReviewsSummary,
     ]
   );
 
@@ -412,8 +427,8 @@ export default function ServiceOfflineScreen() {
             </View>
             <View style={styles.reviewRow}>
               <Image source={Images.star} style={styles.icon20} />
-              <Text style={styles.reviewScore}>4.9</Text>
-              <Text style={styles.subText}>(25 reviews)</Text>
+              <Text style={styles.reviewScore}>{displayRating}</Text>
+              <Text style={styles.subText}>{displayReviewCount}</Text>
             </View>
           </View>
 

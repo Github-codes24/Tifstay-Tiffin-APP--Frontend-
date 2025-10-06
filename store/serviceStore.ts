@@ -27,6 +27,8 @@ interface ServiceState {
   acceptedServicesCount: number;
   cancelledServicesCount: number;
   pagination: PaginationData | null;
+  overallRating: number;
+  totalReviews: number;
 
   // Form data for multi-step form
   formPage1Data: FormPage1Data | null;
@@ -42,6 +44,7 @@ interface ServiceState {
   getRequestedServicesCount: () => Promise<ApiResponse<any>>;
   getAcceptedServicesCount: () => Promise<ApiResponse<any>>;
   getCancelledServicesCount: () => Promise<ApiResponse<any>>;
+  getReviewsSummary: () => Promise<ApiResponse<any>>;
 
   // Form management
   setFormPage1Data: (data: FormPage1Data) => void;
@@ -68,6 +71,8 @@ const useServiceStore = create<ServiceState>()(
       error: null,
       formPage1Data: null,
       formPage2Data: null,
+      overallRating: 0,
+      totalReviews: 0,
       pagination: null,
 
       // Get Total Services Count
@@ -423,6 +428,37 @@ const useServiceStore = create<ServiceState>()(
 
       clearFormData: () => {
         set({ formPage1Data: null, formPage2Data: null });
+      },
+
+      //Rating
+      getReviewsSummary: async () => {
+        set({ isLoading: true, error: null });
+
+        try {
+          const response = await hostelServiceApiService.getReviewsSummary();
+
+          if (response.success && response.data) {
+            set({
+              overallRating: response.data.data.overallRating || 0,
+              totalReviews: response.data.data.totalReviews || 0,
+              isLoading: false,
+              error: null,
+            });
+            return { success: true, data: response.data };
+          } else {
+            set({
+              isLoading: false,
+              error: response.error || "Failed to fetch reviews summary",
+            });
+            return { success: false, error: response.error };
+          }
+        } catch (error: any) {
+          set({
+            isLoading: false,
+            error: error.message || "Failed to fetch reviews summary",
+          });
+          return { success: false, error: error.message };
+        }
       },
 
       // Utility actions

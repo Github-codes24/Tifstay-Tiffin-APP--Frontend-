@@ -1,99 +1,284 @@
-import React, { useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  Image,
-  ScrollView,
-} from "react-native";
+import { Colors } from "@/constants/Colors";
+import { Images } from "@/constants/Images";
 import { IS_IOS } from "@/constants/Platform";
 import { fonts } from "@/constants/typography";
-import { Images } from "@/constants/Images";
-import { Colors } from "@/constants/Colors";
+import apiService from "@/services/hostelApiService";
+import { RatingDistribution, ReviewData } from "@/types/hostel";
+import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams } from "expo-router";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  DimensionValue,
+  FlatList,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
-const reviews = [
-  {
-    id: "1",
-    name: "Autumn Phillips",
-    date: "Monday, June 16, 2025",
-    rating: 5,
-    text: "I’ve been using this tiffin service for over a month now, and the food quality is consistently great. Fresh ingredients, clean packaging, and always on time. It honestly feels like a meal from home!",
-  },
-  {
-    id: "2",
-    name: "Rhonda Rhodes",
-    date: "Wednesday, March 12, 2025",
-    rating: 4,
-    text: "What I love the most is the cleanliness and hygiene. Plus, I can track my orders and choose between lunch or dinner slots easily. Highly recommended.",
-  },
-  {
-    id: "3",
-    name: "Patricia Sanders",
-    date: "Friday, April 11, 2025",
-    rating: 3,
-    text: "I stay in a hostel and don’t have time to cook – this service has been a lifesaver. The lunch is always warm and delivered on time. Customer support is also responsive.",
-  },
+const ITEMS_PER_PAGE = 10;
+
+type FilterType = "All" | "Positive" | "Negative" | "5" | "4" | "3" | "2" | "1";
+
+const filters: FilterType[] = [
+  "All",
+  "Positive",
+  "Negative",
+  "5",
+  "4",
+  "3",
+  "2",
+  "1",
 ];
 
-const filters = ["All", "Positive", "Negative", "5", "4", "3", "2", "1"];
-
 const ReviewsScreen = () => {
-  const [active, setActive] = useState("All");
+  const params = useLocalSearchParams();
+  const hostelId = params.hostelId as string | undefined;
 
-  const renderStars = (count: number) => (
-    <View style={styles.starRow}>
-      {[1, 2, 3, 4, 5].map((i) => (
-        <Image
-          key={i}
-          source={Images.star}
-          style={[
-            styles.star,
-            { tintColor: i <= count ? "#FCA613" : "#C1C7D0" },
-          ]}
-        />
-      ))}
-    </View>
-  );
-
-  // 🔹 Filtering logic
-  const filteredReviews = reviews.filter((r) => {
-    if (active === "All") return true;
-    if (active === "Positive") return r.rating >= 4;
-    if (active === "Negative") return r.rating <= 2;
-    if (["5", "4", "3", "2", "1"].includes(active))
-      return r.rating === Number(active);
-    return true;
+  const [active, setActive] = useState<FilterType>("All");
+  const [reviews, setReviews] = useState<ReviewData[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [overallRating, setOverallRating] = useState(0);
+  const [totalReviews, setTotalReviews] = useState(0);
+  const [ratingDistribution, setRatingDistribution] =
+    useState<RatingDistribution>({
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0,
+    });
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 0,
+    hasNextPage: false,
+    hasPrevPage: false,
   });
 
-  const renderReview = ({ index, item }: any) => (
-    <View
-      style={[
-        styles.reviewCard,
-        index !== filteredReviews.length - 1 && styles.reviewBorder,
-      ]}
-    >
-      <View style={styles.rowBetween}>
-        <View style={styles.row}>
-          <Image source={Images.user} style={styles.avatar} />
-          <View style={styles.nameRow}>
-            <Text style={styles.name}>{item.name}</Text>
-            <View style={styles.starWrapper}>{renderStars(item.rating)}</View>
-          </View>
-        </View>
-        <Text style={styles.date}>{item.date}</Text>
-      </View>
-      <Text style={styles.reviewText}>{item.text}</Text>
-    </View>
+  // Calculate bar widths based on distribution - FIXED TYPE
+  const getBarWidth = useCallback(
+    (star: number): DimensionValue => {
+      const count =
+        ratingDistribution[star.toString() as keyof typeof ratingDistribution];
+      if (totalReviews === 0) return "0%";
+      const percentage = (count / totalReviews) * 100;
+      return `${percentage}%`;
+    },
+    [ratingDistribution, totalReviews]
   );
+
+  // Fetch reviews based on filter and hostelId
+  const fetchReviews = useCallback(
+    async (page: number, filter: FilterType) => {
+      setLoading(true);
+      try {
+        const ratingParam =
+          filter === "Positive"
+            ? undefined
+            : filter === "Negative"
+            ? undefined
+            : ["5", "4", "3", "2", "1"].includes(filter)
+            ? Number(filter)
+            : undefined;
+
+        let response;
+        if (hostelId) {
+          response = await apiService.getReviewsByHostelId(
+            hostelId,
+            page,
+            ITEMS_PER_PAGE,
+            ratingParam
+          );
+        } else {
+          response = await apiService.getAllReviews(
+            page,
+            ITEMS_PER_PAGE,
+            ratingParam
+          );
+        }
+
+        if (response.success && response.data) {
+          // Filter on client side for Positive/Negative
+          let filteredReviews = response.data.data.reviews;
+          if (filter === "Positive") {
+            filteredReviews = filteredReviews.filter((r: any) => r.rating >= 4);
+          } else if (filter === "Negative") {
+            filteredReviews = filteredReviews.filter((r: any) => r.rating <= 2);
+          }
+
+          setReviews(filteredReviews);
+          setOverallRating(response.data.data.overallRating);
+          setTotalReviews(response.data.data.totalReviews);
+          setRatingDistribution(response.data.data.ratingDistribution);
+          setPagination({
+            currentPage: response.data.data.pagination.currentPage,
+            totalPages: response.data.data.pagination.totalPages,
+            hasNextPage: response.data.data.pagination.hasNextPage,
+            hasPrevPage: response.data.data.pagination.hasPrevPage,
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching reviews:", error);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [hostelId]
+  );
+
+  useEffect(() => {
+    fetchReviews(1, active);
+    setCurrentPage(1);
+  }, [active, hostelId]);
+
+  const handlePageChange = useCallback(
+    (page: number) => {
+      if (page !== currentPage && page >= 1 && page <= pagination.totalPages) {
+        setCurrentPage(page);
+        fetchReviews(page, active);
+      }
+    },
+    [currentPage, pagination.totalPages, active, fetchReviews]
+  );
+
+  const handleFilterChange = useCallback((filter: FilterType) => {
+    setActive(filter);
+  }, []);
+
+  const renderStars = useCallback((count: number) => {
+    return (
+      <View style={styles.starRow}>
+        {[1, 2, 3, 4, 5].map((i) => (
+          <Image
+            key={i}
+            source={Images.star}
+            style={[
+              styles.star,
+              { tintColor: i <= count ? "#FCA613" : "#C1C7D0" },
+            ]}
+          />
+        ))}
+      </View>
+    );
+  }, []);
+
+  const formatDate = useCallback((dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  }, []);
+
+  const renderReview = useCallback(
+    ({ item, index }: { item: ReviewData; index: number }) => (
+      <View
+        style={[
+          styles.reviewCard,
+          index !== reviews.length - 1 && styles.reviewBorder,
+        ]}
+      >
+        <View style={styles.rowBetween}>
+          <View style={styles.row}>
+            <Image
+              source={
+                item.userId?.profileImage
+                  ? { uri: item.userId.profileImage }
+                  : Images.user
+              }
+              style={styles.avatar}
+            />
+            <View style={styles.nameRow}>
+              <Text style={styles.name}>
+                {item.userId?.fullName || "Anonymous"}
+              </Text>
+              <View style={styles.starWrapper}>{renderStars(item.rating)}</View>
+            </View>
+          </View>
+          <Text style={styles.date}>{formatDate(item.createdAt)}</Text>
+        </View>
+        <Text style={styles.reviewText}>{item.comment}</Text>
+      </View>
+    ),
+    [reviews.length, renderStars, formatDate]
+  );
+
+  const renderPagination = useMemo(() => {
+    if (pagination.totalPages <= 1) return null;
+
+    return (
+      <View style={styles.paginationContainer}>
+        <TouchableOpacity
+          style={[
+            styles.paginationButton,
+            !pagination.hasPrevPage && styles.paginationButtonDisabled,
+          ]}
+          onPress={() => handlePageChange(currentPage - 1)}
+          disabled={!pagination.hasPrevPage}
+        >
+          <Ionicons
+            name="chevron-back"
+            size={20}
+            color={pagination.hasPrevPage ? Colors.primary : Colors.grey}
+          />
+        </TouchableOpacity>
+
+        <View style={styles.pageNumbersContainer}>
+          {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map(
+            (page) => (
+              <TouchableOpacity
+                key={page}
+                style={[
+                  styles.pageNumber,
+                  currentPage === page && styles.pageNumberActive,
+                ]}
+                onPress={() => handlePageChange(page)}
+              >
+                <Text
+                  style={[
+                    styles.pageNumberText,
+                    currentPage === page && styles.pageNumberTextActive,
+                  ]}
+                >
+                  {page}
+                </Text>
+              </TouchableOpacity>
+            )
+          )}
+        </View>
+
+        <TouchableOpacity
+          style={[
+            styles.paginationButton,
+            !pagination.hasNextPage && styles.paginationButtonDisabled,
+          ]}
+          onPress={() => handlePageChange(currentPage + 1)}
+          disabled={!pagination.hasNextPage}
+        >
+          <Ionicons
+            name="chevron-forward"
+            size={20}
+            color={pagination.hasNextPage ? Colors.primary : Colors.grey}
+          />
+        </TouchableOpacity>
+      </View>
+    );
+  }, [pagination, currentPage, handlePageChange]);
 
   return (
     <View style={styles.container}>
       {/* Rating Overview */}
       <View style={styles.ratingSection}>
         <View style={styles.leftRating}>
-          <Text style={styles.avgRating}>4.9</Text>
+          <Text style={styles.avgRating}>
+            {overallRating > 0 ? overallRating.toFixed(1) : "0.0"}
+          </Text>
           <View style={styles.starRow}>
             {[1, 2, 3, 4, 5].map((i) => (
               <Image
@@ -101,12 +286,15 @@ const ReviewsScreen = () => {
                 source={Images.star}
                 style={[
                   styles.star,
-                  { tintColor: i <= 4 ? "#FCA613" : "#F5F5F5" },
+                  {
+                    tintColor:
+                      i <= Math.round(overallRating) ? "#FCA613" : "#F5F5F5",
+                  },
                 ]}
               />
             ))}
           </View>
-          <Text style={styles.totalReviews}>(105)</Text>
+          <Text style={styles.totalReviews}>({totalReviews})</Text>
         </View>
 
         <View style={styles.rightBars}>
@@ -114,21 +302,7 @@ const ReviewsScreen = () => {
             <View key={star} style={styles.barRow}>
               <Text style={styles.starText}>{star}</Text>
               <View style={styles.barBackground}>
-                <View
-                  style={[
-                    styles.barFill,
-                    {
-                      width:
-                        star === 5
-                          ? "90%"
-                          : star === 4
-                          ? "20%"
-                          : star === 3
-                          ? "5%"
-                          : "2%",
-                    },
-                  ]}
-                />
+                <View style={[styles.barFill, { width: getBarWidth(star) }]} />
               </View>
             </View>
           ))}
@@ -136,7 +310,6 @@ const ReviewsScreen = () => {
       </View>
 
       {/* Filters */}
-      <View>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -148,7 +321,7 @@ const ReviewsScreen = () => {
             <TouchableOpacity
               key={index}
               style={[styles.filterBtn, active === filter && styles.activeBtn]}
-              onPress={() => setActive(filter)}
+              onPress={() => handleFilterChange(filter)}
             >
               {isStarFilter ? (
                 <View style={styles.starFilterRow}>
@@ -185,28 +358,31 @@ const ReviewsScreen = () => {
           );
         })}
       </ScrollView>
-      </View>
+
       {/* Reviews */}
-      <FlatList
-        data={filteredReviews}
-        keyExtractor={(item) => item.id}
-        renderItem={renderReview}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{
-          paddingBottom: IS_IOS ? 110 : 0,
-          paddingTop: filteredReviews.length > 0 ? 16 : 0, 
-          flexGrow: 1,
-        }}
-        ListEmptyComponent={
-          <View style={{ alignItems: "center", marginTop: 40 }}>
-            <Text
-              style={{ color: Colors.grey, fontFamily: fonts.interRegular }}
-            >
-              No reviews found
-            </Text>
-          </View>
-        }
-      />
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+        </View>
+      ) : (
+        <FlatList
+          data={reviews}
+          keyExtractor={(item) => item._id}
+          renderItem={renderReview}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{
+            paddingBottom: IS_IOS ? 110 : 20,
+            paddingTop: reviews.length > 0 ? 16 : 0,
+            flexGrow: 1,
+          }}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No reviews found</Text>
+            </View>
+          }
+          ListFooterComponent={renderPagination}
+        />
+      )}
     </View>
   );
 };
@@ -229,7 +405,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.interRegular,
     marginTop: 4,
   },
-  rightBars: {},
+  rightBars: { flex: 1 },
   barRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -243,11 +419,11 @@ const styles = StyleSheet.create({
     fontFamily: fonts.interRegular,
   },
   barBackground: {
+    flex: 1,
     height: 6,
     backgroundColor: "#E1E6EB",
     borderRadius: 4,
     overflow: "hidden",
-    width: 172,
   },
   barFill: {
     height: 6,
@@ -272,7 +448,7 @@ const styles = StyleSheet.create({
     color: Colors.title,
     fontSize: 16,
     fontFamily: fonts.interRegular,
-    lineHeight:20
+    lineHeight: 20,
   },
   activeText: {
     color: Colors.white,
@@ -293,13 +469,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   avatar: { width: 36, height: 36, borderRadius: 18, marginRight: 8 },
-  nameRow: { alignItems: "center" },
+  nameRow: { alignItems: "flex-start" },
   name: { fontFamily: fonts.interSemibold, color: Colors.title, fontSize: 14 },
   date: { fontSize: 12, color: Colors.grey, fontFamily: fonts.interMedium },
   reviewText: {
     fontSize: 13,
     color: Colors.grey,
-    letterSpacing: 1,
+    letterSpacing: 0.5,
     fontFamily: fonts.interRegular,
     marginTop: 8,
     lineHeight: 20,
@@ -309,6 +485,73 @@ const styles = StyleSheet.create({
   starRow: { flexDirection: "row" },
   starWrapper: { marginVertical: 4 },
   star: { width: 21, height: 21, marginRight: 2 },
+
+  /** Loading & Empty States **/
+  loadingContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 40,
+  },
+  emptyContainer: {
+    alignItems: "center",
+    marginTop: 40,
+  },
+  emptyText: {
+    color: Colors.grey,
+    fontFamily: fonts.interRegular,
+    fontSize: 14,
+  },
+
+  /** Pagination **/
+  paginationContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 24,
+    gap: 8,
+  },
+  paginationButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.white,
+  },
+  paginationButtonDisabled: {
+    borderColor: Colors.lightGrey,
+    backgroundColor: "#F5F5F5",
+  },
+  pageNumbersContainer: {
+    flexDirection: "row",
+    gap: 8,
+    marginHorizontal: 12,
+  },
+  pageNumber: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.lightGrey,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.white,
+  },
+  pageNumberActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  pageNumberText: {
+    fontSize: 14,
+    fontFamily: fonts.interMedium,
+    color: Colors.title,
+  },
+  pageNumberTextActive: {
+    color: Colors.white,
+  },
 });
 
 export default ReviewsScreen;

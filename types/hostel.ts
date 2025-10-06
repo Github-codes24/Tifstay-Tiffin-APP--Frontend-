@@ -345,3 +345,47 @@ export interface RoomData {
   roomDescription: string;
   photos: string[];
 }
+export interface ReviewUser {
+  _id: string;
+  fullName: string;
+  profileImage?: string;
+}
+
+export interface ReviewData {
+  _id: string;
+  userId: ReviewUser;
+  rating: number;
+  comment: string;
+  createdAt: string;
+}
+
+export interface RatingDistribution {
+  "1": number;
+  "2": number;
+  "3": number;
+  "4": number;
+  "5": number;
+}
+
+export interface ReviewPagination {
+  currentPage: number;
+  totalPages: number;
+  limit: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+  nextPage: number | null;
+  prevPage: number | null;
+}
+
+export interface ReviewResponse {
+  success: boolean;
+  message: string;
+  data: {
+    hostelId?: string;
+    overallRating: number;
+    totalReviews: number;
+    ratingDistribution: RatingDistribution;
+    pagination: ReviewPagination;
+    reviews: ReviewData[];
+  };
+}
