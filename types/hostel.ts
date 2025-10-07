@@ -389,3 +389,12 @@ export interface ReviewResponse {
     reviews: ReviewData[];
   };
 }
+export interface ContentData {
+  _id?: string;
+  title?: string;
+  content?: string;
+  sections?: {
+    heading: string;
+    text: string;
+  }[];
+}

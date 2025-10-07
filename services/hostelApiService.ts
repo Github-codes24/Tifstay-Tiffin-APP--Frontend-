@@ -517,7 +517,7 @@ async deleteAddress(addressId: string) {
 
 async getPrivacyPolicy() {
   try {
-    const response = await this.api.get("/api/privacyPolicy/getPrivacyPolicy");
+    const response = await this.api.get("/api/hostelOwner/staticPage/get-privacy-policy");
     return {
       success: true,
       data: response.data,
@@ -532,7 +532,7 @@ async getPrivacyPolicy() {
 
 async getTermAndCondition() {
   try {
-    const response = await this.api.get("/api/termAndCondition/getTermAndCondition");
+    const response = await this.api.get("/api/hostelOwner/staticPage/get-terms-and-conditions");
     return {
       success: true,
       data: response.data,

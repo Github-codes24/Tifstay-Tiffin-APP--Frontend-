@@ -27,10 +27,10 @@ const subscribers = [
 const RequestsRoute = () => (
   <ScrollView style={styles.scene} showsVerticalScrollIndicator={false}>
     <View style={styles.badgeOrange}>
-      <Text style={styles.badgeTextOrange}>Requests</Text>
+      <Text style={styles.badgeTextOrange}>Confirmed</Text>
     </View>
     <BookingCard
-      status="Accepted"
+      status="Confirmed"
       bookingId="#TF2024002"
       orderedDate="21/07/2025"
       tiffinService="Maharashtrian Ghar Ka Khana"
@@ -50,10 +50,10 @@ const RequestsRoute = () => (
 const RequestsAcceptRoute = () => (
   <ScrollView style={styles.scene} showsVerticalScrollIndicator={false}>
     <View style={styles.badgePrimary}>
-      <Text style={styles.badgeTextPrimary}>Accepted</Text>
+      <Text style={styles.badgeTextPrimary}>Confirmed</Text>
     </View>
     <BookingCardHostel
-      status="Accepted"
+      status="Confirmed"
       bookingId="#TF2024002"
       orderedDate="21/07/2025"
       tiffinService="Scholars Den Boys Hostel"

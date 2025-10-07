@@ -1,72 +1,132 @@
 import { Colors } from "@/constants/Colors";
 import { fonts } from "@/constants/typography";
-import React from "react";
+import apiService from "@/services/hostelApiService";
+import { ContentData } from "@/types/hostel";
+import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   SafeAreaView,
-  View,
-  Text,
   ScrollView,
   StyleSheet,
-  TouchableOpacity,
+  Text,
+  View,
 } from "react-native";
 
 const TermsAndConditionsScreen = () => {
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<ContentData | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchTermsAndConditions();
+  }, []);
+
+  const fetchTermsAndConditions = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await apiService.getTermAndCondition();
+
+      if (response.success && response.data?.data) {
+        const termsData = Array.isArray(response.data.data)
+          ? response.data.data[0]
+          : response.data.data;
+
+        setData(termsData || null);
+      } else {
+        setError(response.error || "No terms and conditions available");
+      }
+    } catch (err: any) {
+      setError(err.message || "Failed to load terms and conditions");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={styles.loadingText}>Loading Terms & Conditions...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.centerContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!data) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <ScrollView style={styles.scrollContent}>
+          <Text style={styles.sectionTitle}>1. Acceptance of Terms</Text>
+          <Text style={styles.paragraph}>
+            By accessing and using this application, you accept and agree to be
+            bound by the terms and provision of this agreement.
+          </Text>
+
+          <Text style={styles.sectionTitle}>2. Use License</Text>
+          <Text style={styles.paragraph}>
+            Permission is granted to temporarily use this application for
+            personal, non-commercial transitory viewing only.
+          </Text>
+
+          <Text style={styles.sectionTitle}>3. Service Description</Text>
+          <Text style={styles.paragraph}>
+            We provide a platform for booking tiffin services and hostel
+            accommodations. We act as an intermediary between users and service
+            providers.
+          </Text>
+
+          <Text style={styles.sectionTitle}>4. User Responsibilities</Text>
+          <Text style={styles.bullet}>
+            • Provide accurate information during registration and booking.
+          </Text>
+          <Text style={styles.bullet}>
+            • Maintain the confidentiality of your account credentials.
+          </Text>
+          <Text style={styles.bullet}>
+            • Comply with all applicable laws and regulations.
+          </Text>
+
+          <Text style={styles.sectionTitle}>5. Payment Terms</Text>
+          <Text style={styles.paragraph}>
+            All payments are processed through secure third-party payment
+            gateways. Refund policies are subject to individual service provider
+            terms.
+          </Text>
+
+          <View style={{ height: 40 }} />
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
-      
+      <ScrollView style={styles.scrollContent}>
+        {data.title && <Text style={styles.mainTitle}>{data.title}</Text>}
 
-      <ScrollView
-        style={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <Text style={styles.sectionTitle}>1. Acceptance</Text>
-        <Text style={styles.paragraph}>
-          By using this app, you agree to these terms. If not, please stop using
-          it.
-        </Text>
-
-        <Text style={styles.sectionTitle}>2. Our Role</Text>
-        <Text style={styles.paragraph}>
-          We connect you with verified Tiffin Providers & Hostel Owners. We do
-          not own or operate these services.
-        </Text>
-
-        <Text style={styles.sectionTitle}>3. Your Responsibilities</Text>
-        <Text style={styles.bullet}>• Provide accurate booking details.</Text>
-        <Text style={styles.bullet}>
-          • Follow provider’s cancellation/refund rules.
-        </Text>
-        <Text style={styles.bullet}>
-          • Use the app legally and respectfully.
-        </Text>
-
-        <Text style={styles.sectionTitle}>4. Payments & Refunds</Text>
-        <Text style={styles.bullet}>• Payments are processed securely.</Text>
-        <Text style={styles.bullet}>
-          • Refunds follow provider’s policy & payment method timelines.
-        </Text>
-
-        <Text style={styles.sectionTitle}>5. Cancellations</Text>
-        <Text style={styles.paragraph}>
-          Cancel via My Bookings. Refunds depend on provider’s rules.
-        </Text>
-
-        <Text style={styles.sectionTitle}>6. Liability</Text>
-        <Text style={styles.paragraph}>
-          We’re not responsible for service quality, losses, delays, or events
-          beyond our control.
-        </Text>
-
-        <Text style={styles.sectionTitle}>7. Changes</Text>
-        <Text style={styles.paragraph}>
-          We may update these terms anytime. Continued use means you accept
-          them.
-        </Text>
-
-        <Text style={styles.sectionTitle}>8. Contact</Text>
-        <Text style={styles.paragraph}>
-          Email support@[yourdomain].com or use Contact Us in the app.
-        </Text>
+        {data.sections && data.sections.length > 0
+          ? data.sections.map((section, index) => (
+              <View key={index} style={styles.sectionContainer}>
+                <Text style={styles.sectionTitle}>{section.heading}</Text>
+                <Text style={styles.paragraph}>{section.text}</Text>
+              </View>
+            ))
+          : data.content && (
+              <Text style={styles.paragraph}>{data.content}</Text>
+            )}
 
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -81,27 +141,57 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
   },
-
   scrollContent: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 19,
+    paddingTop: 20,
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    fontFamily: fonts.interRegular,
+    color: Colors.grey,
+  },
+  errorText: {
+    fontSize: 16,
+    fontFamily: fonts.interRegular,
+    color: Colors.red,
+    textAlign: "center",
+  },
+  mainTitle: {
+    fontSize: 20,
+    fontFamily: fonts.interSemibold,
+    color: Colors.title,
+    marginBottom: 16,
+  },
+  sectionContainer: {
+    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 16,
-    fontFamily:fonts.interRegular,
+    fontFamily: fonts.interSemibold,
     marginTop: 5,
-    color:Colors.title
-  },
-  paragraph: {
-    fontSize: 16,
-    fontFamily:fonts.interRegular,
-    color:Colors.title,
-    marginTop: 8,
+    color: Colors.title,
+    marginBottom: 8,
   },
   bullet: {
-    fontSize: 16,
-    fontFamily:fonts.interRegular,
-    marginTop: 6,
-    color:Colors.title,
+    fontSize: 14,
+    fontFamily: fonts.interRegular,
+    color: Colors.title,
     marginLeft: 16,
+    marginTop: 6,
+    lineHeight: 22,
+  },
+  paragraph: {
+    fontSize: 14,
+    color: Colors.grey,
+    fontFamily: fonts.interRegular,
+    marginTop: 8,
+    lineHeight: 22,
   },
 });
