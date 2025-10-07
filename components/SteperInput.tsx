@@ -1,9 +1,15 @@
-// components/StepperInput.tsx
-import React, { useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, TextInput, ViewStyle } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { fonts } from "@/constants/typography";
 import { Colors } from "@/constants/Colors";
+import { fonts } from "@/constants/typography";
+import { Ionicons } from "@expo/vector-icons";
+import React, { useEffect, useState } from "react";
+import {
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  ViewStyle,
+} from "react-native";
 
 interface StepperInputProps {
   label?: string;
@@ -13,64 +19,103 @@ interface StepperInputProps {
   min?: number;
   max?: number;
   currency?: string;
-  containerStyle?: ViewStyle
+  containerStyle?: ViewStyle;
+  showCurrency?: boolean;
 }
 
 const StepperInput: React.FC<StepperInputProps> = ({
   label,
   value,
   onChange,
-  step = 10,
-  min = 0,
-  max = 1000,
+  step = 1,
+  min,
+  max,
   currency = "₹",
-  containerStyle
+  containerStyle,
+  showCurrency = true,
 }) => {
   const [inputValue, setInputValue] = useState(String(value));
 
   const handleIncrease = () => {
-    if (value + step <= max) onChange(value + step);
+    const newValue = value + step;
+    if (max !== undefined && newValue > max) return;
+    onChange(newValue);
   };
 
   const handleDecrease = () => {
-    if (value - step >= min) onChange(value - step);
+    const newValue = value - step;
+    if (min !== undefined && newValue < min) return;
+    onChange(newValue);
   };
 
   const handleChangeText = (text: string) => {
-    // Allow only numbers
     const numeric = text.replace(/[^0-9]/g, "");
     setInputValue(numeric);
 
+    if (numeric === "") {
+      onChange(min !== undefined ? min : 0);
+      return;
+    }
+
     const num = parseInt(numeric, 10);
     if (!isNaN(num)) {
-      // Clamp value between min and max
-      const clamped = Math.min(Math.max(num, min), max);
-      onChange(clamped);
+      let finalValue = num;
+      if (min !== undefined && finalValue < min) finalValue = min;
+      if (max !== undefined && finalValue > max) finalValue = max;
+      onChange(finalValue);
     }
   };
 
-  // Sync when parent updates value externally
-  React.useEffect(() => {
+  const handleBlur = () => {
+    // Ensure the display value is synced
+    setInputValue(String(value));
+  };
+
+  useEffect(() => {
     setInputValue(String(value));
   }, [value]);
 
+  const isMaxDisabled = max !== undefined && value >= max;
+  const isMinDisabled = min !== undefined && value <= min;
+
   return (
-    <View style={[styles.wrapper , containerStyle]}>
+    <View style={[styles.wrapper, containerStyle]}>
       {label && <Text style={styles.label}>{label}</Text>}
       <View style={styles.container}>
-        <Text style={styles.currency}>{currency}</Text>
+        {showCurrency && currency && (
+          <Text style={styles.currency}>{currency}</Text>
+        )}
         <TextInput
           style={styles.input}
           value={inputValue}
           onChangeText={handleChangeText}
+          onBlur={handleBlur}
           keyboardType="numeric"
+          placeholder="0"
+          placeholderTextColor="#D1D5DB"
         />
         <View style={styles.buttons}>
-          <TouchableOpacity onPress={handleIncrease}>
-            <Ionicons name="caret-up" size={14} color="#1E40AF" />
+          <TouchableOpacity
+            onPress={handleIncrease}
+            disabled={isMaxDisabled}
+            activeOpacity={0.6}
+          >
+            <Ionicons
+              name="caret-up"
+              size={14}
+              color={isMaxDisabled ? "#D1D5DB" : "#1E40AF"}
+            />
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleDecrease}>
-            <Ionicons name="caret-down" size={14} color="#6B7280" />
+          <TouchableOpacity
+            onPress={handleDecrease}
+            disabled={isMinDisabled}
+            activeOpacity={0.6}
+          >
+            <Ionicons
+              name="caret-down"
+              size={14}
+              color={isMinDisabled ? "#D1D5DB" : "#6B7280"}
+            />
           </TouchableOpacity>
         </View>
       </View>
@@ -104,9 +149,8 @@ const styles = StyleSheet.create({
   currency: {
     fontSize: 13,
     color: Colors.grey,
-    // marginRight: 4,
+    marginRight: 4,
     fontFamily: fonts.interRegular,
-
   },
   input: {
     flex: 1,

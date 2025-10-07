@@ -1,4 +1,3 @@
-import * as React from "react";
 
 export const Images = {
   logo: require("@/assets/images/logo.png"),
@@ -12,6 +11,7 @@ export const Images = {
   email: require("@/assets/images/email.png"),
   profile: require("@/assets/images/profile.png"),
   openeye: require("@/assets/images/eye.png"),
+  closeeye: require("@/assets/images/closeeye.png"),
   lock: require("@/assets/images/lock.png"),
   dashboard: require("@/assets/images/dashboard.png"),
   earnings: require("@/assets/images/earnings.png"),
@@ -48,6 +48,7 @@ export const Images = {
   earningSummary: require("@/assets/images/earningSummary.png"),
   tiffinService: require("@/assets/images/tiffinService.png"),
   home: require("@/assets/images/home.png"),
+  add: require("@/assets/images/add.png"),
   editicon: require("@/assets/images/editicon.png"), 
   map:require("@/assets/images/map.png"),
   home1:require("@/assets/images/home1.png"),
@@ -77,7 +78,7 @@ export const Images = {
   chat1: require("@/assets/images/chat1.png"),
   send: require("@/assets/images/send.png"),
   logout: require("@/assets/images/logout.png"), 
-
+work: require("@/assets/images/work.png"),
   //HOSTELS
 
   hostel : require('@/assets/images/Hostel/hostel.png'),
@@ -85,6 +86,8 @@ export const Images = {
   hostel1 : require('@/assets/images/Hostel/hostel1.png'),
   pause: require('@/assets/images/Hostel/pause.png'),
   bad1: require('@/assets/images/Hostel/bad1.png'),
+  googleIcon: require('@/assets/images/Hostel/googleIcon.png'),
+  appleIcon: require('@/assets/images/Hostel/appleIcon.png'),
 } as const;
 
 

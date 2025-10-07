@@ -3,5 +3,15 @@
     "source.fixAll": "explicit",
     "source.organizeImports": "explicit",
     "source.sortMembers": "explicit"
-  }
+  },
+  "cSpell.words": [
+    "closeeye",
+    "ifsc",
+    "loginoption",
+    "SCROLLVIEW",
+    "Steper",
+    "Tifstay",
+    "videocam",
+    "viewroom"
+  ]
 }

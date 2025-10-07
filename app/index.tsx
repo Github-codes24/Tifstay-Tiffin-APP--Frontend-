@@ -1,5 +1,17 @@
+import useAuthStore from "@/store/authStore";
 import { Redirect } from "expo-router";
 
 export default function Index() {
-  return <Redirect href="/splash" />;
+  const { isAuthenticated, hasSeenSplash } = useAuthStore();
+  return (
+    <Redirect
+      href={
+        isAuthenticated
+          ? "/(secure)/(tabs)/(dashboard)"
+          : hasSeenSplash
+          ? "/(auth)/loginoption"
+          : "/(auth)/onboarding"
+      }
+    />
+  );
 }
