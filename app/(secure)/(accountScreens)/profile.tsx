@@ -25,14 +25,14 @@ const MyProfileScreen = () => {
             source={{ uri: user?.profileImage }}
             style={styles.profileImage}
           />
-          <Text style={styles.profileName}>{user?.fullName}</Text>
+          <Text style={styles.profileName}>{user?.fullName ?? user?.name}</Text>
         </View>
 
         <View style={styles.infoCard}>
           <InfoRow
             icon={Images.name}
             label="Name"
-            value={user?.fullName || ""}
+            value={user?.fullName || user?.name || ""}
           />
           <InfoRow
             icon={Images.email1}

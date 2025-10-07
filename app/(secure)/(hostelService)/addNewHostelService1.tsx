@@ -143,6 +143,7 @@ const AddNewHostelService1 = () => {
       });
 
       // Submit to API
+      // const response = isUpdatingHostel ? await updateHostelService(apiData) : await createHostelService(apiData);
       const response = await createHostelService(apiData);
 
       if (response.success) {

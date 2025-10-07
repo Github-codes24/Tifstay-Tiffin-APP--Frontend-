@@ -7,6 +7,7 @@ import tiffinApiService from "../services/tiffinApiServices";
 interface User {
   id: string;
   fullName: string;
+  name?: string;
   email: string;
   profileImage: string;
   bankDetails: {
@@ -271,7 +272,7 @@ const useAuthStore = create<AuthState>()(
       console.log("User Profile:", response.data);
       if (response.success) {
         set({
-          user: response.data?.hostelOwner,
+          user: type === "hostel_owner" ? response.data?.hostelOwner : response.data?.tiffinOwner,
           isLoading: false,
           error: null,
         });

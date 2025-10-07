@@ -5,11 +5,12 @@ import LabeledInput from "@/components/labeledInput";
 import StepperInput from "@/components/SteperInput";
 import { Colors } from "@/constants/Colors";
 import { fonts } from "@/constants/typography";
+import hostelApiService from "@/services/hostelApiService";
 import useServiceStore from "@/store/serviceStore";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import { useRouter } from "expo-router";
-import React, { useCallback, useState } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   Image,
@@ -33,13 +34,17 @@ const MINIMUM_PHOTOS_PER_ROOM = 3;
 const MAXIMUM_PHOTOS_PER_ROOM = 5;
 
 const AddNewHostelService = () => {
+  const params = useLocalSearchParams();
+  const mode = params.mode as "add" | "edit";
+  const hostelId = params.hostelId as string;
+  const isUpdatingHostel = mode === "edit";
   const router = useRouter();
   const { setFormPage1Data, clearFormData } = useServiceStore();
 
   // Form states
   const [hostelName, setHostelName] = useState("");
   const [description, setDescription] = useState("");
-  const [hostelType, setHostelType] = useState<string | null>("boys");
+  const [hostelType, setHostelType] = useState<string | null>("select");
   const [pricePerDay, setPricePerDay] = useState(0);
   const [monthlyPrice, setMonthlyPrice] = useState(0);
   const [weeklyPrice, setWeeklyPrice] = useState(0);
@@ -66,6 +71,36 @@ const AddNewHostelService = () => {
     },
   ]);
   const [activeRoomId, setActiveRoomId] = useState<string>("1");
+
+  useEffect(() => {
+    const loadHostelData = async () => {
+      try {
+        const response = await hostelApiService.getHostelServiceById(hostelId);
+        if (response.success) {
+          const hostelData = response.data.data;
+          if (hostelData) {
+            console.log("here we are", hostelData);
+            setHostelName(hostelData.hostelName);
+            setDescription(hostelData.description);
+            const _hostelType = hostelData.hostelType;
+            if (_hostelType === "Boys Hostel") {
+              setHostelType("boys");
+            } else if (_hostelType === "Girls Hostel") {
+              setHostelType("girls");
+            } else {
+              setHostelType("co-ed");
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error loading hostel data:", error);
+      }
+    };
+
+    if (isUpdatingHostel) {
+      loadHostelData();
+    }
+  }, [isUpdatingHostel, hostelId]);
 
   // Image Picker
   const pickRoomImage = useCallback(

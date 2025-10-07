@@ -161,15 +161,27 @@ export default function ServiceOfflineScreen() {
     async (page: number) => {
       setLoading(true);
       try {
-        await Promise.all([
-          getAllHostelServices(page, ITEMS_PER_PAGE),
-          getUserProfile(userServiceType),
-          getTotalServicesCount(),
-          getRequestedServicesCount(),
-          getAcceptedServicesCount(),
-          getCancelledServicesCount(),
-          getReviewsSummary(),
-        ]);
+        if (isTiffinProvider) {
+          await Promise.all([
+            // getAllHostelServices(page, ITEMS_PER_PAGE), Get All tiffin services
+            getUserProfile(userServiceType),
+            // getTotalServicesCount(),
+            // getRequestedServicesCount(),
+            // getAcceptedServicesCount(),
+            // getCancelledServicesCount(),
+            // getReviewsSummary(),
+          ]);
+        } else {
+          await Promise.all([
+            getAllHostelServices(page, ITEMS_PER_PAGE),
+            getUserProfile(userServiceType),
+            getTotalServicesCount(),
+            getRequestedServicesCount(),
+            getAcceptedServicesCount(),
+            getCancelledServicesCount(),
+            getReviewsSummary(),
+          ]);
+        }
       } catch (error) {
         console.error("Error loading data:", error);
       } finally {
@@ -216,7 +228,7 @@ export default function ServiceOfflineScreen() {
   const handleAddService = useCallback(() => {
     const route = isTiffinProvider
       ? "/(secure)/(service)/addNewService"
-      : "/(secure)/(hostelService)/addNewHostelService";
+      : "/(secure)/(hostelService)/addNewHostelService?mode=add";
     router.push(route);
   }, [isTiffinProvider]);
 
@@ -314,7 +326,16 @@ export default function ServiceOfflineScreen() {
     }
 
     return hostelServices?.map((hostel: any) => (
-      <HostelCard hostel={hostel} key={hostel._id} />
+      <HostelCard
+        hostel={hostel}
+        key={hostel._id}
+        onEditPress={() =>
+          router.navigate({
+            pathname: "/(secure)/(hostelService)/addNewHostelService",
+            params: { hostelId: hostel._id, mode: "edit" },
+          })
+        }
+      />
     ));
   }, [loading, isTiffinProvider, hostelServices]);
 

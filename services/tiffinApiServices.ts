@@ -3,7 +3,7 @@ import axios, { AxiosInstance } from "axios";
 
 class TiffinApiService {
   private api: AxiosInstance;
-  private baseURL = "https://API.com";
+  private baseURL = "https://tifstay-project-be.onrender.com";
 
   constructor() {
     this.api = axios.create({
@@ -14,7 +14,7 @@ class TiffinApiService {
       },
     });
 
-    // Request interceptor to add auth token
+    // Request interceptor to add auth tokenv
     this.api.interceptors.request.use(
       async (config) => {
         const token = useAuthStore.getState().token;
@@ -54,7 +54,7 @@ class TiffinApiService {
 
   // Authentication APIs
   async login(email: string, password: string) {
-    return this.api.post("/api/tiffinProvider/loginProvider", {
+    return this.api.post("/api/tiffinOwner/loginOwner", {
       email,
       password,
     });
@@ -62,7 +62,7 @@ class TiffinApiService {
 
   async register(fullName: string, email: string, password: string) {
     try {
-      const response = await this.api.post("/api/tiffinProvider/registerProvider", {
+      const response = await this.api.post("/api/tiffinOwner/registerOwner", {
         fullName,
         email,
         password,
@@ -82,7 +82,7 @@ class TiffinApiService {
 
   async changePassword(oldPassword: string, newPassword: string, confirmPassword: string) {
     try {
-      const response = await this.api.post("/api/tiffinProvider/changeProviderPassword", {
+      const response = await this.api.post("/api/tiffinOwner/changeOwnerPassword", {
         oldPassword,
         newPassword,
         confirmPassword,
@@ -146,7 +146,7 @@ class TiffinApiService {
 
   async getUserProfile() {
     try {
-      const response = await this.api.get("/api/tiffinProvider/getProviderProfile");
+      const response = await this.api.get("/api/tiffinOwner/getOwnerProfile");
       return {
         success: true,
         data: response.data,
