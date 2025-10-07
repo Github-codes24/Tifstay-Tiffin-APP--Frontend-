@@ -19,6 +19,7 @@ interface HostelCardProps {
   hostel: HostelService;
   onPress?: () => void;
   onBookPress?: () => void;
+  onEditPress?: () => void;
 }
 
 const amenityIcons: { [key: string]: string } = {
@@ -37,16 +38,13 @@ export default function HostelCard({
   hostel,
   onPress,
   onBookPress,
+  onEditPress,
 }: HostelCardProps) {
   const handleView = () => {
     router.push({
       pathname: "/hostelDetails",
       params: { id: hostel._id },
     });
-  };
-
-  const handleEdit = () => {
-    Alert.alert("Edit", "Edit functionality will be implemented soon");
   };
 
   const handleViewRooms = () => {
@@ -184,7 +182,7 @@ export default function HostelCard({
               <Image source={Images.view} style={styles.btnIcon} />
               <Text style={styles.btnText}>View</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.button} onPress={handleEdit}>
+            <TouchableOpacity style={styles.button} onPress={onEditPress}>
               <Image source={Images.edit} style={styles.btnIcon} />
               <Text style={styles.btnText}>Edit</Text>
             </TouchableOpacity>
