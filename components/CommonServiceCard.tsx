@@ -10,42 +10,44 @@ import {
 import { Images } from "@/constants/Images";
 import { Colors } from "@/constants/Colors";
 import { fonts } from "@/constants/typography";
+import { router } from "expo-router";
 
 const { width } = Dimensions.get("window");
 
-const TiffinCard = () => {
+const TiffinCard = ({ tiffin }: any) => {
+  console.log(JSON.stringify(tiffin))
   return (
     <View style={styles.container}>
       <View style={styles.card}>
         {/* Image */}
-        <Image source={Images.food} style={styles.image} resizeMode="cover" />
+        <Image source={{uri : tiffin?.photos[0]}} style={styles.image} resizeMode="cover" />
 
         {/* Info Section */}
         <View style={styles.info}>
           <View style={styles.rowBetween}>
             <Text style={styles.title} numberOfLines={1}>
-              Maharashtrian Ghar Ka Khana
+              {tiffin?.tiffinName}
             </Text>
             <View style={styles.activeBadge}>
-              <Text style={styles.activeText}>Active</Text>
+              <Text style={styles.activeText}>{tiffin?.isAvailable && 'Active'}</Text>
             </View>
           </View>
 
-          <Text style={styles.location}>Dharampeth</Text>
+          <Text style={styles.location}>{tiffin?.location?.area}</Text>
 
           <View style={[styles.row, styles.mt16]}>
             <View>
-              <Text style={styles.price}>₹120/meal</Text>
+              <Text style={styles.price}>{tiffin?.pricing[0]?.perMealDining}/meal</Text>
               <Text style={styles.label}>Price</Text>
             </View>
             <View style={styles.discount}>
-              <Text style={styles.discountText}>10% OFF</Text>
+              <Text style={styles.discountText}>{tiffin?.pricing[0]?.offers}</Text>
             </View>
           </View>
 
           <View style={[styles.rowBetween, styles.mt16]}>
             <View style={styles.gap6}>
-              <Text style={styles.booking}>15</Text>
+              <Text style={styles.booking}>{tiffin?.totalOrders}</Text>
               <Text style={styles.label}>Bookings</Text>
             </View>
 
@@ -55,7 +57,7 @@ const TiffinCard = () => {
                 <View style={styles.ratingRow}>
                   <Image source={Images.star} style={styles.starIcon} />
                   <Text style={styles.rating}>
-                    4.7 <Text style={styles.review}>(8 Reviews)</Text>
+                    {tiffin?.averageRating} <Text style={styles.review}>({tiffin?.totalReviews}) reviews</Text>
                   </Text>
                 </View>
                 <Text style={styles.label}>Rating</Text>
@@ -63,14 +65,22 @@ const TiffinCard = () => {
             </View>
 
             <View style={styles.gap6}>
-              <Text style={styles.type}>Veg</Text>
+              <Text style={styles.type}>{tiffin?.foodType?.type === 'Both Veg & Non-Veg' ? 'Veg/non-Veg' : tiffin?.foodType?.type }</Text>
               <Text style={styles.label}>Type</Text>
             </View>
           </View>
 
           {/* Action Buttons */}
           <View style={styles.actions}>
-            <TouchableOpacity style={styles.button}>
+            <TouchableOpacity style={styles.button} onPress={() => {
+              router.push({
+                pathname: '/(secure)/(service)/previewService',
+                params: {
+                  tiffin: JSON.stringify(tiffin),
+                  isPrevie : "false"
+                },
+              });
+            }}>
               <Image source={Images.view} style={styles.btnIcon} />
               <Text style={styles.btnText}>View</Text>
             </TouchableOpacity>
@@ -78,10 +88,10 @@ const TiffinCard = () => {
               <Image source={Images.edit} style={styles.btnIcon} />
               <Text style={styles.btnText}>Edit</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.button}>
+            {/* <TouchableOpacity style={styles.button}>
               <Image source={Images.delete} style={styles.btnIcon} />
               <Text style={styles.btnText}>Delete</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
         </View>
       </View>
@@ -190,12 +200,14 @@ const styles = StyleSheet.create({
     color: Colors.title,
     textAlign: "center",
     fontFamily: fonts.interSemibold,
+    maxWidth:50
   },
   actions: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
     marginTop: 16,
+    gap: 12,
   },
   button: {
     flexDirection: "row",
@@ -205,6 +217,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 6,
+    flex: 1,
+    justifyContent:'center'
   },
   btnIcon: {
     height: 16,

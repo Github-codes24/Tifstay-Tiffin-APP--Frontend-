@@ -15,6 +15,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import hostelServiceApiService from "../services/hostelApiService";
 import tiffinApiService from "../services/tiffinApiServices";
 import useAuthStore from "./authStore";
+import tiffinApiServices from "../services/tiffinApiServices";
 
 interface ServiceState {
   // Data
@@ -29,6 +30,8 @@ interface ServiceState {
   pagination: PaginationData | null;
   overallRating: number;
   totalReviews: number;
+  tiffinServices: any;
+
 
   // Form data for multi-step form
   formPage1Data: FormPage1Data | null;
@@ -38,6 +41,7 @@ interface ServiceState {
   createHostelService: (data: CreateHostelServiceRequest) => Promise<ApiResponse<HostelService>>;
   getAllHostelServices: (page?: number, limit?: number) => Promise<ApiResponse<any>>;
   updateHostelService: (hostelServiceId: string, data: UpdateHostelServiceRequest) => Promise<ApiResponse<HostelService>>;
+  getAllTiffinServices: (page?: number, limit?: number) => Promise<ApiResponse<any>>;
   deleteHostelService: (hostelServiceId: string) => Promise<ApiResponse<any>>;
   deleteRoomPhotos: (hostelServiceId: string, roomId: string, photoUrls: string[]) => Promise<ApiResponse<any>>;
   getTotalServicesCount: () => Promise<ApiResponse<any>>;
@@ -74,6 +78,7 @@ const useServiceStore = create<ServiceState>()(
       overallRating: 0,
       totalReviews: 0,
       pagination: null,
+      tiffinServices: null,
 
       // Get Total Services Count
       getTotalServicesCount: async () => {
@@ -274,6 +279,36 @@ const useServiceStore = create<ServiceState>()(
           if (response.success) {
             set({
               hostelServices: response.data?.data?.hostelServices || [],
+              pagination: response.data?.data?.pagination || null,
+              isLoading: false,
+              error: null,
+            });
+            return { success: true, data: response.data };
+          } else {
+            set({
+              isLoading: false,
+              error: response.error || "Failed to fetch hostel services",
+            });
+            return { success: false, error: response.error };
+          }
+        } catch (error: any) {
+          set({
+            isLoading: false,
+            error: error.message || "Failed to fetch hostel services",
+          });
+          return { success: false, error: error.message };
+        }
+      },
+
+      getAllTiffinServices: async (page = 1, limit = 10) => {
+        set({ isLoading: true, error: null });
+
+        try {
+          const response = await tiffinApiServices.getAllTiffinSrvices(page, limit);
+
+          if (response.success) {
+            set({
+              tiffinServices: response.data?.data?.tiffinServices || [],
               pagination: response.data?.data?.pagination || null,
               isLoading: false,
               error: null,

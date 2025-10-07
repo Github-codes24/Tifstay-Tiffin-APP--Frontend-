@@ -78,7 +78,7 @@ class ApiService {
     } catch (error: any) {
       return {
         success: false,
-        error:
+        error:  
           error.response?.data?.message ||
           "Registration failed. Please try again.",
       };

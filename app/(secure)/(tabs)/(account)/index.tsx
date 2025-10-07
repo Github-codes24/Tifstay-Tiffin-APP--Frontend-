@@ -91,7 +91,7 @@ const AccountScreen = () => {
             </TouchableOpacity>
           </View>
           <Text style={styles.title}>
-            {isTiffinProvider ? "Maharashtrian Ghar Ka Khana" : user?.fullName}
+            {isTiffinProvider ? user?.name : user?.fullName}
           </Text>
         </View>
 

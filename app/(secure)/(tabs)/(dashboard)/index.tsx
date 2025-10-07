@@ -100,8 +100,10 @@ export default function ServiceOfflineScreen() {
     overallRating,
     totalReviews,
     pagination,
+    tiffinServices,
+    getAllTiffinServices
   } = useServiceStore();
-
+  console.log('++++++++++',user)
   const [isOnline, setIsOnline] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -113,13 +115,13 @@ export default function ServiceOfflineScreen() {
 
   // Memoized values
   const profileImage = useMemo(
-    () => (isTiffinProvider ? Images.user : { uri: user?.profileImage }),
+    () => (isTiffinProvider ? { uri: user?.profileImage } : { uri: user?.profileImage }),
     [isTiffinProvider, user?.profileImage]
   );
-
+console.log(user)
   const headerTitle = useMemo(
     () =>
-      isTiffinProvider ? "Maharashtrian Ghar Ka Khana" : user?.fullName || "",
+      isTiffinProvider ? user?.name : user?.fullName || "",
     [isTiffinProvider, user?.fullName]
   );
 
@@ -155,7 +157,6 @@ export default function ServiceOfflineScreen() {
   const displayReviewCount = useMemo(() => {
     return `(${totalReviews})`;
   }, [totalReviews]);
-
   // Optimized data loading with Promise.all
   const loadData = useCallback(
     async (page: number) => {
@@ -163,7 +164,7 @@ export default function ServiceOfflineScreen() {
       try {
         if (isTiffinProvider) {
           await Promise.all([
-            // getAllHostelServices(page, ITEMS_PER_PAGE), Get All tiffin services
+            getAllTiffinServices(page, ITEMS_PER_PAGE),
             getUserProfile(userServiceType),
             // getTotalServicesCount(),
             // getRequestedServicesCount(),
@@ -322,7 +323,7 @@ export default function ServiceOfflineScreen() {
     }
 
     if (isTiffinProvider) {
-      return <TiffinCard />;
+      return tiffinServices?.map((tiffin: any) => (<TiffinCard tiffin={tiffin} />));
     }
 
     return hostelServices?.map((hostel: any) => (

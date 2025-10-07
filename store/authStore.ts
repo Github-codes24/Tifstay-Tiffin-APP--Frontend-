@@ -298,6 +298,7 @@ const useAuthStore = create<AuthState>()(
 
     try {
       hostelApiService.logout();
+      tiffinApiService.logout()
       set({
         user: null,
         token: null,

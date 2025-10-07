@@ -4,6 +4,8 @@ import { Colors } from "@/constants/Colors";
 import { Images } from "@/constants/Images";
 import { fonts } from "@/constants/typography";
 import hostelApiService from "@/services/hostelApiService";
+import tiffinApiServices from "@/services/tiffinApiServices";
+import useAuthStore from "@/store/authStore";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -19,8 +21,9 @@ import {
 
 export default function ForgotPass() {
   const [email, setEmail] = useState("");
+  const { getUserProfile, user, userServiceType } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
-
+  console.log(userServiceType === "tiffin_provider")
   const handleSendRecoveryLink = async () => {
     if (!email.trim()) {
       Alert.alert("Error", "Please enter your email address");
@@ -37,7 +40,7 @@ export default function ForgotPass() {
     setIsLoading(true);
 
     try {
-      const response = await hostelApiService.forgotPassword(email);
+      const response =  userServiceType === "tiffin_provider" ? await tiffinApiServices.forgotPassword(email)  : await hostelApiService.forgotPassword(email);
 
       if (response.data?.success) {
         // Pass email to verify screen

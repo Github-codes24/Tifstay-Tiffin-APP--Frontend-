@@ -4,40 +4,62 @@ import { Colors } from "@/constants/Colors";
 import { Images } from "@/constants/Images";
 import { fonts } from "@/constants/typography";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
-import React from "react";
-import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
+import { router, useLocalSearchParams } from "expo-router";
+import React, { useEffect, useState } from "react";
+import {
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  TouchableOpacity,
+  LayoutAnimation,
+  UIManager,
+  Platform,
+} from "react-native";
 
 const MealDetails = () => {
+  const { tiffin , isPreview}: any = useLocalSearchParams();
+  const parsedTiffin = tiffin ? JSON.parse(tiffin) : null;
+
+  // which pricing index is expanded (null => none)
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+
+  useEffect(() => {
+    // Enable LayoutAnimation on Android
+    if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+      // @ts-ignore
+      UIManager.setLayoutAnimationEnabledExperimental(true);
+    }
+  }, []);
+
+  const toggleExpand = (index: number) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpandedIndex((prev) => (prev === index ? null : index));
+  };
+
   return (
     <View style={styles.container}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Meal Image */}
         <View style={{ paddingHorizontal: 16 }}>
-          <Image source={Images.food} style={styles.image} />
+          <Image source={{ uri: parsedTiffin?.photos[0] }} style={styles.image} />
         </View>
 
         {/* Title + Description */}
-        <Text style={styles.title}>Maharashtrian Ghar Ka Khana</Text>
-        <Text style={styles.description}>
-          Authentic Maharashtrian home-style cooking with fresh ingredients. Our
-          tiffin service has been serving the Nagpur community for over 5 years
-          with traditional recipes passed down through generations.
-        </Text>
+        <Text style={styles.title}>{parsedTiffin?.tiffinName ?? "Maharashtrian Ghar Ka Khana"}</Text>
+        <Text style={styles.description}>{parsedTiffin?.description}</Text>
 
         {/* Info Row */}
         <View style={styles.infoRow}>
           <View style={[styles.row, styles.vegTag]}>
             <Image source={Images.veg} style={styles.iconSmall} />
-            <Text style={styles.tag}>Veg</Text>
+            <Text style={styles.tag}>{parsedTiffin?.foodType?.type ?? "Veg"}</Text>
           </View>
 
           <View style={styles.row}>
             <Image source={Images.loc} style={styles.iconSmall} />
-            <Text style={styles.info}>Dharampeth</Text>
+            <Text style={styles.info}>{parsedTiffin?.location?.area ?? "Dharampeth"}</Text>
           </View>
 
           <View style={styles.row}>
@@ -46,64 +68,85 @@ const MealDetails = () => {
           </View>
         </View>
 
-        {/* Pricing Card */}
-        <View style={styles.priceCard}>
-          <Text style={styles.priceTitle}>With One Meal (Veg)</Text>
+        {/* Pricing Card - collapsed by default (only title shown) */}
+        {parsedTiffin?.pricing?.map((plan: any, index: number) => {
+          const isExpanded = expandedIndex === index;
+          return (
+            <View key={plan?.planType ?? index} style={styles.priceCard}>
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                <Text style={styles.priceTitle}>{plan?.planType}</Text>
 
-          <View style={styles.priceRow}>
-            <View>
-              <Text style={styles.priceText}>Dining ₹120/day</Text>
-              <Text style={styles.priceText}>Dining ₹800/week</Text>
-              <Text style={styles.priceText}>Dining ₹3200/month</Text>
-            </View>
-            <View>
-              <Text style={styles.priceText}>Delivery ₹130/day</Text>
-              <Text style={styles.priceText}>Delivery ₹870/week</Text>
-              <Text style={styles.priceText}>Delivery ₹3500/month</Text>
-            </View>
-          </View>
+                <TouchableOpacity onPress={() => toggleExpand(index)} hitSlop={{ top: 10, left: 10, right: 10, bottom: 10 }}>
+                  <Image
+                    source={Images.back}
+                    style={[
+                      styles.arrowIcon,
+                      { transform: [{ rotate: isExpanded ? "90deg" : "270deg" }] },
+                    ]}
+                  />
+                </TouchableOpacity>
+              </View>
 
-          <View style={styles.discountBadge}>
-            <Text style={styles.discountText}>10% OFF</Text>
-          </View>
-        </View>
+              {isExpanded && (
+                <>
+                  <View style={styles.priceRow}>
+                    <View>
+                      <Text style={styles.priceText}>Dining {plan?.perMealDining}/day</Text>
+                      <Text style={styles.priceText}>Dining {plan?.weeklyDining}/week</Text>
+                      <Text style={styles.priceText}>Dining {plan?.monthlyDining}/month</Text>
+                    </View>
+                    <View>
+                      <Text style={styles.priceText}>Delivery {plan?.perMealDelivery}/day</Text>
+                      <Text style={styles.priceText}>Delivery {plan?.weeklyDelivery}/week</Text>
+                      <Text style={styles.priceText}>Delivery {plan?.monthlyDelivery}/month</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.discountBadge}>
+                    <Text style={styles.discountText}>{plan?.offers ?? "10% OFF"}</Text>
+                  </View>
+                </>
+              )}
+            </View>
+          );
+        })}
 
         {/* Meal Preference */}
         <Text style={styles.sectionTitle}>Meal Preference</Text>
-        <Text style={styles.listItem}>• Breakfast (7:00 AM - 9:00 AM)</Text>
-        <Text style={styles.listItem}>• Lunch (12:00 PM - 2:00 PM)</Text>
-        <Text style={styles.listItem}>• Dinner (8:00 PM - 10:00 PM)</Text>
+        {parsedTiffin?.mealTimings?.map((meal:any) => {
+          return (
+            
+            <Text style={styles.listItem}>• {meal?.mealType} ({meal?.startTime} - {meal?.endTime})</Text>
+          )
+        })
+        }
 
         {/* What's Included */}
         <Text style={styles.sectionTitle}>{"What's included"}</Text>
-        <Text style={styles.listItem}>
-          • 2 Roti + 1 Sabzi + Dal + Rice + Pickle
-        </Text>
-        <Text style={styles.listItem}>• Seasonal vegetables</Text>
-        <Text style={styles.listItem}>• Fresh chapati made daily</Text>
-        <Text style={styles.listItem}>• Traditional spices</Text>
-
+        <Text style={styles.listItem}>• {parsedTiffin?.foodType?.whatIncludeInVeg ?? "2 Roti + 1 Sabzi + Dal + Rice + Pickle"}</Text>
+        <Text style={styles.listItem}>• {parsedTiffin?.foodType?.whatIncludeInNonVeg ?? "2 Roti + 1 Sabzi + Dal + Rice + Pickle"}</Text>
         {/* Order Type */}
         <Text style={styles.sectionTitle}>Order Type</Text>
-        <Text style={styles.listItem}>• Dining</Text>
-        <Text style={styles.listItem}>• Delivery</Text>
+        {parsedTiffin?.orderTypes?.map((order: any) => {
+          return (
+        <Text style={styles.listItem}>• {order}</Text>
+        )})}
+        {/* <Text style={styles.listItem}>• Delivery</Text> */}
 
         {/* Why Choose Us */}
         <Text style={styles.sectionTitle}>Why Choose Us</Text>
-        <Text style={styles.listItem}>• Fresh ingredients daily</Text>
-        <Text style={styles.listItem}>• Home-style cooking</Text>
-        <Text style={styles.listItem}>• Hygienic preparation</Text>
-        <Text style={styles.listItem}>• On-time delivery</Text>
-        <Text style={styles.listItem}>• Monthly subscription available</Text>
+        {parsedTiffin?.serviceFeatures?.map((feature: any) => {
+          return (
+            <Text style={styles.listItem}>• {feature}</Text>
+          )
+        })}
 
         {/* Location */}
         <View style={styles.card}>
           <Text style={styles.infoTitle}>Location</Text>
-          <Text style={styles.infoListItem}>Near Medical College</Text>
-          <Text style={styles.infoListItem}>
-            123, Green Valley Road, Dharampeth, Nagpur - 440010
-          </Text>
-          <Text style={styles.infoListItem}>Service Radius: 5 sq km</Text>
+          <Text style={styles.infoListItem}>{parsedTiffin?.location?.nearbyLandmarks}</Text>
+          <Text style={styles.infoListItem}>{parsedTiffin?.location?.fullAddress}</Text>
+          <Text style={styles.infoListItem}>Service Radius: {parsedTiffin?.location?.serviceRadius} sq km</Text>
         </View>
 
         {/* Contact Info */}
@@ -112,16 +155,16 @@ const MealDetails = () => {
           <View style={styles.contactRow}>
             <View style={styles.contactBox}>
               <Image source={Images.call} style={styles.iconMedium} />
-              <Text style={styles.contactText}>9876543210</Text>
+              <Text style={styles.contactText}>{parsedTiffin?.contactInfo?.phone}</Text>
             </View>
             <View style={styles.contactBox}>
               <Image source={Images.chat} style={styles.iconMedium} />
-              <Text style={styles.contactText}>9876543210</Text>
+              <Text style={styles.contactText}>{parsedTiffin?.contactInfo?.whatsapp}</Text>
             </View>
           </View>
         </View>
 
-        <CommonButton
+       {isPreview === "true" && <> <CommonButton
           title="+ Create Tiffin Listing"
           buttonStyle={styles.createButton}
           onPress={() => {
@@ -129,9 +172,7 @@ const MealDetails = () => {
           }}
         />
 
-        <Text style={[styles.listItem, styles.reviewNote]}>
-          Your listing will be reviewed and approved within 24 hours
-        </Text>
+          <Text style={[styles.listItem, styles.reviewNote]}>Your listing will be reviewed and approved within 24 hours</Text></>}
       </ScrollView>
     </View>
   );
@@ -167,6 +208,7 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 10,
     paddingHorizontal: 16,
+    flexWrap: "wrap",
   },
   row: { flexDirection: "row", alignItems: "center", gap: 4 },
   vegTag: {
@@ -200,7 +242,8 @@ const styles = StyleSheet.create({
   },
   priceRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    gap: 16,
+    // justifyContent: "space-between",
   },
   priceText: {
     fontSize: 12,
@@ -210,7 +253,7 @@ const styles = StyleSheet.create({
   },
   discountBadge: {
     position: "absolute",
-    top: 12,
+    top: '60%',
     right: 12,
     backgroundColor: "#3A88FE",
     paddingHorizontal: 10,
@@ -276,4 +319,5 @@ const styles = StyleSheet.create({
   reviewNote: { marginTop: 10, textAlign: "center" },
   iconSmall: { height: 16, width: 16 },
   iconMedium: { height: 20, width: 20 },
+  arrowIcon: { height: 24, width: 24 },
 });

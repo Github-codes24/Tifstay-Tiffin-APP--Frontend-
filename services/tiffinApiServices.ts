@@ -18,6 +18,7 @@ class TiffinApiService {
     this.api.interceptors.request.use(
       async (config) => {
         const token = useAuthStore.getState().token;
+        console.log('--',token)
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
@@ -60,10 +61,10 @@ class TiffinApiService {
     });
   }
 
-  async register(fullName: string, email: string, password: string) {
+  async register(name: string, email: string, password: string) {
     try {
       const response = await this.api.post("/api/tiffinOwner/registerOwner", {
-        fullName,
+        name,
         email,
         password,
       });
@@ -159,9 +160,12 @@ class TiffinApiService {
     }
   }
 
+  async forgotPassword(email: string) { return this.api.put("/api/tiffinOwner/forgotOwnerPassword", { email }); }
+
+
   async logout() {
-    try {
-      const response = await this.api.post("/api/tiffinProvider/logoutProvider");
+    try { 
+      const response = await this.api.post("/api/tiffinOwner/logoutOwner");
       return { success: true, data: response.data };
     } catch (error: any) {
       return { success: false, error: "Logout failed" };
@@ -298,6 +302,32 @@ async getTiffinProviderPreviousChat() {
     };
   }
 }
+  
+  async getAllTiffinSrvices(
+      page: number = 1,
+      limit: number = 10
+    ): Promise<any> {
+      try {
+        const response = await this.api.get(
+          `/api/tiffinService/getTiffinServicesByOwner`,
+          {
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+        return {
+          success: true,
+          data: response.data,
+        };
+      } catch (error: any) {
+        console.error("Get All Hostel Services Error:", error);
+        return {
+          success: false,
+          error: error.response?.data?.message || "Failed to fetch hostel services.",
+        };
+      }
+    }
 }
 
 export default new TiffinApiService();
