@@ -24,8 +24,8 @@ const SocialIcons = {
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState("imranmdsh@gmail.com");
-  const [password, setPassword] = useState("Testing@123");
+  const [email, setEmail] = useState("kuldeepsaini5514@gmail.com");
+  const [password, setPassword] = useState("kuldeep saini");
   const { login, isLoading, error, clearError, userServiceType } =
     useAuthStore();
 
