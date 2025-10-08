@@ -297,23 +297,29 @@ const useServiceStore = create<ServiceState>()(
 
       updateHostelService: async (hostelServiceId: string, data: UpdateHostelServiceRequest) => {
         set({ isLoading: true, error: null });
-
+      
         try {
           const response = await hostelServiceApiService.updateHostelService(hostelServiceId, data);
-
+      
           if (response.success) {
-            // Update the hostel service in the list
+            // ✅ Fetch the full updated hostel details to ensure all fields are populated
+            const detailsResponse = await hostelServiceApiService.getHostelServiceById(hostelServiceId);
+            
+            const updatedHostelData = detailsResponse.success 
+              ? detailsResponse.data.data 
+              : response.data?.data;
+      
             const updatedServices = get().hostelServices.map(service =>
-              service._id === hostelServiceId ? response.data?.data || service : service
+              service._id === hostelServiceId ? updatedHostelData || service : service
             );
-
+      
             set({
               hostelServices: updatedServices,
-              selectedHostelService: response.data?.data || get().selectedHostelService,
+              selectedHostelService: updatedHostelData || get().selectedHostelService,
               isLoading: false,
               error: null,
             });
-
+      
             return { success: true, data: response.data };
           } else {
             set({

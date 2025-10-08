@@ -1,378 +1,691 @@
-// screens/BasicInfoForm.tsx
-import MealCheckbox from "@/components/CheckBox";
 import CommonButton from "@/components/CommonButton";
-import CommonDropdown from "@/components/CommonDropDown";
 import CommonHeader from "@/components/CommonHeader";
 import LabeledInput from "@/components/labeledInput";
 import { Colors } from "@/constants/Colors";
-import { Images } from "@/constants/Images";
 import { fonts } from "@/constants/typography";
-import { router } from "expo-router";
-import React, { useState } from "react";
+import hostelApiService from "@/services/hostelApiService";
+import useServiceStore from "@/store/serviceStore";
+import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
   Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import * as ImagePicker from "expo-image-picker";
-import { IS_ANDROID } from "@/constants/Platform";
-import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
-const BasicInfoForm = () => {
-  // Form states
+const AddNewHostelService1 = () => {
+  const params = useLocalSearchParams();
+  const mode = params.mode as "add" | "edit";
+  const hostelId = params.hostelId as string;
+  const isUpdatingHostel = mode === "edit";
+  const router = useRouter();
+  const {
+    setFormPage2Data,
+    formPage1Data,
+    createHostelService,
+    updateHostelService,
+    isLoading,
+    clearFormData,
+  } = useServiceStore();
+
+  const [rulesText, setRulesText] = useState("");
   const [area, setArea] = useState("");
-  const [landmark, setLandmark] = useState("");
-  const [address, setAddress] = useState("");
-  const [radius, setRadius] = useState("");
-  const [phone, setPhone] = useState("");
-  const [whatsapp, setWhatsapp] = useState("");
-  // Features state
-  const [features, setFeatures] = useState({
-    freshIngredients: false,
-    hygienicPreparation: false,
-    monthlySubscription: false,
-    oilFree: false,
-    homeStyle: false,
-    onTimeDelivery: false,
-    spiceLevel: false,
-    organicVeggies: false,
-  });
+  const [nearbyLandmarks, setNearbyLandmarks] = useState("");
+  const [fullAddress, setFullAddress] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [whatsappNumber, setWhatsappNumber] = useState("");
+  const [photos, setPhotos] = useState<any[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(false);
 
-  // Helper to toggle feature
-  const toggleFeature = (key: keyof typeof features) => {
-    setFeatures((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
+  useEffect(() => {
+    const loadPage2Data = async () => {
+      if (!isUpdatingHostel || !hostelId) return;
 
-  // Photos state
-  const [photos, setPhotos] = useState<string[]>([]);
+      setIsLoadingData(true);
+      try {
+        console.log("📥 Loading page 2 data for ID:", hostelId);
+        const response = await hostelApiService.getHostelServiceById(hostelId);
 
-  // Pick image from gallery
-  const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      quality: 0.7,
-    });
+        if (response.success && response.data?.data) {
+          const hostelData = response.data.data;
+          console.log("✅ Loaded page 2 data:", hostelData);
 
-    if (!result.canceled) {
-      setPhotos((prev) => [...prev, result.assets[0].uri]);
+          setArea(hostelData.location?.area || "");
+          setNearbyLandmarks(hostelData.location?.nearbyLandmarks || "");
+          setFullAddress(hostelData.location?.fullAddress || "");
+
+          setPhoneNumber(
+            hostelData.contactInfo?.phone
+              ? hostelData.contactInfo.phone.toString()
+              : ""
+          );
+          setWhatsappNumber(
+            hostelData.contactInfo?.whatsapp
+              ? hostelData.contactInfo.whatsapp.toString()
+              : ""
+          );
+
+          setRulesText(hostelData.rulesAndPolicies || "");
+
+          if (hostelData.hostelPhotos && hostelData.hostelPhotos.length > 0) {
+            const existingPhotos = hostelData.hostelPhotos.map(
+              (url: string, index: number) => ({
+                uri: url,
+                type: "image/jpeg",
+                name: `hostel_photo_${index}.jpg`,
+                isExisting: true,
+              })
+            );
+            setPhotos(existingPhotos);
+          }
+
+          console.log("✅ Page 2 form populated successfully");
+        } else {
+          Alert.alert("Error", "Failed to load hostel data");
+        }
+      } catch (error) {
+        console.error("❌ Error loading page 2 data:", error);
+        Alert.alert("Error", "Failed to load hostel data");
+      } finally {
+        setIsLoadingData(false);
+      }
+    };
+
+    loadPage2Data();
+  }, [isUpdatingHostel, hostelId]);
+
+  const handleSubmit = async () => {
+    try {
+      if (!phoneNumber || !whatsappNumber || !fullAddress) {
+        Alert.alert("Error", "Please fill all required fields");
+        return;
+      }
+
+      if (!formPage1Data) {
+        Alert.alert(
+          "Error",
+          "Missing form data. Please go back and fill all required fields."
+        );
+        return;
+      }
+
+      setIsSubmitting(true);
+
+      setFormPage2Data({
+        rulesText,
+        area: area || null,
+        nearbyLandmarks,
+        fullAddress,
+        phoneNumber,
+        whatsappNumber,
+        photos,
+      });
+
+      const roomsData = formPage1Data.rooms.map((room) => {
+        const totalBeds = [];
+        for (let i = 1; i <= room.noOfBeds; i++) {
+          totalBeds.push({ bedNumber: i });
+        }
+
+        const roomPayload: any = {
+          roomNumber: parseInt(room.roomNo) || 101,
+          totalBeds: totalBeds,
+          roomDescription: room.roomDetails || "This is a hostel room",
+        };
+
+        if (room._id && !room.isNewRoom) {
+          roomPayload._id = room._id;
+        }
+
+        if (room.isNewRoom) {
+          roomPayload.isNewRoom = true;
+        }
+
+        return roomPayload;
+      });
+
+      const apiData = {
+        hostelName: formPage1Data.hostelName,
+        hostelType:
+          formPage1Data.hostelType === "boys"
+            ? "Boys Hostel"
+            : formPage1Data.hostelType === "girls"
+            ? "Girls Hostel"
+            : "Co-ed Hostel",
+        description: formPage1Data.description,
+        pricing: {
+          perDay: formPage1Data.pricePerDay || 0,
+          weekly: formPage1Data.weeklyPrice || 0,
+          monthly: formPage1Data.monthlyPrice || 0,
+        },
+        securityDeposit: formPage1Data.securityDeposit || 0,
+        offers: formPage1Data.offers || "",
+        rooms: roomsData,
+        facilities: Object.entries(formPage1Data.amenities)
+          .filter(([_, value]) => value)
+          .map(([key]) => {
+            const facilityMap: { [key: string]: string } = {
+              wifi: "WiFi",
+              meals: "Mess",
+              security: "Security",
+              studyHall: "Study Hall",
+              commonTV: "Common TV",
+              cctv: "CCTV",
+              acRooms: "AC Rooms",
+              laundry: "Laundry",
+            };
+            return facilityMap[key] || key;
+          }),
+        location: {
+          area: area || "Didwana",
+          nearbyLandmarks: nearbyLandmarks || "Jaipur",
+          fullAddress: fullAddress || "Rajasthan",
+        },
+        contactInfo: {
+          phone: parseInt(phoneNumber),
+          whatsapp: parseInt(whatsappNumber),
+        },
+        rulesAndPolicies: rulesText || "No smoking inside premises",
+        hostelPhotos: photos.filter((p: any) => !p.isExisting),
+        roomsWithPhotos: formPage1Data.rooms.map((room) => ({
+          ...room,
+          roomPhotos: room.roomPhotos.filter((p: any) => !p.isExisting),
+        })),
+      };
+
+      console.log("=== SUBMITTING DATA ===");
+      console.log("Mode:", isUpdatingHostel ? "UPDATE" : "CREATE");
+      console.log("Hostel ID:", hostelId);
+      console.log("Rooms Data:", JSON.stringify(roomsData, null, 2));
+
+      const response = isUpdatingHostel
+        ? await updateHostelService(hostelId, apiData)
+        : await createHostelService(apiData);
+
+      console.log("✅ API Response:", response);
+
+      if (response.success) {
+        Alert.alert(
+          "Success",
+          isUpdatingHostel
+            ? "Hostel service updated successfully!"
+            : "Hostel service created successfully!",
+          [
+            {
+              text: "OK",
+              onPress: () => {
+                clearFormData();
+                router.replace("/(secure)/(hostelService)/successful");
+              },
+            },
+          ]
+        );
+      } else {
+        Alert.alert("Error", response.error || "Failed to submit listing");
+      }
+    } catch (error) {
+      console.error("❌ Submit error:", error);
+      Alert.alert("Error", "An unexpected error occurred");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const ROLES = [
-    { label: "With one meal", value: "With one meal" },
-    { label: "With two meal", value: "With two meal" },
-    { label: "One meal with breakfast", value: "One meal with breakfast" },
-    {
-      label: "With Lunch & dinner & breakfast",
-      value: "With Lunch & dinner & breakfast",
-    },
-    { label: "With breakfast", value: "With breakfast" },
-  ];
+  const resetForm = () => {
+    Alert.alert("Reset Form", "Are you sure you want to reset all fields?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Reset",
+        style: "destructive",
+        onPress: () => {
+          setRulesText("");
+          setArea("");
+          setNearbyLandmarks("");
+          setFullAddress("");
+          setPhoneNumber("");
+          setWhatsappNumber("");
+          setPhotos([]);
+          clearFormData();
+          router.back();
+        },
+      },
+    ]);
+  };
+
+  const handlePreview = () => {
+    setFormPage2Data({
+      rulesText,
+      area: area || null,
+      nearbyLandmarks,
+      fullAddress,
+      phoneNumber,
+      whatsappNumber,
+      photos,
+    });
+    router.push("/(secure)/(hostelService)/previewServiceHostel");
+  };
+
+  const pickImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+        allowsMultipleSelection: false,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const newPhoto = {
+          uri: result.assets[0].uri,
+          type: "image/jpeg",
+          name: `photo_${Date.now()}.jpg`,
+          isExisting: false,
+        };
+        setPhotos([...photos, newPhoto]);
+      }
+    } catch (error) {
+      console.error("Image picker error:", error);
+      Alert.alert("Error", "Failed to pick image");
+    }
+  };
+
+  // ✅ ENHANCED: Remove hostel photo with server deletion
+  const removePhoto = async (index: number) => {
+    const photo = photos[index];
+
+    // If it's an existing photo and we're in edit mode
+    if (photo.isExisting && isUpdatingHostel) {
+      Alert.alert(
+        "Delete Photo",
+        "Do you want to delete this photo from the server?",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Delete",
+            style: "destructive",
+            onPress: async () => {
+              try {
+                // ✅ Call API to delete hostel photo
+                const response = await hostelApiService.deleteHostelPhotos(
+                  hostelId,
+                  [photo.uri]
+                );
+
+                if (response.success) {
+                  setPhotos(photos.filter((_, i) => i !== index));
+                  Alert.alert("Success", "Photo deleted successfully");
+                } else {
+                  Alert.alert(
+                    "Error",
+                    response.error || "Failed to delete photo"
+                  );
+                }
+              } catch (error) {
+                console.error("Error deleting hostel photo:", error);
+                Alert.alert("Error", "Failed to delete photo");
+              }
+            },
+          },
+        ]
+      );
+    } else {
+      // Just remove locally (new photo not yet uploaded)
+      setPhotos(photos.filter((_, i) => i !== index));
+    }
+  };
+
+  if (isLoadingData) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#FF6B35" />
+        <Text style={styles.loadingText}>Loading hostel data...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.flex}>
       <SafeAreaView edges={["top"]} style={{ backgroundColor: Colors.white }}>
         <View style={{ backgroundColor: Colors.white }}>
-          <CommonHeader title="Add New Tiffen Service" actionText="Reset" />
+          <CommonHeader
+            title={
+              isUpdatingHostel
+                ? "Edit Hostel Service"
+                : "Add New Hostel Service"
+            }
+            actionText="Reset"
+            onActionPress={resetForm}
+          />
         </View>
       </SafeAreaView>
-
-      <KeyboardAwareScrollView
+      <ScrollView
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
-        enableOnAndroid={true}
-        extraScrollHeight={80} 
         keyboardShouldPersistTaps="handled"
       >
-        {/* Section - Service Features */}
         <View style={styles.card}>
-          <View style={{ flexDirection: "row", gap: 5, alignItems: "center" }}>
-            <Image
-              source={Images.emptyStar}
-              style={{ height: 16, width: 16 }}
-            />
-            <Text style={styles.heading}>Service Features</Text>
+          <View style={styles.sectionHeaderContainer}>
+            <Ionicons name="document-text-outline" size={20} color="#374151" />
+            <View>
+              <Text style={styles.sectionHeader}>Rules & Policies</Text>
+            </View>
           </View>
-          <Text
-            style={{
-              fontFamily: fonts.interRegular,
-              color: Colors.grey,
-              fontSize: 14,
-              marginTop: 10,
-              marginBottom: 18,
-            }}
-          >
-            Select features that apply to your service
-          </Text>
-          <MealCheckbox
-            label="Fresh ingredients daily"
-            checked={features.freshIngredients}
-            onToggle={() => toggleFeature("freshIngredients")}
-            containerStyle={{ marginBottom: 16 }}
-            labelStyle={{color : features.freshIngredients ? Colors.orange : Colors.grey}}
-            
-          />
-          <MealCheckbox
-            label="Hygienic preparation"
-            checked={features.hygienicPreparation}
-            onToggle={() => toggleFeature("hygienicPreparation")}
-            containerStyle={{ marginBottom: 16 }}
-            labelStyle={{color : features.hygienicPreparation ? Colors.orange : Colors.grey}}
-          />
-          <MealCheckbox
-            label="Monthly subscription available"
-            checked={features.monthlySubscription}
-            onToggle={() => toggleFeature("monthlySubscription")}
-            containerStyle={{ marginBottom: 16 }}
-            labelStyle={{color : features.monthlySubscription ? Colors.orange : Colors.grey}}
-
-          />
-          <MealCheckbox
-            label="Oil-free cooking option"
-            checked={features.oilFree}
-            onToggle={() => toggleFeature("oilFree")}
-            containerStyle={{ marginBottom: 16 }}
-            labelStyle={{color : features.oilFree ? Colors.orange : Colors.grey}}
-
-          />
-          <MealCheckbox
-            label="Home-style cooking"
-            checked={features.homeStyle}
-            onToggle={() => toggleFeature("homeStyle")}
-            containerStyle={{ marginBottom: 16 }}
-            labelStyle={{color : features.homeStyle ? Colors.orange : Colors.grey}}
-
-          />
-          <MealCheckbox
-            label="On-time delivery"
-            checked={features.onTimeDelivery}
-            onToggle={() => toggleFeature("onTimeDelivery")}
-            containerStyle={{ marginBottom: 16 }}
-            labelStyle={{color : features.onTimeDelivery ? Colors.orange : Colors.grey}}
-
-          />
-          <MealCheckbox
-            label="Customizable spice level"
-            checked={features.spiceLevel}
-            onToggle={() => toggleFeature("spiceLevel")}
-            containerStyle={{ marginBottom: 16 }}
-            labelStyle={{color : features.hygienicPreparation ? Colors.orange : Colors.grey}}
-
-          />
-          <MealCheckbox
-            label="Organic vegetables"
-            checked={features.organicVeggies}
-            onToggle={() => toggleFeature("organicVeggies")}
-            containerStyle={{ marginBottom: 16 }}
-            labelStyle={{color : features.hygienicPreparation ? Colors.orange : Colors.grey}}
-
-          />
+          <View>
+            <LabeledInput
+              label="Hostel Rules & Policies"
+              placeholder="Mention important rules like visiting hours, noise policy, etc."
+              value={rulesText}
+              onChangeText={setRulesText}
+              multiline
+              textAlignVertical="top"
+              labelStyle={styles.inputLabel}
+              inputContainerStyle={{
+                height: 100,
+                backgroundColor: "#fff",
+                paddingTop: 12,
+              }}
+              containerStyle={{ paddingHorizontal: 0 }}
+            />
+          </View>
         </View>
 
-        {/* Section - Photos */}
-        <View style={[styles.card, { padding: 0 }]}>
-          <View
-            style={{
-              flexDirection: "row",
-              gap: 5,
-              alignItems: "center",
-              padding: 15,
-            }}
-          >
-            <Image source={Images.camera} style={{ height: 16, width: 16 }} />
-            <Text style={styles.heading}>Photos</Text>
+        <View style={styles.card}>
+          <View style={styles.sectionHeaderContainer}>
+            <Ionicons name="camera-outline" size={20} color="#374151" />
+            <Text style={styles.sectionHeader}>Hostel Photos</Text>
           </View>
-          <View style={{ paddingHorizontal: 16 }}>
-            {photos.length === 0 ? (
-              <TouchableOpacity
-                style={styles.uploadBox}
-                onPress={pickImage}
-                activeOpacity={0.7}
-              >
-                <Text style={{ fontFamily: fonts.interSemibold, fontSize: 15 }}>
-                  Upload photos
-                </Text>
-                <Text
-                  style={{
-                    fontFamily: fonts.interRegular,
-                    fontSize: 13,
-                    color: Colors.grey,
-                  }}
-                >
-                  Upload clear photos of your tiffin meals
+
+          {photos.length > 0 && (
+            <View style={styles.photosGrid}>
+              {photos.map((photo, index) => (
+                <View key={index} style={styles.photoContainer}>
+                  <Image
+                    source={{ uri: photo.uri }}
+                    style={styles.photoPreview}
+                  />
+                  <TouchableOpacity
+                    style={styles.removePhotoButton}
+                    onPress={() => removePhoto(index)}
+                  >
+                    <Ionicons name="close-circle" size={24} color="#FF0000" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {photos.length < 5 && (
+            <>
+              <TouchableOpacity style={styles.uploadButton} onPress={pickImage}>
+                <Text style={styles.uploadText}>Upload photo</Text>
+                <Text style={styles.uploadSubtext}>
+                  Upload clear photo of your Hostel
                 </Text>
               </TouchableOpacity>
-            ) : (
-              <View style={styles.previewContainer}>
-                {photos.map((uri, index) => (
-                  <Image key={index} source={{ uri }} style={styles.image} />
-                ))}
-              </View>
-            )}
-            <TouchableOpacity onPress={pickImage}>
-              <Text style={styles.addMore}>+ Add More Photo</Text>
-            </TouchableOpacity>
-          </View>
+
+              {photos.length > 0 && photos.length < 5 && (
+                <TouchableOpacity
+                  style={styles.addMorePhotos}
+                  onPress={pickImage}
+                >
+                  <Text style={styles.addMorePhotosText}>
+                    + Add More Photo ({5 - photos.length} remaining)
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </>
+          )}
         </View>
 
-        {/* Section - Basic Information */}
         <View style={styles.card}>
-          <View style={{ flexDirection: "row", gap: 5, alignItems: "center" }}>
-            <Image source={Images.loc} style={{ height: 16, width: 16 }} />
-            <Text style={styles.heading}>Location Details</Text>
+          <View style={styles.sectionHeaderContainer}>
+            <Ionicons name="location-outline" size={20} color="#374151" />
+            <Text style={styles.sectionHeader}>Location Details</Text>
           </View>
-          <CommonDropdown
-            items={ROLES}
+          <LabeledInput
             label="Area/Locality *"
-            placeholder="Select Area"
+            placeholder="Enter area"
             value={area}
-            setValue={(val:any)=>{setArea(val)}}
-            containerStyle={{ marginBottom: 0, marginTop: 20 }}
+            onChangeText={setArea}
+            labelStyle={styles.inputLabel}
+            inputContainerStyle={{ height: 37, backgroundColor: "#fff" }}
+            containerStyle={{ paddingHorizontal: 0, marginBottom: 20 }}
           />
           <LabeledInput
             label="Nearby Landmarks"
             placeholder="e.g., Near VNIT, Medical College..."
-            value={landmark}
-            onChangeText={setLandmark}
-            labelStyle={styles.label}
-            containerStyle={styles.inputContainer}
-            inputStyle={{marginTop:0}}
-            inputContainerStyle={styles.inputBox}
+            value={nearbyLandmarks}
+            onChangeText={setNearbyLandmarks}
+            labelStyle={styles.inputLabel}
+            inputContainerStyle={{ height: 37, backgroundColor: "#fff" }}
+            containerStyle={{ paddingHorizontal: 0, marginBottom: 20 }}
           />
+
           <LabeledInput
-            label="Full Address"
+            label="Full Address *"
             placeholder="Enter complete address with pincode"
-            value={address}
-            onChangeText={setAddress}
+            value={fullAddress}
+            onChangeText={setFullAddress}
             multiline
-            textAlignVertical="auto"
-            labelStyle={styles.label}
-            inputContainerStyle={[styles.inputBox, styles.textArea]}
-            containerStyle={styles.descContainer}
-            inputStyle={styles.textAreaInput}
-          />
-          <LabeledInput
-            label="Service Radius (sq km) *"
-            placeholder="5"
-            value={radius}
-            onChangeText={setRadius}
-            labelStyle={styles.label}
-            containerStyle={styles.inputContainer}
-            inputContainerStyle={styles.inputBox}
-            keyboardType="numeric"
-            inputStyle={{marginTop:0}}
+            textAlignVertical="top"
+            labelStyle={styles.inputLabel}
+            inputContainerStyle={{
+              height: 64,
+              backgroundColor: "#fff",
+              paddingTop: 12,
+            }}
+            containerStyle={{ paddingHorizontal: 0 }}
           />
         </View>
 
-        {/* Section - Contact Information */}
         <View style={styles.card}>
-          <View style={{ flexDirection: "row", gap: 5, alignItems: "center" }}>
-            <Image
-              source={Images.profile}
-              style={{ height: 16, width: 16, tintColor: Colors.title }}
-            />
-            <Text style={styles.heading}>Contact Information</Text>
+          <View style={styles.sectionHeaderContainer}>
+            <Ionicons name="person-outline" size={20} color="#374151" />
+            <Text style={styles.sectionHeader}>Contact Information</Text>
           </View>
+
           <LabeledInput
             label="Phone Number *"
-            placeholder="Enter phone number"
-            value={phone}
-            onChangeText={setPhone}
-            labelStyle={styles.label}
-            containerStyle={styles.inputContainer}
+            placeholder="09893464946"
+            value={phoneNumber}
+            onChangeText={setPhoneNumber}
+            keyboardType="phone-pad"
+            maxLength={10}
+            labelStyle={styles.inputLabel}
             inputContainerStyle={styles.inputBox}
-            keyboardType="numeric"
-            inputStyle={{marginTop:0}}
+            containerStyle={styles.inputContainer}
           />
+
           <LabeledInput
             label="WhatsApp Number *"
-            placeholder="Enter WhatsApp number"
-            value={whatsapp}
-            onChangeText={setWhatsapp}
-            labelStyle={styles.label}
-            containerStyle={styles.inputContainer}
+            placeholder="09893464946"
+            value={whatsappNumber}
+            onChangeText={setWhatsappNumber}
+            keyboardType="phone-pad"
+            maxLength={10}
+            labelStyle={styles.inputLabel}
             inputContainerStyle={styles.inputBox}
-            keyboardType="numeric"
-            inputStyle={{marginTop:0}}
+            containerStyle={styles.inputContainer}
           />
         </View>
 
-        {/* Buttons */}
         <CommonButton
-          title="+ Create Tiffin Listing"
-          onPress={() => {
-            router.push("/(service)/confirmService");
-          }}
+          title={
+            isSubmitting || isLoading
+              ? isUpdatingHostel
+                ? "Updating..."
+                : "Submitting..."
+              : isUpdatingHostel
+              ? "Update Listing"
+              : "Submit Listing"
+          }
+          onPress={handleSubmit}
+          buttonStyle={
+            isSubmitting || isLoading
+              ? [styles.submitButton, { opacity: 0.7 }]
+              : styles.submitButton
+          }
+          disabled={isSubmitting || isLoading}
         />
-        <CommonButton
-          title="Preview"
-          buttonStyle={{
-            backgroundColor: Colors.white,
-            borderWidth: 1,
-            borderColor: Colors.primary,
-            marginTop: 16,
-            marginBottom:IS_ANDROID ? 50 : 5
-          }}
-          textStyle={{ color: Colors.primary }}
-          onPress={() => {
-            router.push("/(service)/previewService");
-          }}
-        />
-      </KeyboardAwareScrollView>
+
+        <TouchableOpacity
+          style={styles.previewButton}
+          onPress={handlePreview}
+          disabled={isSubmitting || isLoading}
+        >
+          <Text style={styles.previewText}>Preview</Text>
+        </TouchableOpacity>
+
+        <Text style={styles.footerText}>
+          Your listing will be reviewed and approved within 24 hours
+        </Text>
+      </ScrollView>
     </View>
   );
 };
 
-export default BasicInfoForm;
-
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  container: { padding: 16, backgroundColor: Colors.white },
+  flex: { flex: 1, backgroundColor: Colors.white },
+  container: { padding: 16, paddingBottom: 30 },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: Colors.white,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: "#6B7280",
+    fontFamily: fonts.interMedium,
+  },
   card: {
-    borderWidth: 0.5,
-    borderColor: Colors.lightGrey,
-    padding: 15,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    padding: 20,
     borderRadius: 12,
     marginBottom: 20,
+    backgroundColor: Colors.white,
   },
-  heading: { fontSize: 16, fontFamily: fonts.interSemibold },
-  label: { color: Colors.title, fontSize: 14, fontFamily: fonts.interRegular },
-  inputContainer: { marginTop: 20, paddingHorizontal: 0 },
-  inputBox: { backgroundColor: Colors.white, borderColor: Colors.lightGrey },
-  textArea: { minHeight: 100 },
-  descContainer: { marginBottom: 50, marginTop: 20, paddingHorizontal: 0 },
-  textAreaInput: { minHeight: 80 },
-  addMore: {
-    textAlign: "center",
-    color: Colors.orange,
+  sectionHeaderContainer: {
+    flexDirection: "row",
+    marginBottom: 16,
+    gap: 8,
+  },
+  sectionHeader: {
+    fontSize: 18,
     fontFamily: fonts.interBold,
-    fontSize: 14,
-    paddingVertical: 10,
+    color: "#111827",
+    marginLeft: 8,
   },
-  uploadBox: {
-    height: 108,
+  inputLabel: {
+    color: Colors.title,
+    fontSize: 14,
+    fontFamily: fonts.interMedium,
+    marginBottom: 8,
+  },
+  inputContainer: {
+    marginTop: 12,
+    paddingHorizontal: 0,
+  },
+  inputBox: {
+    backgroundColor: "#F9FAFB",
+    borderColor: "#E5E7EB",
     borderWidth: 1,
-    borderStyle: "dashed",
-    borderColor: Colors.lightGrey,
-    borderRadius: 12,
+    borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 15,
   },
-  previewContainer: {
+  uploadButton: {
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderStyle: "dashed",
+    borderRadius: 8,
+    padding: 20,
+    marginBottom: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F9FAFB",
+  },
+  uploadText: {
+    color: "#374151",
+    fontFamily: fonts.interMedium,
+    fontSize: 14,
+  },
+  uploadSubtext: {
+    color: "#9CA3AF",
+    fontFamily: fonts.interRegular,
+    fontSize: 12,
+    marginTop: 4,
+  },
+  addMorePhotos: {
+    alignSelf: "center",
+  },
+  addMorePhotosText: {
+    color: "#FF6B35",
+    fontFamily: fonts.interMedium,
+    fontSize: 14,
+  },
+  photosGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 10,
-    marginBottom: 10,
+    marginBottom: 16,
   },
-  image: {
+  photoContainer: {
+    position: "relative",
+    width: 100,
+    height: 100,
+  },
+  photoPreview: {
     width: "100%",
-    height: 120,
-    borderRadius: 10,
+    height: "100%",
+    borderRadius: 8,
+  },
+  removePhotoButton: {
+    position: "absolute",
+    top: -8,
+    right: -8,
+    backgroundColor: "white",
+    borderRadius: 12,
+  },
+  submitButton: {
+    borderRadius: 8,
+    marginBottom: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+  },
+  previewButton: {
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 8,
+    padding: 16,
+    alignItems: "center",
+    marginBottom: 20,
+    backgroundColor: Colors.white,
+  },
+  previewText: {
+    color: "#374151",
+    fontFamily: fonts.interMedium,
+    fontSize: 16,
+  },
+  footerText: {
+    textAlign: "center",
+    color: "#6B7280",
+    fontSize: 12,
+    fontFamily: fonts.interRegular,
+    marginBottom: 20,
   },
 });
+
+export default AddNewHostelService1;

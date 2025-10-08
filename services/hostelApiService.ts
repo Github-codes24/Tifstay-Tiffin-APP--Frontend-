@@ -4,7 +4,6 @@ import axios, { AxiosInstance } from "axios";
 
 class ApiService {
   private api: AxiosInstance;
-  // private baseURL = "https://tifstay-backend.onrender.com";
   private baseURL = "https://tifstay-project-be.onrender.com";
 
   constructor() {
@@ -16,7 +15,6 @@ class ApiService {
       },
     });
 
-    // Request interceptor to add auth token
     this.api.interceptors.request.use(
       async (config) => {
         const token = useAuthStore.getState().token;
@@ -31,7 +29,6 @@ class ApiService {
       }
     );
 
-    // Response interceptor for error handling
     this.api.interceptors.response.use(
       (response) => {
         console.log("API Response:", response.status, response.config.url);
@@ -44,10 +41,8 @@ class ApiService {
           error.response?.data
         );
 
-        // Handle 401 errors (unauthorized)
         if (error.response?.status === 401) {
           useAuthStore.setState({ token: null, isAuthenticated: false, user: null, });
-          // You might want to redirect to login here
         }
 
         return Promise.reject(error);
@@ -57,10 +52,7 @@ class ApiService {
 
   // Authentication APIs
   async login(email: string, password: string) {
-    return this.api.post("/api/hostelOwner/loginOwner", {
-        email,
-        password,
-      });
+    return this.api.post("/api/hostelOwner/loginOwner", { email, password });
   }
 
   async register(fullName: string, email: string, password: string) {
@@ -70,25 +62,27 @@ class ApiService {
         email,
         password,
       });
-
-      return {
-        success: true,
-        data: response.data,
-      };
+      return { success: true, data: response.data };
     } catch (error: any) {
       return {
         success: false,
-        error:
-          error.response?.data?.message ||
-          "Registration failed. Please try again.",
+        error: error.response?.data?.message || "Registration failed. Please try again.",
       };
     }
   }
-  async forgotPassword(email: string) { return this.api.post("/api/hostelOwner/forgotOwnerPassword", { email }); }
+
+  async forgotPassword(email: string) {
+    return this.api.post("/api/hostelOwner/forgotOwnerPassword", { email });
+  }
+
   async verifyOtp(email: string, otp: string) {
     return this.api.post("/api/hostelOwner/verifyOwnerOtp", { email, otp });
   }
-  async resetPassword(token: string, password: string) { return this.api.post("/api/hostelOwner/resetOwnerPassword", { token, password }); }
+
+  async resetPassword(token: string, password: string) {
+    return this.api.post("/api/hostelOwner/resetOwnerPassword", { token, password });
+  }
+
   async changePassword(oldPassword: string, newPassword: string, confirmPassword: string) {
     try {
       const response = await this.api.post("/api/hostelOwner/changeOwnerPassword", {
@@ -96,7 +90,6 @@ class ApiService {
         newPassword,
         confirmPassword,
       });
-  
       return {
         success: true,
         data: response.data,
@@ -105,136 +98,112 @@ class ApiService {
     } catch (error: any) {
       return {
         success: false,
-        error:
-          error.response?.data?.message ||
-          "Password change failed. Please try again.",
+        error: error.response?.data?.message || "Password change failed. Please try again.",
       };
     }
   }
 
   async logout() {
     try {
-     const response = await this.api.post("/api/hostelOwner/logoutOwner");
-     return {success:true,data:response.data};
+      const response = await this.api.post("/api/hostelOwner/logoutOwner");
+      return { success: true, data: response.data };
     } catch (error: any) {
       return { success: false, error: "Logout failed" };
     }
   }
 
-// Address Management APIs
-async addAddress(addressData: {
-  address: string;
-  street: string;
-  postCode: string;
-  label: "Home" | "Work";
-}) {
-  try {
-    const response = await this.api.post("/api/hostelOwner/address/addAddress", addressData);
-    return {
-      success: true,
-      data: response.data.data,
-    };
-  } catch (error: any) {
-    return {
-      success: false,
-      error: error.response?.data?.message || "Failed to add address",
-    };
+  // Address Management APIs
+  async addAddress(addressData: {
+    address: string;
+    street: string;
+    postCode: string;
+    label: "Home" | "Work";
+  }) {
+    try {
+      const response = await this.api.post("/api/hostelOwner/address/addAddress", addressData);
+      return { success: true, data: response.data.data };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to add address",
+      };
+    }
   }
-}
 
-async getAllAddresses() {
-  try {
-    const response = await this.api.get("/api/hostelOwner/address/getAllAddresses");
-    return {
-      success: true,
-      data: response.data.data,
-    };
-  } catch (error: any) {
-    return {
-      success: false,
-      error: error.response?.data?.message || "Failed to fetch addresses",
-    };
+  async getAllAddresses() {
+    try {
+      const response = await this.api.get("/api/hostelOwner/address/getAllAddresses");
+      return { success: true, data: response.data.data };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to fetch addresses",
+      };
+    }
   }
-}
 
-async getAddressById(addressId: string) {
-  try {
-    const response = await this.api.get(`/api/hostelOwner/address/getAddress/${addressId}`);
-    return {
-      success: true,
-      data: response.data.data,
-    };
-  } catch (error: any) {
-    return {
-      success: false,
-      error: error.response?.data?.message || "Failed to fetch address",
-    };
+  async getAddressById(addressId: string) {
+    try {
+      const response = await this.api.get(`/api/hostelOwner/address/getAddress/${addressId}`);
+      return { success: true, data: response.data.data };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to fetch address",
+      };
+    }
   }
-}
 
-async editAddress(addressId: string, addressData: {
-  address: string;
-  street: string;
-  postCode: string;
-  label: "Home" | "Work";
-}) {
-  try {
-    const response = await this.api.put(`/api/hostelOwner/address/editAddress/${addressId}`, addressData);
-    return {
-      success: true,
-      data: response.data.data,
-    };
-  } catch (error: any) {
-    return {
-      success: false,
-      error: error.response?.data?.message || "Failed to update address",
-    };
+  async editAddress(addressId: string, addressData: {
+    address: string;
+    street: string;
+    postCode: string;
+    label: "Home" | "Work";
+  }) {
+    try {
+      const response = await this.api.put(`/api/hostelOwner/address/editAddress/${addressId}`, addressData);
+      return { success: true, data: response.data.data };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to update address",
+      };
+    }
   }
-}
 
-async deleteAddress(addressId: string) {
-  try {
-    const response = await this.api.delete(`/api/hostelOwner/address/deleteAddress/${addressId}`);
-    return {
-      success: true,
-      data: response.data.data,
-    };
-  } catch (error: any) {
-    return {
-      success: false,
-      error: error.response?.data?.message || "Failed to delete address",
-    };
+  async deleteAddress(addressId: string) {
+    try {
+      const response = await this.api.delete(`/api/hostelOwner/address/deleteAddress/${addressId}`);
+      return { success: true, data: response.data.data };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to delete address",
+      };
+    }
   }
-}
-  // Create Hostel Listing
 
+  // ✅ CREATE HOSTEL SERVICE
   async createHostelService(data: CreateHostelServiceRequest) {
     try {
       const formData = new FormData();
-  
-  
-      // Basic fields - as TEXT not JSON
+
       formData.append("hostelName", data.hostelName);
       formData.append("hostelType", data.hostelType);
       formData.append("description", data.description);
       formData.append("securityDeposit", data.securityDeposit.toString());
-      
-      // Offers
+
       if (data.offers) {
         formData.append("offers", data.offers);
       }
-  
-      // ✅ Complex objects as JSON strings
+
       formData.append("location", JSON.stringify(data.location));
       formData.append("contactInfo", JSON.stringify(data.contactInfo));
-      formData.append("rooms", JSON.stringify(data.rooms)); // ✅ This is the rooms array
+      formData.append("rooms", JSON.stringify(data.rooms));
       formData.append("facilities", JSON.stringify(data.facilities));
       formData.append("pricing", JSON.stringify(data.pricing));
-      
-      // Rules and policies
       formData.append("rulesAndPolicies", data.rulesAndPolicies);
-  
-      // ✅ Hostel photos
+
       if (data.hostelPhotos && data.hostelPhotos.length > 0) {
         data.hostelPhotos.forEach((photo: any, index: number) => {
           if (photo.uri) {
@@ -246,49 +215,32 @@ async deleteAddress(addressId: string) {
           }
         });
       }
-  
-      // ✅ CRITICAL FIX: Room photos - Properly append each room's photos with correct index
+
       if (data.roomsWithPhotos && data.roomsWithPhotos.length > 0) {
         data.roomsWithPhotos.forEach((room: any, roomIndex: number) => {
-          console.log(`Processing Room ${roomIndex} (${room.roomNo}): ${room.roomPhotos?.length || 0} photos`);
-          
           if (room.roomPhotos && room.roomPhotos.length > 0) {
-            room.roomPhotos.forEach((photo: any, photoIndex: number) => {
+            room.roomPhotos.forEach((photo: any) => {
               if (photo && photo.uri) {
-                // ✅ KEY FIX: Use roomPhotos_0, roomPhotos_1, roomPhotos_2, etc.
                 const fieldName = `roomPhotos_${roomIndex}`;
-                console.log(`Appending photo to ${fieldName}`);
-                
                 formData.append(fieldName, {
                   uri: photo.uri,
                   type: photo.type || "image/jpeg",
-                  name: photo.name || `room_${roomIndex}_photo_${photoIndex}.jpg`,
+                  name: photo.name || `room_${roomIndex}_photo_${Date.now()}.jpg`,
                 } as any);
               }
             });
-          } else {
-            console.warn(`⚠️ Room ${roomIndex} has no photos!`);
           }
         });
-      } else {
-        console.warn("⚠️ No roomsWithPhotos provided!");
       }
-  
-      console.log("FormData prepared - sending to API...");
-  
+
       const response = await this.api.post("/api/hostelService/createHostelService", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
           "Accept": "application/json",
         },
       });
-  
-      console.log("✅ API Response:", response.data);
-  
-      return {
-        success: true,
-        data: response.data,
-      };
+
+      return { success: true, data: response.data };
     } catch (error: any) {
       console.error("❌ Create Hostel Service Error:", error.response?.data || error.message);
       return {
@@ -298,10 +250,139 @@ async deleteAddress(addressId: string) {
     }
   }
 
-  async getAllHostelServices(
-    page: number = 1,
-    limit: number = 10
-  ): Promise<ApiResponse<HostelServicesListResponse>> {
+  // ✅ UPDATE HOSTEL SERVICE
+  async updateHostelService(hostelServiceId: string, data: UpdateHostelServiceRequest) {
+    try {
+      const formData = new FormData();
+
+      formData.append("hostelName", data.hostelName);
+      formData.append("hostelType", data.hostelType);
+      formData.append("description", data.description);
+      formData.append("securityDeposit", data.securityDeposit.toString());
+
+      if (data.offers) {
+        formData.append("offers", data.offers);
+      }
+
+      formData.append("location", JSON.stringify(data.location));
+      formData.append("contactInfo", JSON.stringify(data.contactInfo));
+      formData.append("rooms", JSON.stringify(data.rooms));
+      formData.append("facilities", JSON.stringify(data.facilities));
+      formData.append("pricing", JSON.stringify(data.pricing));
+      formData.append("rulesAndPolicies", data.rulesAndPolicies);
+
+      // ✅ Only upload NEW hostel photos
+      if (data.hostelPhotos && data.hostelPhotos.length > 0) {
+        data.hostelPhotos.forEach((photo: any, index: number) => {
+          if (photo.uri && !photo.isExisting) {
+            formData.append("hostelPhotos", {
+              uri: photo.uri,
+              type: photo.type || "image/jpeg",
+              name: photo.name || `hostel_photo_${index}_${Date.now()}.jpg`,
+            } as any);
+          }
+        });
+      }
+
+      // ✅ Only upload NEW room photos
+      if (data.roomsWithPhotos && data.roomsWithPhotos.length > 0) {
+        data.roomsWithPhotos.forEach((room: any, roomIndex: number) => {
+          if (room.roomPhotos && room.roomPhotos.length > 0) {
+            room.roomPhotos.forEach((photo: any) => {
+              if (photo && photo.uri && !photo.isExisting) {
+                const fieldName = `roomPhotos_${roomIndex}`;
+                formData.append(fieldName, {
+                  uri: photo.uri,
+                  type: photo.type || "image/jpeg",
+                  name: photo.name || `room_${roomIndex}_photo_${Date.now()}.jpg`,
+                } as any);
+              }
+            });
+          }
+        });
+      }
+
+      console.log("📤 Updating hostel service:", hostelServiceId);
+
+      const response = await this.api.put(
+        `/api/hostelService/updateHostelService/${hostelServiceId}`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            "Accept": "application/json",
+          },
+        }
+      );
+
+      console.log("✅ Update Response:", response.data);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      console.error("❌ Update Hostel Service Error:", error.response?.data || error.message);
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to update hostel service.",
+      };
+    }
+  }
+
+  // ✅ DELETE ROOM PHOTOS
+  async deleteRoomPhotos(hostelServiceId: string, roomId: string, photoUrls: string[]) {
+    try {
+      console.log("🗑️ Deleting room photos:", { hostelServiceId, roomId, photoUrls });
+      
+      const response = await this.api.delete(
+        `/api/hostelService/deleteRoomPhotos/${hostelServiceId}/${roomId}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+          data: {
+            photoUrls: photoUrls,
+          },
+        }
+      );
+
+      console.log("✅ Room photos deleted:", response.data);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      console.error("❌ Delete Room Photos Error:", error.response?.data || error.message);
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to delete room photos.",
+      };
+    }
+  }
+
+  // ✅ DELETE HOSTEL PHOTOS
+  async deleteHostelPhotos(hostelServiceId: string, photoUrls: string[]) {
+    try {
+      console.log("🗑️ Deleting hostel photos:", { hostelServiceId, photoUrls });
+      
+      const response = await this.api.delete(
+        `/api/hostelService/deleteHostelPhotos/${hostelServiceId}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+          data: {
+            photoUrls: photoUrls,
+          },
+        }
+      );
+
+      console.log("✅ Hostel photos deleted:", response.data);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      console.error("❌ Delete Hostel Photos Error:", error.response?.data || error.message);
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to delete hostel photos.",
+      };
+    }
+  }
+
+  async getAllHostelServices(page: number = 1, limit: number = 10): Promise<ApiResponse<HostelServicesListResponse>> {
     try {
       const response = await this.api.get(
         `/api/hostelService/getHostelServicesByOwner?page=${page}&limit=${limit}`,
@@ -311,11 +392,7 @@ async deleteAddress(addressId: string) {
           },
         }
       );
-
-      return {
-        success: true,
-        data: response.data,
-      };
+      return { success: true, data: response.data };
     } catch (error: any) {
       console.error("Get All Hostel Services Error:", error);
       return {
@@ -324,13 +401,11 @@ async deleteAddress(addressId: string) {
       };
     }
   }
+
   async getRoomById(roomId: string) {
     try {
       const response = await this.api.get(`/api/hostelService/getRoomById/${roomId}`);
-      return {
-        success: true,
-        data: response.data,
-      };
+      return { success: true, data: response.data };
     } catch (error: any) {
       console.error("Get Room By ID Error:", error);
       return {
@@ -339,6 +414,7 @@ async deleteAddress(addressId: string) {
       };
     }
   }
+
   async getHostelServiceById(hostelServiceId: string) {
     try {
       const response = await this.api.get(
@@ -349,100 +425,12 @@ async deleteAddress(addressId: string) {
           },
         }
       );
-
-      return {
-        success: true,
-        data: response.data,
-      };
+      return { success: true, data: response.data };
     } catch (error: any) {
       console.error("Get Hostel Service By ID Error:", error);
       return {
         success: false,
         error: error.response?.data?.message || "Failed to fetch hostel service details.",
-      };
-    }
-  }
-
-  async updateHostelService(hostelServiceId: string, data: UpdateHostelServiceRequest) {
-    try {
-      const formData = new FormData();
-
-      // Basic fields
-      formData.append("hostelName", data.hostelName);
-      formData.append("hostelType", data.hostelType);
-      formData.append("description", data.description);
-
-      // Pricing as JSON string
-      formData.append("pricing", JSON.stringify(data.pricing));
-
-      // Security deposit
-      formData.append("securityDeposit", data.securityDeposit.toString());
-
-      // Offers
-      if (data.offers) {
-        formData.append("offers", data.offers);
-      }
-
-      // Rooms as JSON string (including isNewRoom flag and _id for existing rooms)
-      formData.append("rooms", JSON.stringify(data.rooms));
-
-      // Facilities as JSON string
-      formData.append("facilities", JSON.stringify(data.facilities));
-
-      // Location as JSON string
-      formData.append("location", JSON.stringify(data.location));
-
-      // Contact info as JSON string
-      formData.append("contactInfo", JSON.stringify(data.contactInfo));
-
-      // Rules and policies
-      formData.append("rulesAndPolicies", data.rulesAndPolicies);
-
-      // Hostel photos
-      if (data.hostelPhotos && data.hostelPhotos.length > 0) {
-        data.hostelPhotos.forEach((photo: any, index: number) => {
-          if (photo.uri) {
-            formData.append("hostelPhotos", {
-              uri: photo.uri,
-              type: photo.type || "image/jpeg",
-              name: photo.name || `hostel_photo_${index}_${Date.now()}.jpg`,
-            } as any);
-          }
-        });
-      }
-
-      // Room photos (if any)
-      if (data.roomPhotos && data.roomPhotos.length > 0) {
-        data.roomPhotos.forEach((photo: any, index: number) => {
-          if (photo.uri) {
-            formData.append("roomPhotos", {
-              uri: photo.uri,
-              type: photo.type || "image/jpeg",
-              name: photo.name || `room_photo_${index}_${Date.now()}.jpg`,
-            } as any);
-          }
-        });
-      }
-
-      const response = await this.api.put(
-        `/api/hostelService/updateHostelService/${hostelServiceId}`,
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
-
-      return {
-        success: true,
-        data: response.data,
-      };
-    } catch (error: any) {
-      console.error("Update Hostel Service Error:", error);
-      return {
-        success: false,
-        error: error.response?.data?.message || "Failed to update hostel service.",
       };
     }
   }
@@ -457,11 +445,7 @@ async deleteAddress(addressId: string) {
           },
         }
       );
-
-      return {
-        success: true,
-        data: response.data,
-      };
+      return { success: true, data: response.data };
     } catch (error: any) {
       console.error("Delete Hostel Service Error:", error);
       return {
@@ -471,149 +455,99 @@ async deleteAddress(addressId: string) {
     }
   }
 
-  async deleteRoomPhotos(hostelServiceId: string, roomId: string, photoUrls: string[]) {
-    try {
-      const response = await this.api.delete(
-        `/api/hostelService/deleteRoomPhotos/${hostelServiceId}/${roomId}`,
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-          data: {
-            photoUrls: photoUrls,
-          },
-        }
-      );
-
-      return {
-        success: true,
-        data: response.data,
-      };
-    } catch (error: any) {
-      console.error("Delete Room Photos Error:", error);
-      return {
-        success: false,
-        error: error.response?.data?.message || "Failed to delete room photos.",
-      };
-    }
-  }
-
   async getTotalHostelServicesCount() {
-   return this.api.get("/api/hostelService/getTotalHostelServicesCount");
+    return this.api.get("/api/hostelService/getTotalHostelServicesCount");
   }
 
   async getRequestedHostelServicesCount() {
-   return this.api.get("/api/hostelService/getRequestedHostelServicesCount");
+    return this.api.get("/api/hostelService/getRequestedHostelServicesCount");
   }
 
   async getAcceptedHostelServicesCount() {
     return this.api.get("/api/hostelService/getAcceptedHostelServicesCount");
-    }
+  }
 
   async getCancelledHostelServicesCount() {
     return this.api.get("/api/hostelService/getCancelledHostelServicesCount");
   }
- //privacy policy and term & condition
 
-async getPrivacyPolicy() {
-  try {
-    const response = await this.api.get("/api/hostelOwner/staticPage/get-privacy-policy");
-    return {
-      success: true,
-      data: response.data,
-    };
-  } catch (error: any) {
-    return {
-      success: false,
-      error: error.response?.data?.message || "Failed to get privacy policy",
-    };
-  }
-}
-
-async getTermAndCondition() {
-  try {
-    const response = await this.api.get("/api/hostelOwner/staticPage/get-terms-and-conditions");
-    return {
-      success: true,
-      data: response.data,
-    };
-  } catch (error: any) {
-    return {
-      success: false,
-      error: error.response?.data?.message || "Failed to get term and condition",
-    };
-  }
-}
-
-//Rating
-
-async getAllReviews(page: number = 1, limit: number = 10, rating?: number) {
-  try {
-    let url = `/api/hostelOwner/reviews/getAllReviews?page=${page}&limit=${limit}`;
-    if (rating) {
-      url += `&rating=${rating}`;
+  // Privacy Policy and Terms
+  async getPrivacyPolicy() {
+    try {
+      const response = await this.api.get("/api/hostelOwner/staticPage/get-privacy-policy");
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to get privacy policy",
+      };
     }
-    const response = await this.api.get(url);
-    return {
-      success: true,
-      data: response.data,
-    };
-  } catch (error: any) {
-    console.error("Get All Reviews Error:", error);
-    return {
-      success: false,
-      error: error.response?.data?.message || "Failed to fetch reviews.",
-    };
   }
-}
 
-async getReviewsByHostelId(
-  hostelId: string,
-  page: number = 1,
-  limit: number = 10,
-  rating?: number
-) {
-  try {
-    let url = `/api/hostelOwner/reviews/getReviewsByHostelId/${hostelId}?page=${page}&limit=${limit}`;
-    if (rating) {
-      url += `&rating=${rating}`;
+  async getTermAndCondition() {
+    try {
+      const response = await this.api.get("/api/hostelOwner/staticPage/get-terms-and-conditions");
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to get term and condition",
+      };
     }
-    const response = await this.api.get(url);
-    return {
-      success: true,
-      data: response.data,
-    };
-  } catch (error: any) {
-    console.error("Get Reviews By Hostel ID Error:", error);
-    return {
-      success: false,
-      error: error.response?.data?.message || "Failed to fetch hostel reviews.",
-    };
   }
-}
-async getReviewsSummary() {
-  try {
-    const response = await this.api.get("/api/hostelOwner/reviews/getAllReviews?page=1&limit=1");
-    return {
-      success: true,
-      data: response.data,
-    };
-  } catch (error: any) {
-    console.error("Get Reviews Summary Error:", error);
-    return {
-      success: false,
-      error: error.response?.data?.message || "Failed to fetch reviews summary.",
-    };
+
+  // Reviews
+  async getAllReviews(page: number = 1, limit: number = 10, rating?: number) {
+    try {
+      let url = `/api/hostelOwner/reviews/getAllReviews?page=${page}&limit=${limit}`;
+      if (rating) {
+        url += `&rating=${rating}`;
+      }
+      const response = await this.api.get(url);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      console.error("Get All Reviews Error:", error);
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to fetch reviews.",
+      };
+    }
   }
-}
-  // Get current user (example endpoint - adjust based on your API)
+
+  async getReviewsByHostelId(hostelId: string, page: number = 1, limit: number = 10, rating?: number) {
+    try {
+      let url = `/api/hostelOwner/reviews/getReviewsByHostelId/${hostelId}?page=${page}&limit=${limit}`;
+      if (rating) {
+        url += `&rating=${rating}`;
+      }
+      const response = await this.api.get(url);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      console.error("Get Reviews By Hostel ID Error:", error);
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to fetch hostel reviews.",
+      };
+    }
+  }
+
+  async getReviewsSummary() {
+    try {
+      const response = await this.api.get("/api/hostelOwner/reviews/getAllReviews?page=1&limit=1");
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      console.error("Get Reviews Summary Error:", error);
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to fetch reviews summary.",
+      };
+    }
+  }
+
   async getCurrentUser() {
     try {
       const response = await this.api.get("/api/auth/me");
-      return {
-        success: true,
-        data: response.data,
-      };
+      return { success: true, data: response.data };
     } catch (error: any) {
       return {
         success: false,
@@ -625,10 +559,7 @@ async getReviewsSummary() {
   async getUserProfile() {
     try {
       const response = await this.api.get("api/hostelOwner/getOwnerProfile");
-      return {
-        success: true,
-        data: response.data,
-      };
+      return { success: true, data: response.data };
     } catch (error: any) {
       return {
         success: false,
@@ -652,20 +583,17 @@ async getReviewsSummary() {
   }) {
     try {
       const formData = new FormData();
-      
-      // Add basic fields
+
       formData.append("fullName", profileData.fullName);
       formData.append("email", profileData.email);
       formData.append("phoneNumber", profileData.phoneNumber);
-      
-      // Add bank details
+
       formData.append("bankDetails[accountNumber]", profileData.bankDetails.accountNumber);
       formData.append("bankDetails[ifscCode]", profileData.bankDetails.ifscCode);
       formData.append("bankDetails[accountType]", profileData.bankDetails.accountType);
       formData.append("bankDetails[accountHolderName]", profileData.bankDetails.accountHolderName);
       formData.append("bankDetails[bankName]", profileData.bankDetails.bankName);
-      
-      // Add profile image if provided
+
       if (profileData.profileImage) {
         formData.append("profileImage", {
           uri: profileData.profileImage.uri,
@@ -673,17 +601,14 @@ async getReviewsSummary() {
           name: profileData.profileImage.name || `profile_${Date.now()}.jpg`,
         } as any);
       }
-  
+
       const response = await this.api.put("/api/hostelOwner/updateOwnerProfile", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
-  
-      return {
-        success: true,
-        data: response.data,
-      };
+
+      return { success: true, data: response.data };
     } catch (error: any) {
       return {
         success: false,
@@ -691,38 +616,32 @@ async getReviewsSummary() {
       };
     }
   }
-//chat APi
-async sendMessageToAdmin(message: string) {
-  try {
-    const response = await this.api.post("/api/message/sendMessage", {
-      message,
-    });
-    return {
-      success: true,
-      data: response.data,
-    };
-  } catch (error: any) {
-    return {
-      success: false,
-      error: error.response?.data?.message || "Failed to send message",
-    };
-  }
-}
 
-async getHostelOwnerPreviousChat() {
-  try {
-    const response = await this.api.get("/api/message/getHostelOwnerPreviousChat");
-    return {
-      success: true,
-      data: response.data,
-    };
-  } catch (error: any) {
-    return {
-      success: false,
-      error: error.response?.data?.message || "Failed to load messages",
-    };
+  // Chat API
+  async sendMessageToAdmin(message: string) {
+    try {
+      const response = await this.api.post("/api/message/sendMessage", { message });
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to send message",
+      };
+    }
   }
-}
+
+  async getHostelOwnerPreviousChat() {
+    try {
+      const response = await this.api.get("/api/message/getHostelOwnerPreviousChat");
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to load messages",
+      };
+    }
+  }
+
 }
 
 export default new ApiService();

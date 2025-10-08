@@ -21,11 +21,9 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-// Constants
 const ITEMS_PER_PAGE = 10;
 const SCROLL_BOTTOM_PADDING = { paddingBottom: IS_IOS ? 120 : 20 };
 
-// Extracted Components for better performance
 const StatsCard = React.memo<{
   icon: any;
   count: number;
@@ -111,7 +109,6 @@ export default function ServiceOfflineScreen() {
     [userServiceType]
   );
 
-  // Memoized values
   const profileImage = useMemo(
     () => (isTiffinProvider ? Images.user : { uri: user?.profileImage }),
     [isTiffinProvider, user?.profileImage]
@@ -146,31 +143,20 @@ export default function ServiceOfflineScreen() {
     [totalServices]
   );
 
-  // Format rating for display
   const displayRating = useMemo(() => {
     return overallRating > 0 ? overallRating.toFixed(1) : "0.0";
   }, [overallRating]);
 
-  // Format review count
   const displayReviewCount = useMemo(() => {
     return `(${totalReviews})`;
   }, [totalReviews]);
 
-  // Optimized data loading with Promise.all
   const loadData = useCallback(
     async (page: number) => {
       setLoading(true);
       try {
         if (isTiffinProvider) {
-          await Promise.all([
-            // getAllHostelServices(page, ITEMS_PER_PAGE), Get All tiffin services
-            getUserProfile(userServiceType),
-            // getTotalServicesCount(),
-            // getRequestedServicesCount(),
-            // getAcceptedServicesCount(),
-            // getCancelledServicesCount(),
-            // getReviewsSummary(),
-          ]);
+          await Promise.all([getUserProfile(userServiceType)]);
         } else {
           await Promise.all([
             getAllHostelServices(page, ITEMS_PER_PAGE),
@@ -197,10 +183,10 @@ export default function ServiceOfflineScreen() {
       getAcceptedServicesCount,
       getCancelledServicesCount,
       getReviewsSummary,
+      isTiffinProvider,
     ]
   );
 
-  // Optimized page change handler
   const handlePageChange = useCallback(
     (page: number) => {
       if (
@@ -215,7 +201,6 @@ export default function ServiceOfflineScreen() {
     [currentPage, pagination?.totalPages, loadData]
   );
 
-  // Optimized toggle handler
   const handleToggleOnline = useCallback(() => {
     const newOnlineState = !isOnline;
     setIsOnline(newOnlineState);
@@ -224,11 +209,10 @@ export default function ServiceOfflineScreen() {
     }
   }, [isOnline, isTiffinProvider]);
 
-  // Navigation handlers
   const handleAddService = useCallback(() => {
     const route = isTiffinProvider
       ? "/(secure)/(service)/addNewService"
-      : "/(secure)/(hostelService)/addNewHostelService?mode=add";
+      : "/(secure)/(hostelService)/addNewHostelService";
     router.push(route);
   }, [isTiffinProvider]);
 
@@ -240,7 +224,6 @@ export default function ServiceOfflineScreen() {
     router.push("/review");
   }, []);
 
-  // Stats configuration
   const statsConfig = useMemo(
     () => [
       {
@@ -277,7 +260,6 @@ export default function ServiceOfflineScreen() {
     ]
   );
 
-  // Optimized pagination rendering
   const renderPagination = useCallback(() => {
     if (!pagination || pagination.totalCount <= ITEMS_PER_PAGE) return null;
 
@@ -311,7 +293,7 @@ export default function ServiceOfflineScreen() {
     );
   }, [pagination, handlePageChange]);
 
-  // Optimized service list rendering
+  // ✅ FIXED: Proper edit navigation
   const renderServices = useMemo(() => {
     if (loading) {
       return (
@@ -329,15 +311,19 @@ export default function ServiceOfflineScreen() {
       <HostelCard
         hostel={hostel}
         key={hostel._id}
-        onEditPress={() =>
-          router.navigate({
+        onEditPress={() => {
+          console.log("📝 Navigating to edit for hostel:", hostel._id);
+          router.push({
             pathname: "/(secure)/(hostelService)/addNewHostelService",
-            params: { hostelId: hostel._id, mode: "edit" },
-          })
-        }
+            params: {
+              mode: "edit",
+              hostelId: hostel._id,
+            },
+          });
+        }}
       />
     ));
-  }, [loading, isTiffinProvider, hostelServices]);
+  }, [loading, isTiffinProvider, hostelServices, router]);
 
   useEffect(() => {
     loadData(1);
@@ -345,7 +331,6 @@ export default function ServiceOfflineScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <Image source={profileImage} style={styles.logo} />
         <View style={styles.headerText}>
@@ -362,7 +347,6 @@ export default function ServiceOfflineScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Body */}
       {!isOnline ? (
         <View style={styles.body}>
           <Text style={styles.infoText}>
@@ -379,7 +363,6 @@ export default function ServiceOfflineScreen() {
           contentContainerStyle={SCROLL_BOTTOM_PADDING}
           showsVerticalScrollIndicator={false}
         >
-          {/* Stats */}
           <View style={styles.statsRow}>
             <StatsCard {...statsConfig[0]} />
             <StatsCard {...statsConfig[1]} />
@@ -390,7 +373,6 @@ export default function ServiceOfflineScreen() {
             <StatsCard {...statsConfig[3]} />
           </View>
 
-          {/* Quick Actions */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Image source={Images.watch} style={styles.icon16} />
@@ -422,7 +404,6 @@ export default function ServiceOfflineScreen() {
             </View>
           </View>
 
-          {/* Earnings Overview */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Image source={Images.total} style={styles.icon16} />
@@ -438,7 +419,6 @@ export default function ServiceOfflineScreen() {
             </View>
           </View>
 
-          {/* Reviews */}
           <View style={styles.reviewBox}>
             <View style={styles.reviewHeader}>
               <Text style={styles.reviewTitle}>Reviews</Text>
@@ -453,7 +433,6 @@ export default function ServiceOfflineScreen() {
             </View>
           </View>
 
-          {/* Services */}
           <View style={styles.serviceHeader}>
             <Text style={styles.serviceTitle}>{serviceTitle}</Text>
             <Text style={styles.serviceCount}>{serviceCountText}</Text>
@@ -461,7 +440,6 @@ export default function ServiceOfflineScreen() {
 
           {renderServices}
 
-          {/* Pagination */}
           {renderPagination()}
 
           <CommonButton title="+ Add New Service" onPress={handleAddService} />
@@ -473,7 +451,6 @@ export default function ServiceOfflineScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.white },
-
   header: { flexDirection: "row", alignItems: "center", padding: 15 },
   logo: { width: 40, height: 40, borderRadius: 24, marginRight: 10 },
   headerText: { flex: 1 },
@@ -483,7 +460,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.interRegular,
     color: Colors.grey,
   },
-
   onlineButton: {
     borderColor: Colors.primary,
     borderWidth: 1,
@@ -496,7 +472,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: fonts.interMedium,
   },
-
   body: {
     flex: 1,
     justifyContent: "center",
@@ -517,7 +492,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     textAlign: "center",
   },
-
   statsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -546,7 +520,6 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   cardText: { fontSize: 13, fontFamily: fonts.interRegular, marginTop: 2 },
-
   section: {
     backgroundColor: Colors.white,
     borderRadius: 12,
@@ -562,7 +535,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.interSemibold,
     color: Colors.title,
   },
-
   quickActions: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -590,7 +562,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.interSemibold,
     fontSize: 14,
   },
-
   earningsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -619,7 +590,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.interRegular,
     marginTop: 4,
   },
-
   reviewBox: {
     backgroundColor: "#F5F5F5",
     borderRadius: 12,
@@ -650,7 +620,6 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     marginRight: 4,
   },
-
   serviceHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -667,20 +636,16 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.grey,
   },
-
   scrollContainer: {
     flex: 1,
     backgroundColor: Colors.white,
     padding: 12,
   },
-
   loadingContainer: {
     paddingVertical: 40,
     alignItems: "center",
     justifyContent: "center",
   },
-
-  // Pagination Styles
   paginationContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -729,7 +694,6 @@ const styles = StyleSheet.create({
   pageNumberTextActive: {
     color: Colors.white,
   },
-
   icon16: { height: 16, width: 16 },
   icon20: { height: 20, width: 20, marginBottom: 4 },
   icon24: { height: 24, width: 24 },

@@ -12,6 +12,7 @@ import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Image,
   ScrollView,
@@ -39,12 +40,18 @@ const AddNewHostelService = () => {
   const hostelId = params.hostelId as string;
   const isUpdatingHostel = mode === "edit";
   const router = useRouter();
-  const { setFormPage1Data, clearFormData } = useServiceStore();
+
+  // ✅ SINGLE DECLARATION - Include both functions
+  const { setFormPage1Data, setFormPage2Data, clearFormData } =
+    useServiceStore();
+
+  // Loading state
+  const [isLoading, setIsLoading] = useState(false);
 
   // Form states
   const [hostelName, setHostelName] = useState("");
   const [description, setDescription] = useState("");
-  const [hostelType, setHostelType] = useState<string | null>("select");
+  const [hostelType, setHostelType] = useState<string | null>("");
   const [pricePerDay, setPricePerDay] = useState(0);
   const [monthlyPrice, setMonthlyPrice] = useState(0);
   const [weeklyPrice, setWeeklyPrice] = useState(0);
@@ -72,36 +79,127 @@ const AddNewHostelService = () => {
   ]);
   const [activeRoomId, setActiveRoomId] = useState<string>("1");
 
+  // ✅ Load hostel data with proper error handling
   useEffect(() => {
     const loadHostelData = async () => {
+      if (!isUpdatingHostel || !hostelId) return;
+
+      setIsLoading(true);
       try {
+        console.log("📥 Fetching hostel data for ID:", hostelId);
         const response = await hostelApiService.getHostelServiceById(hostelId);
+
         if (response.success) {
           const hostelData = response.data.data;
-          if (hostelData) {
-            console.log("here we are", hostelData);
-            setHostelName(hostelData.hostelName);
-            setDescription(hostelData.description);
-            const _hostelType = hostelData.hostelType;
-            if (_hostelType === "Boys Hostel") {
-              setHostelType("boys");
-            } else if (_hostelType === "Girls Hostel") {
-              setHostelType("girls");
-            } else {
-              setHostelType("co-ed");
+          console.log("✅ Hostel data received:", hostelData);
+
+          // ========== PAGE 1 DATA ==========
+          setHostelName(hostelData.hostelName || "");
+          setDescription(hostelData.description || "");
+
+          // Hostel Type mapping
+          const _hostelType = hostelData.hostelType;
+          if (_hostelType === "Boys Hostel") {
+            setHostelType("boys");
+          } else if (_hostelType === "Girls Hostel") {
+            setHostelType("girls");
+          } else if (_hostelType === "Co-ed Hostel") {
+            setHostelType("coed");
+          } else {
+            setHostelType("");
+          }
+
+          setPricePerDay(hostelData.pricing?.perDay || 0);
+          setMonthlyPrice(hostelData.pricing?.monthly || 0);
+          setWeeklyPrice(hostelData.pricing?.weekly || 0);
+          setSecurityDeposit(hostelData.securityDeposit || 0);
+          setOffers(hostelData.offers || "");
+
+          const facilitiesArray = hostelData.facilities || [];
+          setAmenities({
+            wifi: facilitiesArray.includes("WiFi"),
+            meals: facilitiesArray.includes("Mess"),
+            security: facilitiesArray.includes("Security"),
+            studyHall: facilitiesArray.includes("Study Hall"),
+            commonTV: facilitiesArray.includes("Common TV"),
+            cctv: facilitiesArray.includes("CCTV"),
+            acRooms: facilitiesArray.includes("AC Rooms"),
+            laundry: facilitiesArray.includes("Laundry"),
+          });
+
+          // Load Rooms Data
+          if (hostelData.rooms && hostelData.rooms.length > 0) {
+            const loadedRooms = hostelData.rooms.map(
+              (room: any, index: number) => ({
+                id: room._id || `room_${Date.now()}_${index}`,
+                roomNo: room.roomNumber?.toString() || "",
+                noOfBeds: room.totalBeds?.length || 0,
+                roomDetails: room.roomDescription || "",
+                roomPhotos: (room.photos || []).map(
+                  (photoUrl: string, photoIndex: number) => ({
+                    uri: photoUrl,
+                    type: "image/jpeg",
+                    name: `existing_photo_${index}_${photoIndex}.jpg`,
+                    isExisting: true,
+                  })
+                ),
+              })
+            );
+
+            setRooms(loadedRooms);
+            if (loadedRooms.length > 0) {
+              setActiveRoomId(loadedRooms[0].id);
             }
           }
+
+          // ✅ ========== PAGE 2 DATA - PREFILL THIS TOO ==========
+          const page2Data = {
+            rulesText: hostelData.rulesAndPolicies || "",
+            area: hostelData.location?.area || "",
+            nearbyLandmarks: hostelData.location?.nearbyLandmarks || "",
+            fullAddress: hostelData.location?.fullAddress || "",
+            phoneNumber: hostelData.contactInfo?.phone?.toString() || "",
+            whatsappNumber: hostelData.contactInfo?.whatsapp?.toString() || "",
+            photos: (hostelData.hostelPhotos || []).map(
+              (photoUrl: string, photoIndex: number) => ({
+                uri: photoUrl,
+                type: "image/jpeg",
+                name: `existing_hostel_photo_${photoIndex}.jpg`,
+                isExisting: true,
+              })
+            ),
+          };
+
+          // ✅ Save page 2 data to store
+          setFormPage2Data(page2Data);
+
+          console.log("✅ Page 2 data also loaded:", {
+            rulesText: page2Data.rulesText?.substring(0, 50),
+            area: page2Data.area,
+            phoneNumber: page2Data.phoneNumber,
+            photosCount: page2Data.photos.length,
+          });
+
+          console.log("✅ All data loaded successfully");
+        } else {
+          throw new Error(response.error || "Failed to load hostel data");
         }
-      } catch (error) {
-        console.error("Error loading hostel data:", error);
+      } catch (error: any) {
+        console.error("❌ Error loading hostel data:", error);
+        Alert.alert(
+          "Error",
+          error.message || "Failed to load hostel data. Please try again."
+        );
+        router.back();
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    if (isUpdatingHostel) {
-      loadHostelData();
-    }
-  }, [isUpdatingHostel, hostelId]);
+    loadHostelData();
+  }, [isUpdatingHostel, hostelId, setFormPage2Data]);
 
+  // ... rest of your code remains the same
   // Image Picker
   const pickRoomImage = useCallback(
     async (roomId: string) => {
@@ -116,7 +214,7 @@ const AddNewHostelService = () => {
         }
 
         const result = await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: ["images"], // ✅ FIXED
+          mediaTypes: ["images"],
           allowsEditing: true,
           aspect: [4, 3],
           quality: 0.8,
@@ -127,6 +225,7 @@ const AddNewHostelService = () => {
             uri: result.assets[0].uri,
             type: "image/jpeg",
             name: `room_photo_${Date.now()}.jpg`,
+            isExisting: false, // ✅ Mark as new photo
           };
 
           setRooms((prevRooms) =>
@@ -207,7 +306,7 @@ const AddNewHostelService = () => {
     []
   );
 
-  // Comprehensive Validation
+  // ✅ FIXED: Validation with better logic for edit mode
   const validateForm = useCallback((): boolean => {
     // 1. Hostel Name Validation
     if (!hostelName.trim()) {
@@ -329,24 +428,19 @@ const AddNewHostelService = () => {
     rooms,
   ]);
 
+  // ✅ FIXED: Handle Next with proper data structure
   const handleNext = useCallback(() => {
     if (!validateForm()) return;
 
-    // ✅ DEBUG: Log room data
-    console.log("=== FORM PAGE 1 DATA ===");
-    console.log("Total Rooms:", rooms.length);
-    rooms.forEach((room, index) => {
-      console.log(`Room ${index}:`, {
-        roomNo: room.roomNo,
-        noOfBeds: room.noOfBeds,
-        roomDetails: room.roomDetails,
-        photosCount: room.roomPhotos.length,
-      });
-    });
+    console.log("📤 Preparing form data for next page");
 
-    const allRoomPhotos = rooms.flatMap((room) => room.roomPhotos);
+    // Separate new photos from existing ones
+    const allNewRoomPhotos = rooms.flatMap((room) =>
+      room.roomPhotos.filter((photo) => !photo.isExisting)
+    );
 
-    setFormPage1Data({
+    const formData = {
+      hostelId: isUpdatingHostel ? hostelId : undefined, // ✅ Include hostelId for updates
       hostelName: hostelName.trim(),
       description: description.trim(),
       hostelType: hostelType as string,
@@ -356,15 +450,30 @@ const AddNewHostelService = () => {
       securityDeposit,
       offers: offers.trim(),
       amenities,
-      roomPhotos: allRoomPhotos,
+      roomPhotos: allNewRoomPhotos, // Only new photos for upload
       rooms: rooms.map((room) => ({
+        roomId: isUpdatingHostel ? room.id : undefined, // ✅ Include roomId for updates
         roomNo: room.roomNo.trim(),
         noOfBeds: room.noOfBeds,
         roomDetails: room.roomDetails.trim(),
         roomPhotos: room.roomPhotos,
+        existingPhotos: room.roomPhotos
+          .filter((p) => p.isExisting)
+          .map((p) => p.uri),
+        newPhotos: room.roomPhotos.filter((p) => !p.isExisting),
+        allPhotos: room.roomPhotos, // Keep all for preview
       })),
+      isUpdate: isUpdatingHostel, // ✅ Flag to indicate update mode
+    };
+
+    console.log("✅ Form data prepared:", {
+      hostelName: formData.hostelName,
+      totalRooms: formData.rooms.length,
+      newPhotosCount: allNewRoomPhotos.length,
+      isUpdate: formData.isUpdate,
     });
 
+    setFormPage1Data(formData);
     router.push("/(secure)/(hostelService)/addNewHostelService1");
   }, [
     validateForm,
@@ -380,6 +489,8 @@ const AddNewHostelService = () => {
     rooms,
     setFormPage1Data,
     router,
+    isUpdatingHostel,
+    hostelId,
   ]);
 
   const resetForm = useCallback(() => {
@@ -391,7 +502,7 @@ const AddNewHostelService = () => {
         onPress: () => {
           setHostelName("");
           setDescription("");
-          setHostelType("boys");
+          setHostelType("");
           setPricePerDay(0);
           setMonthlyPrice(0);
           setWeeklyPrice(0);
@@ -542,7 +653,14 @@ const AddNewHostelService = () => {
                         <Image
                           source={{ uri: photo.uri }}
                           style={styles.photoPreview}
+                          resizeMode="cover"
                         />
+                        {/* ✅ Show badge for existing photos */}
+                        {photo.isExisting && (
+                          <View style={styles.existingBadge}>
+                            <Text style={styles.existingBadgeText}>Saved</Text>
+                          </View>
+                        )}
                         <TouchableOpacity
                           style={styles.removePhotoButton}
                           onPress={() => removeRoomPhoto(room.id, photoIndex)}
@@ -607,6 +725,7 @@ const AddNewHostelService = () => {
                       }
                       inputContainerStyle={styles.roomNoInputBox}
                       containerStyle={styles.noPadding}
+                      keyboardType="default"
                     />
                   </View>
                 </View>
@@ -619,6 +738,8 @@ const AddNewHostelService = () => {
                       updateRoomField(room.id, "noOfBeds", value)
                     }
                     step={1}
+                    min={1}
+                    max={20}
                     showCurrency={false}
                   />
                 </View>
@@ -655,12 +776,26 @@ const AddNewHostelService = () => {
     ]
   );
 
+  // ✅ Show loading state
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#FF6B35" />
+        <Text style={styles.loadingText}>Loading hostel data...</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.flex}>
       <SafeAreaView edges={["top"]} style={styles.safeArea}>
         <View style={styles.headerWrapper}>
           <CommonHeader
-            title="Add New Hostel Service"
+            title={
+              isUpdatingHostel
+                ? "Update Hostel Service"
+                : "Add New Hostel Service"
+            }
             actionText="Reset"
             onActionPress={resetForm}
           />
@@ -828,7 +963,7 @@ const AddNewHostelService = () => {
         </View>
 
         <CommonButton
-          title="Next"
+          title={isUpdatingHostel ? "Update & Continue" : "Next"}
           onPress={handleNext}
           buttonStyle={styles.nextButton}
         />
@@ -838,10 +973,25 @@ const AddNewHostelService = () => {
 };
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
+  flex: { flex: 1, backgroundColor: Colors.white },
   safeArea: { backgroundColor: Colors.white },
   headerWrapper: { backgroundColor: Colors.white },
   container: { padding: 10, paddingBottom: 30, backgroundColor: Colors.white },
+
+  // ✅ Loading State
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: Colors.white,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    fontFamily: fonts.interMedium,
+    color: "#6B7280",
+  },
+
   card: {
     borderWidth: 1,
     borderColor: "#A5A5A5",
@@ -1027,6 +1177,21 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
     borderRadius: 8,
+  },
+  // ✅ Badge for existing photos
+  existingBadge: {
+    position: "absolute",
+    bottom: 4,
+    left: 4,
+    backgroundColor: "rgba(34, 197, 94, 0.9)",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  existingBadgeText: {
+    fontSize: 9,
+    color: Colors.white,
+    fontFamily: fonts.interSemibold,
   },
   removePhotoButton: {
     position: "absolute",

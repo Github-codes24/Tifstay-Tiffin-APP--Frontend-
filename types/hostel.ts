@@ -90,6 +90,8 @@ export interface HostelService {
     offlineType: null | string;
     reason: null | string;
   };
+  isAvailable: boolean;
+  placeholder:any;
 }
 
 export interface CreateHostelServiceRequest {
@@ -110,6 +112,7 @@ export interface CreateHostelServiceRequest {
       status?: string;
     }[];
     roomDescription: string;
+    isNewRoom?: boolean;
   }[];
   facilities: string[];
   location: {
@@ -129,11 +132,22 @@ export interface CreateHostelServiceRequest {
     noOfBeds: number;
     roomDetails: string;
     roomPhotos: any[];
+    _id?: string;
+    isNewRoom?: boolean;
   }[];
 }
 
 export interface UpdateHostelServiceRequest extends CreateHostelServiceRequest {
-  rooms: (Room & { isNewRoom?: boolean })[];
+  rooms: {
+    _id?: string;
+    roomNumber: number;
+    totalBeds: {
+      bedNumber: number;
+      status?: string;
+    }[];
+    roomDescription: string;
+    isNewRoom?: boolean;
+  }[];
 }
 
 export interface HostelServiceResponse {
@@ -209,6 +223,8 @@ export interface HostelServicesListResponse {
 }
 
 export interface FormPage1Data {
+  hostelId?: string; // ✅ Add this for updates
+  isUpdate?: boolean; // ✅ Add this flag
   hostelName: string;
   description: string;
   hostelType: string;
@@ -229,10 +245,16 @@ export interface FormPage1Data {
   };
   roomPhotos: any[];
   rooms: {
+    roomId?: string; // ✅ Add this for room updates
     roomNo: string;
     noOfBeds: number;
     roomDetails: string;
     roomPhotos: any[];
+    existingPhotos?: string[]; // ✅ Add this for existing photo URLs
+    newPhotos?: any[]; // ✅ Add this for new photos to upload
+    allPhotos?: any[]; // ✅ Add this for preview
+    _id?: string;
+    isNewRoom?: boolean;
   }[];
 }
 
