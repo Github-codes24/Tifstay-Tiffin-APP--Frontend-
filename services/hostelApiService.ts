@@ -637,7 +637,6 @@ async getBookingsByStatus(status: string) {
   }
 }
 
-// ✅ Update Booking Status (NEW - Single endpoint for both accept/reject)
 async updateBookingStatus(bookingId: string, status: "Confirmed" | "Rejected") {
   try {
     console.log(`📝 Updating booking ${bookingId} to status:`, status);
@@ -661,27 +660,36 @@ async updateBookingStatus(bookingId: string, status: "Confirmed" | "Rejected") {
     };
   }
 }
-// ✅ Accept Booking (wrapper for backward compatibility)
+
 async acceptBooking(bookingId: string) {
   return this.updateBookingStatus(bookingId, "Confirmed");
 }
 
-// ✅ Reject Booking (wrapper for backward compatibility)
 async rejectBooking(bookingId: string) {
   return this.updateBookingStatus(bookingId, "Rejected");
 }
-  // Chat API
-  async sendMessageToAdmin(message: string) {
-    try {
-      const response = await this.api.post("/api/message/sendMessage", { message });
-      return { success: true, data: response.data };
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.response?.data?.message || "Failed to send message",
-      };
-    }
+
+async getAllCustomerList(page: number = 1, limit: number = 10) {
+  return this.api.get(`/api/hostelOwner/customer/getAllCustomers`, {
+    params: { page, limit },
+  });
+}
+
+async getCustomerInfo(customerId: string){
+  return this.api.get(`/api/hostelOwner/customer/getCustomerInfo/${customerId}`);
+}
+// Chat API
+async sendMessageToAdmin(message: string) {
+  try {
+    const response = await this.api.post("/api/message/sendMessage", { message });
+    return { success: true, data: response.data };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.response?.data?.message || "Failed to send message",
+    };
   }
+}
 
   async getHostelOwnerPreviousChat() {
     try {
@@ -696,5 +704,4 @@ async rejectBooking(bookingId: string) {
   }
 
 }
-
 export default new ApiService();

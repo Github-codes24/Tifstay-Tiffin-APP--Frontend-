@@ -1,18 +1,46 @@
-import React from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Image,
-  TouchableOpacity,
-  ScrollView,
-  SafeAreaView,
-} from "react-native";
-
-import { router } from "expo-router";
+import { Colors } from "@/constants/Colors";
 import { Images } from "@/constants/Images";
 import { fonts } from "@/constants/typography";
-import { Colors } from "@/constants/Colors";
+import { useLocalSearchParams } from "expo-router";
+import React, { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Image,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+
+interface RoomDetail {
+  roomNumber: string;
+  bedNumbers: number[];
+}
+
+interface Duration {
+  checkInDate: string;
+  checkOutDate: string;
+}
+
+interface CustomerData {
+  _id: string;
+  name: string;
+  email: string;
+  profileImage: string;
+  phoneNumber: string;
+  planPurchased: string[];
+  roomDetails: RoomDetail[];
+  duration: Duration;
+}
+
+interface ApiResponse {
+  success: boolean;
+  message: string;
+  data: CustomerData;
+}
+
 const InfoRow = ({
   icon,
   label,
@@ -32,34 +60,152 @@ const InfoRow = ({
 );
 
 const MyProfileScreen = () => {
+  const { customerId } = useLocalSearchParams();
+  const [customerData, setCustomerData] = useState<CustomerData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (customerId) {
+      fetchCustomerData();
+    }
+  }, [customerId]);
+
+  const fetchCustomerData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Replace with your actual API base URL
+      const response = await fetch(
+        `YOUR_BASE_URL/api/hostelOwner/customer/getCustomerById/${customerId}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            // Add authentication token if required
+            // "Authorization": `Bearer ${token}`,
+          },
+        }
+      );
+
+      const result: ApiResponse = await response.json();
+
+      if (result.success) {
+        setCustomerData(result.data);
+      } else {
+        setError(result.message || "Failed to fetch customer data");
+      }
+    } catch (err) {
+      console.error("Error fetching customer data:", err);
+      setError("Failed to load customer information");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatPlanPurchased = () => {
+    if (
+      !customerData?.planPurchased ||
+      customerData.planPurchased.length === 0
+    ) {
+      return "No plan purchased";
+    }
+    return customerData.planPurchased
+      .map((plan) => plan.charAt(0).toUpperCase() + plan.slice(1))
+      .join(", ");
+  };
+
+  const formatRoomDetails = () => {
+    if (!customerData?.roomDetails || customerData.roomDetails.length === 0) {
+      return "Not assigned";
+    }
+    return customerData.roomDetails
+      .map(
+        (room) => `Room ${room.roomNumber} - Bed ${room.bedNumbers.join(", ")}`
+      )
+      .join("\n");
+  };
+
+  const formatDuration = () => {
+    if (!customerData?.duration) {
+      return "Not available";
+    }
+    return `${customerData.duration.checkInDate} to ${customerData.duration.checkOutDate}`;
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={styles.loadingText}>Loading customer details...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error || !customerData) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error || "Customer not found"}</Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={fetchCustomerData}
+          >
+            <Text style={styles.retryText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.profileSection}>
-          <Image source={Images.user} style={styles.profileImage} />
-          <Text style={styles.profileName}>Ralph Edwards</Text>
+          <Image
+            source={
+              customerData.profileImage &&
+              customerData.profileImage !== "Not provided"
+                ? { uri: customerData.profileImage }
+                : Images.user
+            }
+            style={styles.profileImage}
+          />
+          <Text style={styles.profileName}>{customerData.name}</Text>
         </View>
 
         <View style={styles.infoCard}>
           <InfoRow
             icon={Images.email1}
             label="Email"
-            value="maharashtrian@gmail.com"
+            value={
+              customerData.email !== "Not provided"
+                ? customerData.email
+                : "Email not provided"
+            }
           />
           <InfoRow
             icon={Images.phone}
             label="Phone Number"
-            value="715-601-4598"
-          />
-           <InfoRow
-            icon={Images.name}
-            label="Date of Birth"
-            value="12.09.2008"
+            value={customerData.phoneNumber || "Not provided"}
           />
           <InfoRow
             icon={Images.bank}
             label="Plan Purchased"
-            value={`Monthly - Lunch & Dinner - Veg`}
+            value={formatPlanPurchased()}
+          />
+          <InfoRow
+            icon={Images.name}
+            label="Room Details"
+            value={formatRoomDetails()}
+          />
+          <InfoRow
+            icon={Images.name}
+            label="Duration"
+            value={formatDuration()}
           />
         </View>
       </ScrollView>
@@ -74,6 +220,41 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 30,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    fontFamily: fonts.interMedium,
+    color: Colors.grey,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 40,
+  },
+  errorText: {
+    fontSize: 16,
+    fontFamily: fonts.interMedium,
+    color: Colors.red,
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryText: {
+    color: Colors.white,
+    fontSize: 14,
+    fontFamily: fonts.interSemibold,
   },
   header: {
     flexDirection: "row",
@@ -99,6 +280,7 @@ const styles = StyleSheet.create({
     width: 86,
     height: 86,
     borderRadius: 43,
+    backgroundColor: Colors.lightGrey,
   },
   profileName: {
     fontSize: 18,
@@ -108,7 +290,6 @@ const styles = StyleSheet.create({
   infoCard: {
     backgroundColor: "#F8F5FF",
     marginHorizontal: 26,
-    // height: 296,
     borderRadius: 12,
     padding: 16,
     marginTop: 14,
