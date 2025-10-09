@@ -4,11 +4,16 @@ import CommonHeader from "@/components/CommonHeader";
 import { Colors } from "@/constants/Colors";
 import { Images } from "@/constants/Images";
 import { fonts } from "@/constants/typography";
+import hostelApiService from "@/services/hostelApiService";
 import useAuthStore from "@/store/authStore";
+import { HostelBooking } from "@/types/hostel";
 import { router } from "expo-router";
 import * as React from "react";
 import {
+  ActivityIndicator,
+  Alert,
   Image,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -22,12 +27,31 @@ const subscribers = [
   { id: "2", name: "Annette Black", plan: "Monthly (Non-Veg Dinner)" },
 ];
 
-// ------------------ Tab Screens ------------------
+// ✅ Helper function to format plan name
+const formatPlanName = (plans: any[]): string => {
+  if (!plans || plans.length === 0) return "N/A";
+  return plans[0].name.charAt(0).toUpperCase() + plans[0].name.slice(1);
+};
+
+// ✅ Helper function to format bed numbers
+const formatBedNumbers = (rooms: any[]): string => {
+  if (!rooms || rooms.length === 0) return "N/A";
+  const allBeds = rooms.flatMap((room) => room.bedNumbers);
+  return allBeds.join(", ");
+};
+
+// ✅ Helper function to format room numbers
+const formatRoomNumbers = (rooms: any[]): string => {
+  if (!rooms || rooms.length === 0) return "N/A";
+  return rooms.map((room) => room.roomNumber).join(", ");
+};
+
+// ------------------ TIFFIN Tab Screens ------------------
 
 const RequestsRoute = () => (
   <ScrollView style={styles.scene} showsVerticalScrollIndicator={false}>
     <View style={styles.badgeOrange}>
-      <Text style={styles.badgeTextOrange}>Confirmed</Text>
+      <Text style={styles.badgeTextOrange}>Requests</Text>
     </View>
     <BookingCard
       status="Confirmed"
@@ -39,54 +63,6 @@ const RequestsRoute = () => (
       mealType="Breakfast, Lunch, Dinner"
       plan="Daily"
       orderType="Delivery"
-      onPressUpdate={() => alert("Update Order Summary clicked!")}
-      isReq
-      onAccept={() => {}}
-      onReject={() => {}}
-    />
-  </ScrollView>
-);
-
-const RequestsAcceptRoute = () => (
-  <ScrollView style={styles.scene} showsVerticalScrollIndicator={false}>
-    <View style={styles.badgePrimary}>
-      <Text style={styles.badgeTextPrimary}>Confirmed</Text>
-    </View>
-    <BookingCardHostel
-      status="Confirmed"
-      bookingId="#TF2024002"
-      orderedDate="21/07/2025"
-      tiffinService="Scholars Den Boys Hostel"
-      customer="Onil Karmokar"
-      startDate="Weekly"
-      mealType="12"
-      plan="10,11,12"
-      orderType="01/08/25"
-      onPressUpdate={() =>
-        router.push({
-          pathname: "/orderDetails",
-          params: { isSubscriber: "false" },
-        })
-      }
-    />
-  </ScrollView>
-);
-
-const RequestsRouteHostel = () => (
-  <ScrollView style={styles.scene} showsVerticalScrollIndicator={false}>
-    <View style={styles.badgeOrange}>
-      <Text style={styles.badgeTextOrange}>Requests</Text>
-    </View>
-    <BookingCardHostel
-      status="Accepted"
-      bookingId="#TF2024002"
-      orderedDate="21/07/2025"
-      tiffinService="Scholars Den Boys Hostel"
-      customer="Onil Karmokar"
-      startDate="Weekly"
-      mealType="12"
-      plan="10,11,12"
-      orderType="01/08/25"
       onPressUpdate={() => alert("Update Order Summary clicked!")}
       isReq
       onAccept={() => {}}
@@ -140,26 +116,6 @@ const CompletedRoute = () => (
   </ScrollView>
 );
 
-const CompletedHostelRoute = () => (
-  <ScrollView style={styles.scene} showsVerticalScrollIndicator={false}>
-    <View style={styles.badgeGreen}>
-      <Text style={styles.badgeTextGreen}>Completed</Text>
-    </View>
-    <BookingCardHostel
-      status="Accepted"
-      bookingId="#TF2024002"
-      orderedDate="21/07/2025"
-      tiffinService="Scholars Den Boys Hostel"
-      customer="Onil Karmokar"
-      startDate="Weekly"
-      mealType="12"
-      plan="10,11,12"
-      orderType="01/08/25"
-      statusText="Completed"
-    />
-  </ScrollView>
-);
-
 const SubscriberCard: React.FC<{
   name: string;
   plan: string;
@@ -198,6 +154,328 @@ const SubscriberRoute = () => (
   </ScrollView>
 );
 
+// ------------------ HOSTEL Tab Screens ------------------
+
+const RequestsRouteHostel = () => {
+  const [bookings, setBookings] = React.useState<HostelBooking[]>([]);
+  const [loading, setLoading] = React.useState(false);
+  const [refreshing, setRefreshing] = React.useState(false);
+  const [processingBookingId, setProcessingBookingId] = React.useState<
+    string | null
+  >(null);
+
+  React.useEffect(() => {
+    loadBookings();
+  }, []);
+
+  const loadBookings = async () => {
+    setLoading(true);
+    try {
+      const response = await hostelApiService.getBookingsByStatus("Requested");
+      if (response.success && response.data?.data?.bookings) {
+        setBookings(response.data.data.bookings);
+      }
+    } catch (error) {
+      console.error("Error loading bookings:", error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const handleAccept = async (bookingId: string, bookingNumber: string) => {
+    Alert.alert(
+      "Accept Booking",
+      `Are you sure you want to accept booking ${bookingNumber}?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Accept",
+          onPress: async () => {
+            setProcessingBookingId(bookingId);
+            try {
+              const response = await hostelApiService.updateBookingStatus(
+                bookingId,
+                "Confirmed" // ✅ This matches API requirement
+              );
+
+              if (response.success) {
+                Alert.alert("Success", "Booking accepted successfully", [
+                  {
+                    text: "OK",
+                    onPress: () => loadBookings(),
+                  },
+                ]);
+              } else {
+                Alert.alert(
+                  "Error",
+                  response.error || "Failed to accept booking"
+                );
+              }
+            } catch (error) {
+              Alert.alert("Error", "Failed to accept booking");
+            } finally {
+              setProcessingBookingId(null);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleReject = async (bookingId: string, bookingNumber: string) => {
+    Alert.alert(
+      "Reject Booking",
+      `Are you sure you want to reject booking ${bookingNumber}?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Reject",
+          style: "destructive",
+          onPress: async () => {
+            setProcessingBookingId(bookingId);
+            try {
+              const response = await hostelApiService.updateBookingStatus(
+                bookingId,
+                "Rejected" // ✅ This matches API requirement
+              );
+
+              if (response.success) {
+                Alert.alert("Success", "Booking rejected successfully", [
+                  {
+                    text: "OK",
+                    onPress: () => loadBookings(),
+                  },
+                ]);
+              } else {
+                Alert.alert(
+                  "Error",
+                  response.error || "Failed to reject booking"
+                );
+              }
+            } catch (error) {
+              Alert.alert("Error", "Failed to reject booking");
+            } finally {
+              setProcessingBookingId(null);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    loadBookings();
+  }, []);
+
+  if (loading && !refreshing) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+        <Text style={styles.loadingText}>Loading bookings...</Text>
+      </View>
+    );
+  }
+
+  return (
+    <ScrollView
+      style={styles.scene}
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+    >
+      <View style={styles.badgeOrange}>
+        <Text style={styles.badgeTextOrange}>Requests</Text>
+      </View>
+      {bookings.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>No pending requests</Text>
+        </View>
+      ) : (
+        bookings.map((booking) => (
+          <BookingCardHostel
+            key={booking._id}
+            status="Pending"
+            bookingId={booking.bookingNumber}
+            orderedDate={booking.bookedDate}
+            tiffinService={booking.hostelName}
+            customer={booking.customerName}
+            startDate={formatPlanName(booking.selectPlan)}
+            mealType={formatRoomNumbers(booking.rooms)}
+            plan={formatBedNumbers(booking.rooms)}
+            orderType={booking.checkInDate}
+            checkOutDate={booking.checkOutDate}
+            rooms={booking.rooms}
+            isReq
+            isProcessing={processingBookingId === booking._id}
+            onAccept={() => handleAccept(booking._id, booking.bookingNumber)}
+            onReject={() => handleReject(booking._id, booking.bookingNumber)}
+          />
+        ))
+      )}
+    </ScrollView>
+  );
+};
+
+const RequestsAcceptRoute = () => {
+  const [bookings, setBookings] = React.useState<HostelBooking[]>([]);
+  const [loading, setLoading] = React.useState(false);
+  const [refreshing, setRefreshing] = React.useState(false);
+
+  React.useEffect(() => {
+    loadBookings();
+  }, []);
+
+  const loadBookings = async () => {
+    setLoading(true);
+    try {
+      // ✅ Changed to "Confirmed" to match API response
+      const response = await hostelApiService.getBookingsByStatus("Confirmed");
+      if (response.success && response.data?.data?.bookings) {
+        setBookings(response.data.data.bookings);
+      }
+    } catch (error) {
+      console.error("Error loading bookings:", error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    loadBookings();
+  }, []);
+
+  if (loading && !refreshing) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+        <Text style={styles.loadingText}>Loading bookings...</Text>
+      </View>
+    );
+  }
+
+  return (
+    <ScrollView
+      style={styles.scene}
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+    >
+      <View style={styles.badgePrimary}>
+        <Text style={styles.badgeTextPrimary}>Accepted</Text>
+      </View>
+      {bookings.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>No accepted bookings</Text>
+        </View>
+      ) : (
+        bookings.map((booking) => (
+          <BookingCardHostel
+            key={booking._id}
+            status="Accepted"
+            bookingId={booking.bookingNumber}
+            orderedDate={booking.bookedDate}
+            tiffinService={booking.hostelName}
+            customer={booking.customerName}
+            startDate={formatPlanName(booking.selectPlan)}
+            mealType={formatRoomNumbers(booking.rooms)}
+            plan={formatBedNumbers(booking.rooms)}
+            orderType={booking.checkInDate}
+            checkOutDate={booking.checkOutDate}
+            rooms={booking.rooms}
+            onPressUpdate={() =>
+              router.push({
+                pathname: "/orderDetails",
+                params: { isSubscriber: "false", bookingId: booking._id },
+              })
+            }
+          />
+        ))
+      )}
+    </ScrollView>
+  );
+};
+
+const CompletedHostelRoute = () => {
+  const [bookings, setBookings] = React.useState<HostelBooking[]>([]);
+  const [loading, setLoading] = React.useState(false);
+  const [refreshing, setRefreshing] = React.useState(false);
+
+  React.useEffect(() => {
+    loadBookings();
+  }, []);
+
+  const loadBookings = async () => {
+    setLoading(true);
+    try {
+      const response = await hostelApiService.getBookingsByStatus("Rejected");
+      if (response.success && response.data?.data?.bookings) {
+        setBookings(response.data.data.bookings);
+      }
+    } catch (error) {
+      console.error("Error loading bookings:", error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    loadBookings();
+  }, []);
+
+  if (loading && !refreshing) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+        <Text style={styles.loadingText}>Loading bookings...</Text>
+      </View>
+    );
+  }
+
+  return (
+    <ScrollView
+      style={styles.scene}
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+    >
+      <View style={styles.badgeRed}>
+        <Text style={styles.badgeTextRed}>Rejected</Text>
+      </View>
+      {bookings.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>No rejected bookings</Text>
+        </View>
+      ) : (
+        bookings.map((booking) => (
+          <BookingCardHostel
+            key={booking._id}
+            status="Rejected"
+            bookingId={booking.bookingNumber}
+            orderedDate={booking.bookedDate}
+            tiffinService={booking.hostelName}
+            customer={booking.customerName}
+            startDate={formatPlanName(booking.selectPlan)}
+            mealType={formatRoomNumbers(booking.rooms)}
+            plan={formatBedNumbers(booking.rooms)}
+            orderType={booking.checkInDate}
+            checkOutDate={booking.checkOutDate}
+            rooms={booking.rooms}
+          />
+        ))
+      )}
+    </ScrollView>
+  );
+};
+
 // ------------------ Main Screen ------------------
 
 export default function Order() {
@@ -215,7 +493,7 @@ export default function Order() {
     : [
         { key: "requests", title: "Requests" },
         { key: "accepted", title: "Accepted" },
-        { key: "completed", title: "Rejected" },
+        { key: "rejected", title: "Rejected" },
       ];
 
   const renderScene = () => {
@@ -225,7 +503,9 @@ export default function Order() {
       case "accepted":
         return isTiffinProvider ? <AcceptedRoute /> : <RequestsAcceptRoute />;
       case "completed":
-        return isTiffinProvider ? <CompletedRoute /> : <CompletedHostelRoute />;
+        return <CompletedRoute />;
+      case "rejected":
+        return <CompletedHostelRoute />;
       case "subscriber":
         return <SubscriberRoute />;
       default:
@@ -378,6 +658,28 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: fonts.interMedium,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 40,
+    backgroundColor: Colors.white,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: Colors.grey,
+    fontFamily: fonts.interRegular,
+  },
+  emptyContainer: {
+    paddingVertical: 40,
+    alignItems: "center",
+  },
+  emptyText: {
+    fontSize: 14,
+    fontFamily: fonts.interRegular,
+    color: Colors.grey,
+  },
   // Badge styles
   badgeOrange: {
     borderWidth: 1,
@@ -423,5 +725,20 @@ const styles = StyleSheet.create({
     fontFamily: fonts.interRegular,
     fontSize: 11,
     color: Colors.green,
+  },
+  badgeRed: {
+    borderWidth: 1,
+    marginVertical: 12,
+    alignSelf: "flex-start",
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    backgroundColor: "#FFF0F0",
+    borderColor: Colors.red,
+    borderRadius: 20,
+  },
+  badgeTextRed: {
+    fontFamily: fonts.interRegular,
+    fontSize: 11,
+    color: Colors.red,
   },
 });

@@ -420,3 +420,54 @@ export interface ContentData {
     text: string;
   }[];
 }
+// types/booking.ts
+
+export interface BookingRoom {
+  roomNumber: string;
+  bedNumbers: number[];
+}
+
+export interface SelectPlan {
+  name: string;
+  price: number;
+  depositAmount: number;
+}
+
+export interface HostelBooking {
+  _id: string;
+  bookingNumber: string;
+  bookedDate: string;
+  hostelName: string;
+  hostelId: string;
+  customerName: string;
+  phoneNumber: string;
+  selectPlan: SelectPlan[];
+  checkInDate: string;
+  checkOutDate: string;
+  workType: string;
+  status: "Pending" | "Confirmed" | "Rejected";
+  userPhoto: string | null;
+  aadharCardPhoto: string | null;
+  rooms: BookingRoom[];
+  createdAt: string;
+}
+
+export interface BookingsResponse {
+  success: boolean;
+  message: string;
+  data: {
+    status: string;
+    totalCount: number;
+    bookings: HostelBooking[];
+  };
+}
+
+export interface UpdateBookingStatusRequest {
+  status: "Confirmed" | "Rejected";
+}
+
+export interface UpdateBookingStatusResponse {
+  success: boolean;
+  message: string;
+  data?: any;
+}

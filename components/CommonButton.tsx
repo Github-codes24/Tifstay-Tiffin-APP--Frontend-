@@ -2,13 +2,13 @@
 import { Colors } from "@/constants/Colors";
 import { fonts } from "@/constants/typography";
 import React from "react";
-import { TouchableOpacity, Text, StyleSheet, ViewStyle, TextStyle } from "react-native";
+import { TouchableOpacity, Text, StyleSheet, ViewStyle, TextStyle, StyleProp } from "react-native";
 
 interface CommonButtonProps {
   title: string;
   onPress: () => void;
-  buttonStyle?: ViewStyle | ViewStyle[];
-  textStyle?: TextStyle | TextStyle[];
+  buttonStyle?: StyleProp<ViewStyle>;
+  textStyle?: StyleProp<TextStyle>;
   disabled?: boolean;
 }
 

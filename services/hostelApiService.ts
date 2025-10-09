@@ -183,7 +183,6 @@ class ApiService {
     }
   }
 
-  // ✅ CREATE HOSTEL SERVICE
   async createHostelService(data: CreateHostelServiceRequest) {
     try {
       const formData = new FormData();
@@ -250,7 +249,6 @@ class ApiService {
     }
   }
 
-  // ✅ UPDATE HOSTEL SERVICE
   async updateHostelService(hostelServiceId: string, data: UpdateHostelServiceRequest) {
     try {
       const formData = new FormData();
@@ -326,7 +324,6 @@ class ApiService {
     }
   }
 
-  // ✅ DELETE ROOM PHOTOS
   async deleteRoomPhotos(hostelServiceId: string, roomId: string, photoUrls: string[]) {
     try {
       console.log("🗑️ Deleting room photos:", { hostelServiceId, roomId, photoUrls });
@@ -354,7 +351,6 @@ class ApiService {
     }
   }
 
-  // ✅ DELETE HOSTEL PHOTOS
   async deleteHostelPhotos(hostelServiceId: string, photoUrls: string[]) {
     try {
       console.log("🗑️ Deleting hostel photos:", { hostelServiceId, photoUrls });
@@ -616,7 +612,64 @@ class ApiService {
       };
     }
   }
+//Booking
+async getBookingsByStatus(status: string) {
+  try {
+    console.log("📥 Fetching bookings with status:", status);
+    const response = await this.api.get(
+      `/api/hostelOwner/bookings/getBookingsByStatus`,
+      {
+        params: { status },
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
 
+    console.log("✅ Bookings Response:", response.data);
+    return { success: true, data: response.data };
+  } catch (error: any) {
+    console.error("❌ Get Bookings Error:", error);
+    return {
+      success: false,
+      error: error.response?.data?.message || "Failed to fetch bookings.",
+    };
+  }
+}
+
+// ✅ Update Booking Status (NEW - Single endpoint for both accept/reject)
+async updateBookingStatus(bookingId: string, status: "Confirmed" | "Rejected") {
+  try {
+    console.log(`📝 Updating booking ${bookingId} to status:`, status);
+    const response = await this.api.put(  // ⚠️ Changed from .post to .put
+      `/api/hostelOwner/bookings/updateBookingStatus/${bookingId}`,
+      { status },
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    console.log("✅ Update Response:", response.data);
+    return { success: true, data: response.data };
+  } catch (error: any) {
+    console.error("❌ Update Booking Status Error:", error);
+    return {
+      success: false,
+      error: error.response?.data?.message || `Failed to ${status.toLowerCase()} booking.`,
+    };
+  }
+}
+// ✅ Accept Booking (wrapper for backward compatibility)
+async acceptBooking(bookingId: string) {
+  return this.updateBookingStatus(bookingId, "Confirmed");
+}
+
+// ✅ Reject Booking (wrapper for backward compatibility)
+async rejectBooking(bookingId: string) {
+  return this.updateBookingStatus(bookingId, "Rejected");
+}
   // Chat API
   async sendMessageToAdmin(message: string) {
     try {
