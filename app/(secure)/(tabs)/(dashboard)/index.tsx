@@ -103,7 +103,6 @@ export default function ServiceOfflineScreen() {
     tiffinServices,
     getAllTiffinServices
   } = useServiceStore();
-  console.log('++++++++++',user)
   const [isOnline, setIsOnline] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -122,7 +121,7 @@ console.log(user)
   const headerTitle = useMemo(
     () =>
       isTiffinProvider ? user?.name : user?.fullName || "",
-    [isTiffinProvider, user?.fullName]
+    [isTiffinProvider, user?.fullName, user?.name]
   );
 
   const headerSubtitle = useMemo(

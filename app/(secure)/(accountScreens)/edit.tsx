@@ -22,9 +22,9 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view
 
 const EditProfile = () => {
   const { user, updateProfile, userServiceType } = useAuthStore();
-
+  console.log(user?.name)
   // Initialize state with user data
-  const [name, setName] = useState(user?.fullName || "");
+  const [name, setName] = useState(user?.fullName ?? user?.name ?? '');
   const [email, setEmail] = useState(user?.email || "");
   const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber || "");
   const [accountNumber, setAccountNumber] = useState(
@@ -44,7 +44,7 @@ const EditProfile = () => {
   // Update state when user data changes
   useEffect(() => {
     if (user) {
-      setName(user.fullName || "");
+      setName(user.fullName || user?.name || "");
       setEmail(user.email || "");
       setPhoneNumber(user.phoneNumber || "");
       setAccountNumber(user.bankDetails?.accountNumber || "");
@@ -98,7 +98,7 @@ const EditProfile = () => {
         Alert.alert("Success", "Profile updated successfully", [
           {
             text: "OK",
-            onPress: () => router.push("/profile"),
+            // onPress: () => router.push("/profile"),
           },
         ]);
       } else {

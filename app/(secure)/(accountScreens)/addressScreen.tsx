@@ -2,6 +2,7 @@ import { Colors } from "@/constants/Colors";
 import { Images } from "@/constants/Images";
 import { fonts } from "@/constants/typography";
 import useAddressStore from "@/store/addressStore";
+import useAuthStore from "@/store/authStore";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -18,11 +19,12 @@ import {
 } from "react-native";
 
 const AddressScreen = () => {
-  const { addresses, getAllAddresses, deleteAddress, isLoading } =
+  const { user, userServiceType } = useAuthStore();
+  const { addresses, getAllAddresses, deleteAddress, isLoading , tiffinAddress } =
     useAddressStore();
   const [refreshing, setRefreshing] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-
+  console.log('tiffinAddress', tiffinAddress)
   useEffect(() => {
     loadAddresses();
   }, []);
@@ -145,7 +147,7 @@ const AddressScreen = () => {
         <Text style={styles.locationLabel}>Location</Text>
       </View>
       <View>
-        <FlatList
+        {userServiceType !== "tiffin_provider" ? <FlatList
           data={addresses}
           renderItem={renderAddress}
           keyExtractor={(item) => item._id}
@@ -197,7 +199,67 @@ const AddressScreen = () => {
               </TouchableOpacity>
             </View>
           }
-        />
+        /> : <>
+            {tiffinAddress && Object.keys(tiffinAddress).length > 0 ? <View style={styles.card}>
+              <Image
+                source={tiffinAddress.label === "home" ? Images.home : Images.work}
+                style={styles.image}
+                resizeMode="contain"
+              />
+
+              <View style={styles.textContainer}>
+                <Text style={styles.title}>{tiffinAddress.label}</Text>
+                <Text style={styles.address}>
+                  {tiffinAddress.street}, {tiffinAddress.address},{"\n"}
+                  {tiffinAddress.postCode}
+                </Text>
+              </View>
+
+              <View style={styles.actionButtonsContainer}>
+                <TouchableOpacity
+                  onPress={() => handleEditAddress(tiffinAddress._id)}
+                  disabled={deletingId === tiffinAddress._id}
+                  style={styles.actionButton}
+                >
+                  <Image
+                    source={Images.editicon}
+                    style={styles.actionIcon}
+                    resizeMode="contain"
+                  />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => handleDeleteAddress(tiffinAddress._id, tiffinAddress.label)}
+                  disabled={deletingId === tiffinAddress._id}
+                  style={styles.actionButton}
+                >
+                  {deletingId === tiffinAddress._id ? (
+                    <ActivityIndicator size="small" color={Colors.primary} />
+                  ) : (
+                    <Image
+                      source={Images.delete}
+                      style={styles.actionIcon}
+                      resizeMode="contain"
+                    />
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View> : <>
+                <TouchableOpacity onPress={handleAddNewAddress}>
+                  <View style={styles.card}>
+                    <Image
+                      source={Images.add}
+                      style={styles.image}
+                      resizeMode="contain"
+                    />
+
+                    <View style={styles.textContainer}>
+                      <Text style={styles.addTitle}>Add New Address</Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+            </>}
+        </>}
       </View>
     </SafeAreaView>
   );

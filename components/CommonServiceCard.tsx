@@ -15,13 +15,16 @@ import { router } from "expo-router";
 const { width } = Dimensions.get("window");
 
 const TiffinCard = ({ tiffin }: any) => {
-  console.log(JSON.stringify(tiffin))
+  console.log(tiffin?._id)
   return (
     <View style={styles.container}>
       <View style={styles.card}>
         {/* Image */}
-        <Image source={{uri : tiffin?.photos[0]}} style={styles.image} resizeMode="cover" />
-
+        <Image
+          source={tiffin?.photos?.[0] ? { uri: tiffin.photos[0] } : require('../assets/images/tiffin.png')}
+          style={styles.image}
+          resizeMode="cover"
+        />
         {/* Info Section */}
         <View style={styles.info}>
           <View style={styles.rowBetween}>
@@ -65,7 +68,7 @@ const TiffinCard = ({ tiffin }: any) => {
             </View>
 
             <View style={styles.gap6}>
-              <Text style={styles.type}>{tiffin?.foodType?.type === 'Both Veg & Non-Veg' ? 'Veg/non-Veg' : tiffin?.foodType?.type }</Text>
+              <Text style={styles.type}>{tiffin?.foodType === 'Both Veg & Non-Veg' ? 'Veg/non-Veg' : tiffin?.foodType }</Text>
               <Text style={styles.label}>Type</Text>
             </View>
           </View>
@@ -77,14 +80,23 @@ const TiffinCard = ({ tiffin }: any) => {
                 pathname: '/(secure)/(service)/previewService',
                 params: {
                   tiffin: JSON.stringify(tiffin),
-                  isPrevie : "false"
+                  isPreview: "false",
                 },
               });
             }}>
               <Image source={Images.view} style={styles.btnIcon} />
               <Text style={styles.btnText}>View</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.button}>
+            <TouchableOpacity style={styles.button} onPress={() => {
+              router.push({
+                pathname: '/(secure)/(service)/addNewService',
+                params: {
+                  formData: JSON.stringify(tiffin),
+                  isEdit: "true",
+                  id: tiffin?._id
+                },
+              });
+}}>
               <Image source={Images.edit} style={styles.btnIcon} />
               <Text style={styles.btnText}>Edit</Text>
             </TouchableOpacity>

@@ -3,6 +3,7 @@ import CommonButton from "@/components/CommonButton";
 import { Colors } from "@/constants/Colors";
 import { Images } from "@/constants/Images";
 import { fonts } from "@/constants/typography";
+import useAuthStore from "@/store/authStore";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -16,14 +17,18 @@ import {
   LayoutAnimation,
   UIManager,
   Platform,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
 
 const MealDetails = () => {
-  const { tiffin , isPreview}: any = useLocalSearchParams();
+  const { tiffin, isPreview, formData }: any = useLocalSearchParams();
   const parsedTiffin = tiffin ? JSON.parse(tiffin) : null;
-
-  // which pricing index is expanded (null => none)
+  const parsedFormData = formData ? JSON.parse(formData as string) : null;
+  const { token } = useAuthStore();
+  console.log(parsedTiffin)
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     // Enable LayoutAnimation on Android
@@ -38,12 +43,87 @@ const MealDetails = () => {
     setExpandedIndex((prev) => (prev === index ? null : index));
   };
 
+  const buildFormData = (data: any) => {
+    const formData = new FormData();
+
+    formData.append("tiffinName", data.tiffinName);
+    formData.append("description", data.description);
+    formData.append("foodType", data.foodType);
+    formData.append("mealTimings", JSON.stringify(data.mealTimings));
+    formData.append("orderTypes", JSON.stringify(data.orderTypes));
+    formData.append("pricing", JSON.stringify(data.pricing));
+    formData.append("serviceFeatures", JSON.stringify(data.serviceFeatures));
+    formData.append("location", JSON.stringify(data.location));
+    formData.append("contactInfo", JSON.stringify(data.contactInfo));
+    formData.append("whatsIncludes", JSON.stringify(data.whatsIncludes));
+
+    // Append photos
+    const photoKey = data.foodType.toLowerCase() === "veg" ? "vegPhotos" : "nonVegPhotos";
+    (data.photos || []).forEach((uri: string, index: number) => {
+      formData.append(photoKey, {
+        uri,
+        name: `${photoKey}_${index}.jpg`,
+        type: "image/jpeg",
+      } as any);
+    });
+
+    return formData;
+  };
+
+  const handleCreateListing = async () => {
+    if (!parsedFormData) {
+      Alert.alert("Error", "No form data available.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // Rebuild FormData from raw object
+      const formDataToSend = buildFormData(parsedFormData);
+
+      const response = await fetch(
+        "https://tifstay-project-be.onrender.com/api/tiffinService/createTiffinService",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+          body: formDataToSend, // <-- now this is real FormData
+        }
+      );
+
+      const data = await response.json();
+      if (response.ok) {
+        Alert.alert("Success", "Tiffin service created successfully!");
+        router.push("/(service)/confirmService");
+      } else {
+        Alert.alert("Error", data?.message || "Failed to create listing.");
+      }
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Network Error", "Something went wrong.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Meal Image */}
         <View style={{ paddingHorizontal: 16 }}>
-          <Image source={{ uri: parsedTiffin?.photos[0] }} style={styles.image} />
+          <Image
+            source={
+              parsedTiffin?.vegPhotos?.[0]
+                ? { uri: parsedTiffin.vegPhotos[0] }
+                : parsedTiffin?.nonVegPhotos?.[0]
+                  ? { uri: parsedTiffin.nonVegPhotos[0] }
+                  : require("@/assets/images/tiffin.png")
+            }
+            style={styles.image}
+          />
         </View>
 
         {/* Title + Description */}
@@ -68,7 +148,7 @@ const MealDetails = () => {
           </View>
         </View>
 
-        {/* Pricing Card - collapsed by default (only title shown) */}
+        {/* Pricing Card */}
         {parsedTiffin?.pricing?.map((plan: any, index: number) => {
           const isExpanded = expandedIndex === index;
           return (
@@ -81,7 +161,7 @@ const MealDetails = () => {
                     source={Images.back}
                     style={[
                       styles.arrowIcon,
-                      { transform: [{ rotate: isExpanded ? "90deg" : "270deg" }] },
+                      { transform: [{ rotate: isExpanded ? "270deg" : "90deg" }] },
                     ]}
                   />
                 </TouchableOpacity>
@@ -113,40 +193,45 @@ const MealDetails = () => {
 
         {/* Meal Preference */}
         <Text style={styles.sectionTitle}>Meal Preference</Text>
-        {parsedTiffin?.mealTimings?.map((meal:any) => {
-          return (
-            
-            <Text style={styles.listItem}>• {meal?.mealType} ({meal?.startTime} - {meal?.endTime})</Text>
-          )
-        })
-        }
+        {parsedTiffin?.mealTimings?.map((meal: any) => (
+          <Text key={meal.mealType} style={styles.listItem}>
+            • {meal?.mealType} ({meal?.startTime} - {meal?.endTime})
+          </Text>
+        ))}
 
         {/* What's Included */}
         <Text style={styles.sectionTitle}>{"What's included"}</Text>
-        <Text style={styles.listItem}>• {parsedTiffin?.foodType?.whatIncludeInVeg ?? "2 Roti + 1 Sabzi + Dal + Rice + Pickle"}</Text>
-        <Text style={styles.listItem}>• {parsedTiffin?.foodType?.whatIncludeInNonVeg ?? "2 Roti + 1 Sabzi + Dal + Rice + Pickle"}</Text>
+        <Text style={styles.listItem}>
+          • {parsedTiffin?.foodType?.whatIncludeInVeg ?? parsedTiffin?.whatsIncludes ?? "2 Roti + 1 Sabzi + Dal + Rice + Pickle"}
+        </Text>
+        <Text style={styles.listItem}>
+          • {parsedTiffin?.foodType?.whatIncludeInNonVeg ?? "2 Roti + 1 Sabzi + Dal + Rice + Pickle"}
+        </Text>
+
         {/* Order Type */}
         <Text style={styles.sectionTitle}>Order Type</Text>
-        {parsedTiffin?.orderTypes?.map((order: any) => {
-          return (
-        <Text style={styles.listItem}>• {order}</Text>
-        )})}
-        {/* <Text style={styles.listItem}>• Delivery</Text> */}
+        {parsedTiffin?.orderTypes?.map((order: any, idx: number) => (
+          <Text key={idx} style={styles.listItem}>
+            • {order}
+          </Text>
+        ))}
 
         {/* Why Choose Us */}
         <Text style={styles.sectionTitle}>Why Choose Us</Text>
-        {parsedTiffin?.serviceFeatures?.map((feature: any) => {
-          return (
-            <Text style={styles.listItem}>• {feature}</Text>
-          )
-        })}
+        {parsedTiffin?.serviceFeatures?.map((feature: any, idx: number) => (
+          <Text key={idx} style={styles.listItem}>
+            • {feature}
+          </Text>
+        ))}
 
         {/* Location */}
         <View style={styles.card}>
           <Text style={styles.infoTitle}>Location</Text>
           <Text style={styles.infoListItem}>{parsedTiffin?.location?.nearbyLandmarks}</Text>
           <Text style={styles.infoListItem}>{parsedTiffin?.location?.fullAddress}</Text>
-          <Text style={styles.infoListItem}>Service Radius: {parsedTiffin?.location?.serviceRadius} sq km</Text>
+          <Text style={styles.infoListItem}>
+            Service Radius: {parsedTiffin?.location?.serviceRadius} sq km
+          </Text>
         </View>
 
         {/* Contact Info */}
@@ -164,16 +249,26 @@ const MealDetails = () => {
           </View>
         </View>
 
-       {isPreview === "true" && <> <CommonButton
-          title="+ Create Tiffin Listing"
-          buttonStyle={styles.createButton}
-          onPress={() => {
-            router.push("/(secure)/(service)/confirmService");
-          }}
-        />
-
-          <Text style={[styles.listItem, styles.reviewNote]}>Your listing will be reviewed and approved within 24 hours</Text></>}
+        {isPreview === "true" && (
+          <>
+            <CommonButton
+              title={loading ? "Creating..." : "+ Create Tiffin Listing"}
+              buttonStyle={styles.createButton}
+              onPress={handleCreateListing}
+              disabled={loading}
+            />
+            <Text style={[styles.listItem, styles.reviewNote]}>
+              Your listing will be reviewed and approved within 24 hours
+            </Text>
+          </>
+        )}
       </ScrollView>
+
+      {loading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+        </View>
+      )}
     </View>
   );
 };
@@ -183,141 +278,38 @@ export default MealDetails;
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
   scrollContent: { paddingBottom: 30 },
-  image: {
-    width: "100%",
-    height: 270,
-    borderRadius: 15,
-    marginBottom: 12,
-  },
-  title: {
-    fontSize: 18,
-    fontFamily: fonts.interSemibold,
-    color: Colors.title,
-    paddingHorizontal: 16,
-  },
-  description: {
-    fontSize: 16,
-    fontFamily: fonts.interRegular,
-    color: Colors.grey,
-    marginTop: 6,
-    paddingHorizontal: 16,
-    lineHeight: 20,
-  },
-  infoRow: {
-    flexDirection: "row",
-    gap: 8,
-    marginTop: 10,
-    paddingHorizontal: 16,
-    flexWrap: "wrap",
-  },
+  image: { width: "100%", height: 270, borderRadius: 15, marginBottom: 12 },
+  title: { fontSize: 18, fontFamily: fonts.interSemibold, color: Colors.title, paddingHorizontal: 16 },
+  description: { fontSize: 16, fontFamily: fonts.interRegular, color: Colors.grey, marginTop: 6, paddingHorizontal: 16, lineHeight: 20 },
+  infoRow: { flexDirection: "row", gap: 8, marginTop: 10, paddingHorizontal: 16, flexWrap: "wrap" },
   row: { flexDirection: "row", alignItems: "center", gap: 4 },
-  vegTag: {
-    backgroundColor: Colors.green,
-    borderRadius: 50,
-    paddingVertical: 6,
-    paddingHorizontal: 8,
-  },
-  tag: {
-    color: Colors.white,
-    fontFamily: fonts.interMedium,
-    fontSize: 12,
-  },
-  info: {
-    color: Colors.grey,
-    fontFamily: fonts.interMedium,
-    fontSize: 12,
-  },
-  priceCard: {
-    backgroundColor: "#f7f7f7",
-    padding: 12,
-    margin: 16,
-    borderRadius: 12,
-    position: "relative",
-  },
-  priceTitle: {
-    fontSize: 20,
-    fontFamily: fonts.interSemibold,
-    marginBottom: 12,
-    color: Colors.primary,
-  },
-  priceRow: {
-    flexDirection: "row",
-    gap: 16,
-    // justifyContent: "space-between",
-  },
-  priceText: {
-    fontSize: 12,
-    fontFamily: fonts.interMedium,
-    color: Colors.grey,
-    marginBottom: 6,
-  },
-  discountBadge: {
-    position: "absolute",
-    top: '60%',
-    right: 12,
-    backgroundColor: "#3A88FE",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  discountText: {
-    fontSize: 12,
-    color: "#fff",
-    fontFamily: fonts.interRegular,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontFamily: fonts.interSemibold,
-    marginTop: 20,
-    marginBottom: 8,
-    paddingHorizontal: 16,
-    color: Colors.title,
-  },
-  listItem: {
-    fontSize: 12,
-    color: Colors.grey,
-    paddingHorizontal: 16,
-    marginBottom: 4,
-    fontFamily: fonts.interMedium,
-  },
-  infoTitle: {
-    fontSize: 20,
-    fontFamily: fonts.interSemibold,
-    marginBottom: 8,
-    color: Colors.title,
-  },
-  infoListItem: {
-    fontSize: 12,
-    color: Colors.grey,
-    fontFamily: fonts.interMedium,
-    marginBottom: 4,
-  },
-  card: {
-    margin: 16,
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#DFE1E6",
-  },
+  vegTag: { backgroundColor: Colors.green, borderRadius: 50, paddingVertical: 6, paddingHorizontal: 8 },
+  tag: { color: Colors.white, fontFamily: fonts.interMedium, fontSize: 12 },
+  info: { color: Colors.grey, fontFamily: fonts.interMedium, fontSize: 12 },
+  priceCard: { backgroundColor: "#f7f7f7", padding: 12, margin: 16, borderRadius: 12, position: "relative" },
+  priceTitle: { fontSize: 20, fontFamily: fonts.interSemibold, marginBottom: 12, color: Colors.primary },
+  priceRow: { flexDirection: "row", gap: 16 },
+  priceText: { fontSize: 12, fontFamily: fonts.interMedium, color: Colors.grey, marginBottom: 6 },
+  discountBadge: { position: "absolute", top: "60%", right: 12, backgroundColor: "#3A88FE", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
+  discountText: { fontSize: 12, color: "#fff", fontFamily: fonts.interRegular },
+  sectionTitle: { fontSize: 20, fontFamily: fonts.interSemibold, marginTop: 20, marginBottom: 8, paddingHorizontal: 16, color: Colors.title },
+  listItem: { fontSize: 12, color: Colors.grey, paddingHorizontal: 16, marginBottom: 4, fontFamily: fonts.interMedium },
+  infoTitle: { fontSize: 20, fontFamily: fonts.interSemibold, marginBottom: 8, color: Colors.title },
+  infoListItem: { fontSize: 12, color: Colors.grey, fontFamily: fonts.interMedium, marginBottom: 4 },
+  card: { margin: 16, padding: 16, borderRadius: 12, borderWidth: 1, borderColor: "#DFE1E6" },
   noTopMargin: { marginTop: 0 },
   contactRow: { flexDirection: "row", gap: 8 },
-  contactBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#DFE1E6",
-    padding: 8,
-    borderRadius: 36,
-    gap: 4,
-  },
-  contactText: {
-    fontFamily: fonts.interMedium,
-    fontSize: 14,
-    color: Colors.title,
-  },
+  contactBox: { flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: "#DFE1E6", padding: 8, borderRadius: 36, gap: 4 },
+  contactText: { fontFamily: fonts.interMedium, fontSize: 14, color: Colors.title },
   createButton: { marginHorizontal: 16, marginTop: 16 },
   reviewNote: { marginTop: 10, textAlign: "center" },
   iconSmall: { height: 16, width: 16 },
   iconMedium: { height: 20, width: 20 },
   arrowIcon: { height: 24, width: 24 },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.25)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
 });

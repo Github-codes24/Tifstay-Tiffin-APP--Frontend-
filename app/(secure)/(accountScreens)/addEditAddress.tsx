@@ -5,6 +5,7 @@ import { Colors } from "@/constants/Colors";
 import { Images } from "@/constants/Images";
 import { fonts } from "@/constants/typography";
 import useAddressStore from "@/store/addressStore";
+import useAuthStore from "@/store/authStore";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -23,6 +24,7 @@ const AddEditAddress = () => {
   const params = useLocalSearchParams();
   const mode = params.mode as "add" | "edit";
   const addressId = params.addressId as string;
+  const { user, userServiceType } = useAuthStore();
 
   const { addAddress, editAddress, getAddressById } = useAddressStore();
 
@@ -43,6 +45,7 @@ const AddEditAddress = () => {
     setIsLoadingData(true);
     try {
       const result = await getAddressById(addressId);
+      console.log('||||||||',result)
       if (result.success && result.data) {
         setAddress(result.data.address);
         setStreet(result.data.street);
@@ -85,8 +88,11 @@ const AddEditAddress = () => {
       address: address.trim(),
       street: street.trim(),
       postCode: postCode.trim(),
-      label: (isHome ? "Home" : "Work") as "Home" | "Work",
-    };
+      label: (
+        userServiceType === "hostel_owner"
+          ? (isHome ? "Home" : "Work")
+          : (isHome ? "home" : "work")
+      ) as any   };
 
     try {
       let result;

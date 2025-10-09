@@ -107,7 +107,7 @@ class TiffinApiService {
       const formData = new FormData();
       
       // Add basic fields
-      formData.append("fullName", profileData.fullName);
+      formData.append("name ", profileData.fullName);
       formData.append("email", profileData.email);
       formData.append("phoneNumber", profileData.phoneNumber);
       
@@ -116,7 +116,7 @@ class TiffinApiService {
       formData.append("bankDetails[ifscCode]", profileData.bankDetails.ifscCode);
       formData.append("bankDetails[accountType]", profileData.bankDetails.accountType);
       formData.append("bankDetails[accountHolderName]", profileData.bankDetails.accountHolderName);
-      formData.append("bankDetails[bankName]", profileData.bankDetails.bankName);
+      // formData.append("bankDetails[bankName]", profileData.bankDetails.bankName);
       
       // Add profile image if provided
       if (profileData.profileImage) {
@@ -127,12 +127,13 @@ class TiffinApiService {
         } as any);
       }
 
-      const response = await this.api.put("/api/tiffinProvider/updateProviderProfile", formData, {
+      const response = await this.api.put("/api/tiffinOwner/updateOwnerProfile", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
-
+      console.log('_+_+_+_+_+_+', response)
+      this.getUserProfile()
       return {
         success: true,
         data: response.data,
@@ -148,6 +149,7 @@ class TiffinApiService {
   async getUserProfile() {
     try {
       const response = await this.api.get("/api/tiffinOwner/getOwnerProfile");
+      console.log('=======',response)
       return {
         success: true,
         data: response.data,
@@ -189,10 +191,10 @@ async getCancelledTiffinServicesCount() {
     address: string;
     street: string;
     postCode: string;
-    label: "Home" | "Work";
+    label: "home" | "work";
   }) {
     try {
-      const response = await this.api.post("/api/tiffinProvider/address/addAddress", addressData);
+      const response = await this.api.post("/api/tiffinOwner/address/addAddress", addressData);
       return {
         success: true,
         data: response.data.data,
@@ -207,10 +209,11 @@ async getCancelledTiffinServicesCount() {
 
   async getAllAddresses() {
     try {
-      const response = await this.api.get("/api/tiffinProvider/address/getAllAddresses");
+      const response = await this.api.get("/api/tiffinOwner/address/getAddress");
+      console.log('-=-=-=-=',response)
       return {
         success: true,
-        data: response.data.data,
+        data: response.data,
       };
     } catch (error: any) {
       return {
@@ -222,7 +225,8 @@ async getCancelledTiffinServicesCount() {
 
   async getAddressById(addressId: string) {
     try {
-      const response = await this.api.get(`/api/tiffinProvider/address/getAddress/${addressId}`);
+      const response = await this.api.get(`/api/tiffinOwner/address/getAddress`);
+      console.log('@@@@@@@------',response)
       return {
         success: true,
         data: response.data.data,
@@ -239,10 +243,10 @@ async getCancelledTiffinServicesCount() {
     address: string;
     street: string;
     postCode: string;
-    label: "Home" | "Work";
+    label: "homw" | "work";
   }) {
     try {
-      const response = await this.api.put(`/api/tiffinProvider/address/editAddress/${addressId}`, addressData);
+      const response = await this.api.put(`/api/tiffinOwner/address/editAddress`, addressData);
       return {
         success: true,
         data: response.data.data,
@@ -257,7 +261,7 @@ async getCancelledTiffinServicesCount() {
 
   async deleteAddress(addressId: string) {
     try {
-      const response = await this.api.delete(`/api/tiffinProvider/address/deleteAddress/${addressId}`);
+      const response = await this.api.put(`/api/tiffinOwner/address/deleteAddress`);
       return {
         success: true,
         data: response.data.data,

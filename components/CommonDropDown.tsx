@@ -41,30 +41,33 @@ const CommonDropdown: React.FC<Props> = ({
         value={value}
         items={listItems}
         setOpen={setOpen}
-        setValue={setValue}
+        setValue={(callbackOrValue) => {
+          // DropDownPicker can pass either a function or a value
+          if (typeof callbackOrValue === "function") {
+            const newValue = callbackOrValue(value);
+            setValue(newValue); // Call the passed setter with the new value
+          } else {
+            setValue(callbackOrValue); // Direct value
+          }
+        }}
         setItems={setListItems}
         placeholder={placeholder}
         listMode="SCROLLVIEW"
         scrollViewProps={{ nestedScrollEnabled: true }}
-        style={[styles.dropdown , dropdownStyle]}
-        dropDownContainerStyle={[styles.dropdownContainer , dropdownStyleContainer]}
+        style={[styles.dropdown, dropdownStyle]}
+        dropDownContainerStyle={[styles.dropdownContainer, dropdownStyleContainer]}
         textStyle={styles.text}
         placeholderStyle={placeholderStyle}
         ArrowDownIconComponent={() => (
           <Image
             source={Images.back}
-            style={{ height: 12, width: 12, resizeMode: "contain" ,   transform: [{ rotate: "90deg" }],}}
+            style={{ height: 12, width: 12, resizeMode: "contain", transform: [{ rotate: "90deg" }] }}
           />
         )}
         ArrowUpIconComponent={() => (
           <Image
             source={Images.back}
-            style={{
-              height: 12,
-              width: 12,
-              resizeMode: "contain",
-              transform: [{ rotate: "270deg" }],
-            }}
+            style={{ height: 12, width: 12, resizeMode: "contain", transform: [{ rotate: "270deg" }] }}
           />
         )}
       />

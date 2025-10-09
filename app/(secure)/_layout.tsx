@@ -267,6 +267,21 @@ export default function SecureLayout() {
           headerShown: false,
         }}
       />
+      <Stack.Screen
+        name="(accountScreens)/edit"
+        options={{
+          header: () => (
+            <SafeAreaView
+              edges={["top"]}
+              style={{ backgroundColor: Colors.white }}
+            >
+              <View style={{ backgroundColor: Colors.white }}>
+                <CommonHeader title="Edit Profile" />
+              </View>
+            </SafeAreaView>
+          ),
+        }}
+      />
     </Stack>
   );
 }

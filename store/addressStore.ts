@@ -17,7 +17,7 @@ interface AddressState {
   addresses: Address[];
   isLoading: boolean;
   error: string | null;
-  
+  tiffinAddress: any;
   // Actions
   addAddress: (addressData: Omit<Address, '_id'>) => Promise<any>;
   getAllAddresses: () => Promise<any>;
@@ -33,6 +33,8 @@ const useAddressStore = create<AddressState>()(
       addresses: [],
       isLoading: false,
       error: null,
+      tiffinAddress: null,
+
 
       addAddress: async (addressData) => {
         set({ isLoading: true, error: null });
@@ -77,12 +79,13 @@ const useAddressStore = create<AddressState>()(
           } else {
             response = await tiffinApiService.getAllAddresses();
           }
-          
+          console.log('@@@@@',response)
           if (response.success) {
             set({
               addresses: response.data?.addresses || [],
               isLoading: false,
               error: null,
+              tiffinAddress: response?.data?.data || {}
             });
             return { success: true, data: response.data?.addresses };
           } else {
@@ -110,7 +113,7 @@ const useAddressStore = create<AddressState>()(
           
           if (response.success) {
             set({ isLoading: false, error: null });
-            return { success: true, data: response.data?.address };
+            return { success: true, data: userServiceType === "hostel_owner"? response.data?.address : response?.data };
           } else {
             set({ isLoading: false, error: response.error });
             return { success: false, error: response.error };
