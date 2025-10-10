@@ -469,7 +469,88 @@ async getAllRoomsByHostelId(hostelId: string) {
   async getCancelledHostelServicesCount() {
     return this.api.get("/api/hostelService/getCancelledHostelServicesCount");
   }
+//offline 
+async updateHostelServiceOfflineStatus(payload: {
+  hostelServiceIds: string[];
+  offlineType: "immediate" | "scheduled";
+  reason: string;
+  comeBackOption: string;
+}) {
+  try {
+    console.log("📤 Updating offline status:", payload);
+    const response = await this.api.put(
+      "/api/hostelService/updateHostelServiceOfflineStatus",
+      payload,
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    console.log("✅ Offline status updated:", response.data);
+    return { success: true, data: response.data };
+  } catch (error: any) {
+    console.error("❌ Update Offline Status Error:", error.response?.data || error);
+    return {
+      success: false,
+      error: error.response?.data?.message || "Failed to update offline status.",
+    };
+  }
+}
 
+async updateHostelServiceOnlineStatus(serviceIds: string[]) {
+  try {
+    console.log("📤 Updating online status:", serviceIds);
+    const response = await this.api.put(
+      "/api/hostelService/updateHostelServiceOnlineStatus",
+      { hostelServiceIds: serviceIds },
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    console.log("✅ Online status updated:", response.data);
+    return { success: true, data: response.data };
+  } catch (error: any) {
+    console.error("❌ Update Online Status Error:", error.response?.data || error);
+    return {
+      success: false,
+      error: error.response?.data?.message || "Failed to update online status.",
+    };
+  }
+}
+
+async getOfflineReasons(offlineType: string) {
+  try {
+    const response = await this.api.get(
+      "/api/hostelService/getOfflineReasons",
+      {
+        params: { offlineType },
+      }
+    );
+    return { success: true, data: response.data };
+  } catch (error: any) {
+    console.error("Get Offline Reasons Error:", error);
+    return {
+      success: false,
+      error: error.response?.data?.message || "Failed to fetch offline reasons.",
+    };
+  }
+}
+
+async getComebackOptions() {
+  try {
+    const response = await this.api.get("/api/hostelService/getComeBackOptions");
+    return { success: true, data: response.data };
+  } catch (error: any) {
+    console.error("Get Comeback Options Error:", error);
+    return {
+      success: false,
+      error: error.response?.data?.message || "Failed to fetch comeback options.",
+    };
+  }
+}
   // Privacy Policy and Terms
   async getPrivacyPolicy() {
     try {

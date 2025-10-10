@@ -29,7 +29,11 @@ interface ServiceState {
   pagination: PaginationData | null;
   overallRating: number;
   totalReviews: number;
-
+  
+  // Offline/Online Management
+  offlineReasons: string[];
+  comebackOptions: string[];
+  
   // Form data for multi-step form
   formPage1Data: FormPage1Data | null;
   formPage2Data: FormPage2Data | null;
@@ -45,6 +49,17 @@ interface ServiceState {
   getAcceptedServicesCount: () => Promise<ApiResponse<any>>;
   getCancelledServicesCount: () => Promise<ApiResponse<any>>;
   getReviewsSummary: () => Promise<ApiResponse<any>>;
+
+  // Offline/Online Status Management
+  updateHostelServiceOfflineStatus: (payload: {
+    hostelServiceIds: string[];
+    offlineType: "immediate" | "scheduled";
+    reason: string;
+    comeBackOption: string;
+  }) => Promise<ApiResponse<any>>;
+  updateHostelServiceOnlineStatus: (serviceIds: string[]) => Promise<ApiResponse<any>>;
+  getOfflineReasons: (offlineType: string) => Promise<ApiResponse<any>>;
+  getComebackOptions: () => Promise<ApiResponse<any>>;
 
   // Form management
   setFormPage1Data: (data: FormPage1Data) => void;
@@ -74,6 +89,8 @@ const useServiceStore = create<ServiceState>()(
       overallRating: 0,
       totalReviews: 0,
       pagination: null,
+      offlineReasons: [],
+      comebackOptions: [],
 
       // Get Total Services Count
       getTotalServicesCount: async () => {
@@ -411,6 +428,101 @@ const useServiceStore = create<ServiceState>()(
             isLoading: false,
             error: error.message || "Failed to delete room photos",
           });
+          return { success: false, error: error.message };
+        }
+      },
+
+      // Offline/Online Status Management
+      updateHostelServiceOfflineStatus: async (payload) => {
+        set({ isLoading: true, error: null });
+
+        try {
+          const response = await hostelServiceApiService.updateHostelServiceOfflineStatus(payload);
+
+          if (response.success) {
+            // Refresh services list
+            await get().getAllHostelServices(1, 10);
+            
+            set({
+              isLoading: false,
+              error: null,
+            });
+            
+            return { success: true, data: response.data };
+          } else {
+            set({
+              isLoading: false,
+              error: response.error || "Failed to update offline status",
+            });
+            return { success: false, error: response.error };
+          }
+        } catch (error: any) {
+          set({
+            isLoading: false,
+            error: error.message || "Failed to update offline status",
+          });
+          return { success: false, error: error.message };
+        }
+      },
+
+      updateHostelServiceOnlineStatus: async (serviceIds: string[]) => {
+        set({ isLoading: true, error: null });
+      
+        try {
+          const response = await hostelServiceApiService.updateHostelServiceOnlineStatus(serviceIds);
+      
+          if (response.success) {
+            // Refresh services list
+            await get().getAllHostelServices(1, 10);
+            
+            set({
+              isLoading: false,
+              error: null,
+            });
+            
+            return { success: true, data: response.data };
+          } else {
+            set({
+              isLoading: false,
+              error: response.error || "Failed to update online status",
+            });
+            return { success: false, error: response.error };
+          }
+        } catch (error: any) {
+          set({
+            isLoading: false,
+            error: error.message || "Failed to update online status",
+          });
+          return { success: false, error: error.message };
+        }
+      },
+
+      getOfflineReasons: async (offlineType: string) => {
+        try {
+          const response = await hostelServiceApiService.getOfflineReasons(offlineType);
+
+          if (response.success) {
+            set({ offlineReasons: response.data?.data?.offlineReasons || [] });
+            return { success: true, data: response.data };
+          } else {
+            return { success: false, error: response.error };
+          }
+        } catch (error: any) {
+          return { success: false, error: error.message };
+        }
+      },
+
+      getComebackOptions: async () => {
+        try {
+          const response = await hostelServiceApiService.getComebackOptions();
+
+          if (response.success) {
+            set({ comebackOptions: response.data?.data?.comebackOptions || [] });
+            return { success: true, data: response.data };
+          } else {
+            return { success: false, error: response.error };
+          }
+        } catch (error: any) {
           return { success: false, error: error.message };
         }
       },
