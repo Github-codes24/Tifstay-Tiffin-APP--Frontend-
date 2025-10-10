@@ -31,7 +31,7 @@ interface RoomData {
   roomPhotos: any[];
 }
 
-const MINIMUM_PHOTOS_PER_ROOM = 3;
+const MINIMUM_PHOTOS_PER_ROOM = 1;
 const MAXIMUM_PHOTOS_PER_ROOM = 5;
 
 const AddNewHostelService = () => {
@@ -86,7 +86,6 @@ const AddNewHostelService = () => {
 
       setIsLoading(true);
       try {
-        console.log("📥 Fetching hostel data for ID:", hostelId);
         const response = await hostelApiService.getHostelServiceById(hostelId);
 
         if (response.success) {
@@ -172,15 +171,6 @@ const AddNewHostelService = () => {
 
           // ✅ Save page 2 data to store
           setFormPage2Data(page2Data);
-
-          console.log("✅ Page 2 data also loaded:", {
-            rulesText: page2Data.rulesText?.substring(0, 50),
-            area: page2Data.area,
-            phoneNumber: page2Data.phoneNumber,
-            photosCount: page2Data.photos.length,
-          });
-
-          console.log("✅ All data loaded successfully");
         } else {
           throw new Error(response.error || "Failed to load hostel data");
         }
@@ -197,7 +187,7 @@ const AddNewHostelService = () => {
     };
 
     loadHostelData();
-  }, [isUpdatingHostel, hostelId, setFormPage2Data]);
+  }, [isUpdatingHostel, hostelId, setFormPage2Data, router]);
 
   // ... rest of your code remains the same
   // Image Picker
@@ -432,8 +422,6 @@ const AddNewHostelService = () => {
   const handleNext = useCallback(() => {
     if (!validateForm()) return;
 
-    console.log("📤 Preparing form data for next page");
-
     // Separate new photos from existing ones
     const allNewRoomPhotos = rooms.flatMap((room) =>
       room.roomPhotos.filter((photo) => !photo.isExisting)
@@ -465,13 +453,6 @@ const AddNewHostelService = () => {
       })),
       isUpdate: isUpdatingHostel, // ✅ Flag to indicate update mode
     };
-
-    console.log("✅ Form data prepared:", {
-      hostelName: formData.hostelName,
-      totalRooms: formData.rooms.length,
-      newPhotosCount: allNewRoomPhotos.length,
-      isUpdate: formData.isUpdate,
-    });
 
     setFormPage1Data(formData);
     router.push("/(secure)/(hostelService)/addNewHostelService1");

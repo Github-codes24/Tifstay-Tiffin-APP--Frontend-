@@ -52,7 +52,6 @@ const AddNewHostelService1 = () => {
   // ✅ Load existing data
   useEffect(() => {
     if (formPage2Data) {
-      console.log("📥 Loading existing page 2 data");
       setRulesText(formPage2Data.rulesText || "");
       setArea(formPage2Data.area || "");
       setNearbyLandmarks(formPage2Data.nearbyLandmarks || "");
@@ -133,9 +132,7 @@ const AddNewHostelService1 = () => {
       };
       setFormPage2Data(page2Data);
 
-      console.log("=== PREPARING DATA FOR SUBMISSION ===");
       console.log("Mode:", isUpdatingHostel ? "UPDATE" : "CREATE");
-      console.log("Hostel ID:", hostelId);
 
       // ✅ Prepare rooms data differently for CREATE vs UPDATE
       let roomsData;
@@ -199,12 +196,6 @@ const AddNewHostelService1 = () => {
 
           return roomData;
         });
-
-        console.log("✅ UPDATE - Rooms prepared:", roomsData.length);
-        console.log(
-          "✅ UPDATE - Room photos to upload:",
-          Object.keys(roomPhotosForUpload)
-        );
       } else {
         // ========== CREATE MODE ==========
         roomsData = formPage1Data.rooms.map((room, index) => {
@@ -226,12 +217,6 @@ const AddNewHostelService1 = () => {
             roomDescription: room.roomDetails || "This is a hostel room",
           };
         });
-
-        console.log("✅ CREATE - Rooms prepared:", roomsData.length);
-        console.log(
-          "✅ CREATE - Room photos to upload:",
-          Object.keys(roomPhotosForUpload)
-        );
       }
 
       // ✅ Separate existing and new hostel photos
@@ -309,20 +294,11 @@ const AddNewHostelService1 = () => {
           room.roomId && room.roomId.startsWith("68") ? room.roomId : undefined,
         isNewRoom: !room.roomId || !room.roomId.startsWith("68"),
       }));
-
-      console.log("=== FINAL API DATA ===");
-      console.log("Hostel Name:", apiData.hostelName);
-      console.log("Total Rooms:", roomsData.length);
-      console.log("Existing Hostel Photos:", existingHostelPhotos.length);
-      console.log("New Hostel Photos:", newHostelPhotos.length);
-      console.log("Rooms with Photos:", apiData.roomsWithPhotos.length);
       // ✅ Submit to API (create or update)
       let response;
       if (isUpdatingHostel && hostelId) {
-        console.log("🔄 Updating hostel service...");
         response = await updateHostelService(hostelId, apiData);
       } else {
-        console.log("➕ Creating new hostel service...");
         response = await createHostelService(apiData);
       }
 

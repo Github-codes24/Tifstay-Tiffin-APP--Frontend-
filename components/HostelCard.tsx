@@ -51,7 +51,7 @@ export default function HostelCard({
     if (hostel.rooms && hostel.rooms.length > 0 && hostel.rooms[0]._id) {
       router.push({
         pathname: "/viewroom",
-        params: { roomId: hostel.rooms[0]._id },
+        params: { hostelId: hostel._id }, // Changed from roomId
       });
     } else {
       Alert.alert("No Rooms", "No rooms available for this hostel");

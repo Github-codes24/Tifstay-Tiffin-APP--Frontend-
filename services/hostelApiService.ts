@@ -398,18 +398,21 @@ class ApiService {
     }
   }
 
-  async getRoomById(roomId: string) {
-    try {
-      const response = await this.api.get(`/api/hostelService/getRoomById/${roomId}`);
-      return { success: true, data: response.data };
-    } catch (error: any) {
-      console.error("Get Room By ID Error:", error);
-      return {
-        success: false,
-        error: error.response?.data?.message || "Failed to fetch room details.",
-      };
-    }
+ 
+async getAllRoomsByHostelId(hostelId: string) {
+  try {
+    console.log("📥 Fetching all rooms for hostel:", hostelId);
+    const response = await this.api.get(`/api/hostelService/getAllRooms/${hostelId}`);
+    console.log("✅ Rooms fetched successfully:", response.data);
+    return { success: true, data: response.data };
+  } catch (error: any) {
+    console.error("❌ Get All Rooms Error:", error);
+    return {
+      success: false,
+      error: error.response?.data?.message || "Failed to fetch rooms.",
+    };
   }
+}
 
   async getHostelServiceById(hostelServiceId: string) {
     try {
