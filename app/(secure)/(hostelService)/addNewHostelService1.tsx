@@ -9,6 +9,7 @@ import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Image,
   ScrollView,
@@ -46,8 +47,9 @@ const AddNewHostelService1 = () => {
   const [whatsappNumber, setWhatsappNumber] = useState("");
   const [photos, setPhotos] = useState<any[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(false);
 
-  // ✅ Load existing data if in edit mode
+  // ✅ Load existing data
   useEffect(() => {
     if (formPage2Data) {
       console.log("📥 Loading existing page 2 data");
@@ -58,7 +60,6 @@ const AddNewHostelService1 = () => {
       setPhoneNumber(formPage2Data.phoneNumber || "");
       setWhatsappNumber(formPage2Data.whatsappNumber || "");
 
-      // Load existing photos if available
       if (formPage2Data.photos && formPage2Data.photos.length > 0) {
         setPhotos(formPage2Data.photos);
       }
@@ -67,7 +68,6 @@ const AddNewHostelService1 = () => {
 
   // ✅ Validation function
   const validateForm = (): boolean => {
-    // Phone Number
     if (!phoneNumber.trim()) {
       Alert.alert("Validation Error", "Please enter phone number");
       return false;
@@ -77,7 +77,6 @@ const AddNewHostelService1 = () => {
       return false;
     }
 
-    // WhatsApp Number
     if (!whatsappNumber.trim()) {
       Alert.alert("Validation Error", "Please enter WhatsApp number");
       return false;
@@ -87,7 +86,6 @@ const AddNewHostelService1 = () => {
       return false;
     }
 
-    // Full Address
     if (!fullAddress.trim()) {
       Alert.alert("Validation Error", "Please enter full address");
       return false;
@@ -111,10 +109,8 @@ const AddNewHostelService1 = () => {
 
   const handleSubmit = async () => {
     try {
-      // Validate page 2 fields
       if (!validateForm()) return;
 
-      // Check if we have page 1 data
       if (!formPage1Data) {
         Alert.alert(
           "Error",
@@ -137,34 +133,111 @@ const AddNewHostelService1 = () => {
       };
       setFormPage2Data(page2Data);
 
-      // ✅ Prepare rooms data with proper handling for updates
-      const roomsData = formPage1Data.rooms.map((room) => {
-        const totalBeds = [];
-        for (let i = 1; i <= room.noOfBeds; i++) {
-          totalBeds.push({
-            bedNumber: i,
-          });
-        }
+      console.log("=== PREPARING DATA FOR SUBMISSION ===");
+      console.log("Mode:", isUpdatingHostel ? "UPDATE" : "CREATE");
+      console.log("Hostel ID:", hostelId);
 
-        // ✅ For updates, include room _id if it exists
-        const roomData: any = {
-          roomNumber: parseInt(room.roomNo) || 101,
-          totalBeds: totalBeds,
-          roomDescription: room.roomDetails || "This is a hostel room",
-          isNewRoom: room.isNewRoom !== false,
-        };
+      // ✅ Prepare rooms data differently for CREATE vs UPDATE
+      let roomsData;
+      let roomPhotosForUpload: any = {};
 
-        // ✅ Include _id for existing rooms
-        if (room.roomId || room._id) {
-          roomData._id = room.roomId || room._id;
-          roomData.isNewRoom = false;
-        }
+      if (isUpdatingHostel) {
+        // ========== UPDATE MODE ==========
+        roomsData = formPage1Data.rooms.map((room, index) => {
+          const totalBeds = [];
+          for (let i = 1; i <= room.noOfBeds; i++) {
+            totalBeds.push({
+              bedNumber: i,
+            });
+          }
 
-        return roomData;
-      });
+          const roomData: any = {
+            roomNumber: parseInt(room.roomNo) || 101,
+            totalBeds: totalBeds,
+            roomDescription: room.roomDetails || "This is a hostel room",
+          };
+
+          // ✅ If room has existing _id, include it (existing room being updated)
+          if (room.roomId && room.roomId.startsWith("68")) {
+            roomData._id = room.roomId;
+            roomData.isNewRoom = false;
+
+            // ✅ Keep existing photos as URLs
+            const existingPhotos = room.roomPhotos
+              .filter((p: any) => p.isExisting)
+              .map((p: any) => p.uri);
+
+            if (existingPhotos.length > 0) {
+              roomData.photos = existingPhotos;
+            }
+
+            // ✅ Collect new photos for this room
+            const newPhotos = room.roomPhotos.filter((p: any) => !p.isExisting);
+            if (newPhotos.length > 0) {
+              newPhotos.forEach((photo: any) => {
+                if (!roomPhotosForUpload[`roomPhotos_${index}`]) {
+                  roomPhotosForUpload[`roomPhotos_${index}`] = [];
+                }
+                roomPhotosForUpload[`roomPhotos_${index}`].push(photo);
+              });
+            }
+          } else {
+            // ✅ New room being added
+            roomData.isNewRoom = true;
+
+            // All photos are new for new rooms
+            const newPhotos = room.roomPhotos.filter((p: any) => !p.isExisting);
+            if (newPhotos.length > 0) {
+              newPhotos.forEach((photo: any) => {
+                if (!roomPhotosForUpload[`roomPhotos_${index}`]) {
+                  roomPhotosForUpload[`roomPhotos_${index}`] = [];
+                }
+                roomPhotosForUpload[`roomPhotos_${index}`].push(photo);
+              });
+            }
+          }
+
+          return roomData;
+        });
+
+        console.log("✅ UPDATE - Rooms prepared:", roomsData.length);
+        console.log(
+          "✅ UPDATE - Room photos to upload:",
+          Object.keys(roomPhotosForUpload)
+        );
+      } else {
+        // ========== CREATE MODE ==========
+        roomsData = formPage1Data.rooms.map((room, index) => {
+          const totalBeds = [];
+          for (let i = 1; i <= room.noOfBeds; i++) {
+            totalBeds.push({
+              bedNumber: i,
+            });
+          }
+
+          // Collect photos for this room
+          if (room.roomPhotos && room.roomPhotos.length > 0) {
+            roomPhotosForUpload[`roomPhotos_${index}`] = room.roomPhotos;
+          }
+
+          return {
+            roomNumber: parseInt(room.roomNo) || 101,
+            totalBeds: totalBeds,
+            roomDescription: room.roomDetails || "This is a hostel room",
+          };
+        });
+
+        console.log("✅ CREATE - Rooms prepared:", roomsData.length);
+        console.log(
+          "✅ CREATE - Room photos to upload:",
+          Object.keys(roomPhotosForUpload)
+        );
+      }
 
       // ✅ Separate existing and new hostel photos
-      const existingHostelPhotos = photos.filter((p: any) => p.isExisting);
+      const existingHostelPhotos = photos
+        .filter((p: any) => p.isExisting)
+        .map((p: any) => p.uri);
       const newHostelPhotos = photos.filter((p: any) => !p.isExisting);
 
       // ✅ Transform complete form data to API format
@@ -178,9 +251,9 @@ const AddNewHostelService1 = () => {
             : "Co-ed Hostel",
         description: formPage1Data.description,
         pricing: {
-          perDay: formPage1Data.pricePerDay || 0,
-          weekly: formPage1Data.weeklyPrice || 0,
-          monthly: formPage1Data.monthlyPrice || 0,
+          perDay: formPage1Data.pricePerDay || undefined,
+          weekly: formPage1Data.weeklyPrice || undefined,
+          monthly: formPage1Data.monthlyPrice || undefined,
         },
         securityDeposit: formPage1Data.securityDeposit || 0,
         offers: formPage1Data.offers || "",
@@ -210,42 +283,39 @@ const AddNewHostelService1 = () => {
           whatsapp: parseInt(whatsappNumber),
         },
         rulesAndPolicies: rulesText || "Standard hostel rules apply",
-        hostelPhotos:
-          isUpdatingHostel && newHostelPhotos.length === 0
-            ? [] // Don't send photos if updating and no new photos
-            : newHostelPhotos.length > 0
-            ? newHostelPhotos
-            : photos, // For new hostels, send all photos
-        roomsWithPhotos: formPage1Data.rooms.map((room) => ({
-          roomNo: room.roomNo,
-          noOfBeds: room.noOfBeds,
-          roomDetails: room.roomDetails,
-          roomPhotos:
-            room.newPhotos || room.roomPhotos.filter((p: any) => !p.isExisting),
-          _id: room.roomId || room._id,
-          isNewRoom: room.isNewRoom !== false,
-        })),
       };
 
-      console.log("=== SUBMITTING DATA ===");
-      console.log("Mode:", isUpdatingHostel ? "UPDATE" : "CREATE");
-      console.log("Hostel ID:", hostelId);
+      // ✅ Handle hostel photos differently for CREATE vs UPDATE
+      if (isUpdatingHostel) {
+        // For updates: only send new photos, existing ones stay as URLs
+        if (newHostelPhotos.length > 0) {
+          apiData.hostelPhotos = newHostelPhotos;
+        } else if (existingHostelPhotos.length > 0) {
+          // If no new photos, send existing URLs to keep them
+          apiData.hostelPhotos = existingHostelPhotos;
+        }
+      } else {
+        // For create: send all photos
+        apiData.hostelPhotos = photos;
+      }
+
+      // ✅ Add room photos to the request
+      apiData.roomsWithPhotos = formPage1Data.rooms.map((room, index) => ({
+        roomNo: room.roomNo,
+        noOfBeds: room.noOfBeds,
+        roomDetails: room.roomDetails,
+        roomPhotos: roomPhotosForUpload[`roomPhotos_${index}`] || [],
+        _id:
+          room.roomId && room.roomId.startsWith("68") ? room.roomId : undefined,
+        isNewRoom: !room.roomId || !room.roomId.startsWith("68"),
+      }));
+
+      console.log("=== FINAL API DATA ===");
+      console.log("Hostel Name:", apiData.hostelName);
       console.log("Total Rooms:", roomsData.length);
       console.log("Existing Hostel Photos:", existingHostelPhotos.length);
       console.log("New Hostel Photos:", newHostelPhotos.length);
       console.log("Rooms with Photos:", apiData.roomsWithPhotos.length);
-      formPage1Data.rooms.forEach((room, index) => {
-        const newPhotosCount =
-          room.newPhotos?.length ||
-          room.roomPhotos.filter((p: any) => !p.isExisting).length;
-        const existingPhotosCount =
-          room.existingPhotos?.length ||
-          room.roomPhotos.filter((p: any) => p.isExisting).length;
-        console.log(
-          `Room ${index} (${room.roomNo}): ${existingPhotosCount} existing, ${newPhotosCount} new photos`
-        );
-      });
-
       // ✅ Submit to API (create or update)
       let response;
       if (isUpdatingHostel && hostelId) {
@@ -353,6 +423,16 @@ const AddNewHostelService1 = () => {
   const removePhoto = (index: number) => {
     setPhotos(photos.filter((_, i) => i !== index));
   };
+
+  // ✅ Show loading state
+  if (isLoadingData) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#FF6B35" />
+        <Text style={styles.loadingText}>Loading hostel data...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.flex}>
@@ -626,6 +706,18 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 30,
     backgroundColor: Colors.white,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: Colors.white,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    fontFamily: fonts.interMedium,
+    color: "#6B7280",
   },
   card: {
     borderWidth: 1,
