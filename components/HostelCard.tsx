@@ -51,7 +51,7 @@ export default function HostelCard({
     if (hostel.rooms && hostel.rooms.length > 0 && hostel.rooms[0]._id) {
       router.push({
         pathname: "/viewroom",
-        params: { roomId: hostel.rooms[0]._id },
+        params: { hostelId: hostel._id }, // Changed from roomId
       });
     } else {
       Alert.alert("No Rooms", "No rooms available for this hostel");
@@ -152,8 +152,9 @@ export default function HostelCard({
             </View>
 
             <View style={styles.infoBlock}>
+              {/* ✅ FIXED - Added optional chaining */}
               <Text style={styles.booking}>
-                {hostel.availability.availabilityString}
+                {hostel.availability?.availabilityString || "Not available"}
               </Text>
               <Text style={styles.deposit}>Available</Text>
             </View>
@@ -162,8 +163,13 @@ export default function HostelCard({
               <View style={styles.ratingRow}>
                 <Image source={Images.star} style={styles.starIcon} />
                 <Text style={styles.rating}>
-                  {hostel.overallRating.toFixed(1)}{" "}
-                  <Text style={styles.review}>({hostel.totalReviews})</Text>
+                  {/* ✅ FIXED - Added safe fallback */}
+                  {hostel.overallRating
+                    ? hostel.overallRating.toFixed(1)
+                    : "0.0"}{" "}
+                  <Text style={styles.review}>
+                    ({hostel.totalReviews || 0})
+                  </Text>
                 </Text>
               </View>
               <Text style={styles.deposit}>Rating</Text>

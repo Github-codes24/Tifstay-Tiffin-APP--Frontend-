@@ -1,6 +1,7 @@
 import CommonButton from "@/components/CommonButton";
 import TiffinCard from "@/components/CommonServiceCard";
 import HostelCard from "@/components/HostelCard";
+import OfflineModal from "@/components/OfflineModal";
 import { Colors } from "@/constants/Colors";
 import { Images } from "@/constants/Images";
 import { IS_IOS } from "@/constants/Platform";
@@ -12,6 +13,7 @@ import { router } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Image,
   ScrollView,
   StyleSheet,
@@ -21,11 +23,9 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-// Constants
 const ITEMS_PER_PAGE = 10;
 const SCROLL_BOTTOM_PADDING = { paddingBottom: IS_IOS ? 120 : 20 };
 
-// Extracted Components for better performance
 const StatsCard = React.memo<{
   icon: any;
   count: number;
@@ -100,18 +100,19 @@ export default function ServiceOfflineScreen() {
     overallRating,
     totalReviews,
     pagination,
+    updateHostelServiceOnlineStatus,
   } = useServiceStore();
 
-  const [isOnline, setIsOnline] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [showOfflineModal, setShowOfflineModal] = useState(false);
+  const [selectedFilter, setSelectedFilter] = useState<string>("all");
 
   const isTiffinProvider = useMemo(
     () => userServiceType === "tiffin_provider",
     [userServiceType]
   );
 
-  // Memoized values
   const profileImage = useMemo(
     () => (isTiffinProvider ? Images.user : { uri: user?.profileImage }),
     [isTiffinProvider, user?.profileImage]
@@ -136,41 +137,65 @@ export default function ServiceOfflineScreen() {
     [isTiffinProvider]
   );
 
-  const totalServices = useMemo(
-    () => pagination?.totalCount || hostelServices?.length || 0,
-    [pagination?.totalCount, hostelServices?.length]
+  // Separate online and offline services
+  const onlineServices = useMemo(() => {
+    if (!hostelServices) return [];
+    return hostelServices.filter(
+      (service: any) => service.isAvailable === true
+    );
+  }, [hostelServices]);
+
+  const offlineServices = useMemo(() => {
+    if (!hostelServices) return [];
+    return hostelServices.filter(
+      (service: any) => service.isAvailable === false
+    );
+  }, [hostelServices]);
+
+  // Filter ONLY online services for search and filter
+  const filteredOnlineServices = useMemo(() => {
+    let filtered = [...onlineServices];
+
+    // Apply filter by hostel type
+    if (selectedFilter !== "all") {
+      filtered = filtered.filter(
+        (service: any) => service.hostelType === selectedFilter
+      );
+    }
+
+    return filtered;
+  }, [onlineServices, selectedFilter]);
+
+  const totalOnlineServices = useMemo(
+    () => filteredOnlineServices?.length || 0,
+    [filteredOnlineServices]
+  );
+
+  const offlineServicesCount = useMemo(
+    () => offlineServices?.length || 0,
+    [offlineServices]
   );
 
   const serviceCountText = useMemo(
-    () => `${totalServices} service${totalServices !== 1 ? "s" : ""}`,
-    [totalServices]
+    () =>
+      `${totalOnlineServices} service${totalOnlineServices !== 1 ? "s" : ""}`,
+    [totalOnlineServices]
   );
 
-  // Format rating for display
   const displayRating = useMemo(() => {
     return overallRating > 0 ? overallRating.toFixed(1) : "0.0";
   }, [overallRating]);
 
-  // Format review count
   const displayReviewCount = useMemo(() => {
     return `(${totalReviews})`;
   }, [totalReviews]);
 
-  // Optimized data loading with Promise.all
   const loadData = useCallback(
     async (page: number) => {
       setLoading(true);
       try {
         if (isTiffinProvider) {
-          await Promise.all([
-            // getAllHostelServices(page, ITEMS_PER_PAGE), Get All tiffin services
-            getUserProfile(userServiceType),
-            // getTotalServicesCount(),
-            // getRequestedServicesCount(),
-            // getAcceptedServicesCount(),
-            // getCancelledServicesCount(),
-            // getReviewsSummary(),
-          ]);
+          await Promise.all([getUserProfile(userServiceType)]);
         } else {
           await Promise.all([
             getAllHostelServices(page, ITEMS_PER_PAGE),
@@ -197,10 +222,10 @@ export default function ServiceOfflineScreen() {
       getAcceptedServicesCount,
       getCancelledServicesCount,
       getReviewsSummary,
+      isTiffinProvider,
     ]
   );
 
-  // Optimized page change handler
   const handlePageChange = useCallback(
     (page: number) => {
       if (
@@ -215,20 +240,22 @@ export default function ServiceOfflineScreen() {
     [currentPage, pagination?.totalPages, loadData]
   );
 
-  // Optimized toggle handler
-  const handleToggleOnline = useCallback(() => {
-    const newOnlineState = !isOnline;
-    setIsOnline(newOnlineState);
-    if (newOnlineState && isTiffinProvider) {
-      router.push("/(secure)/(tabs)/(dashboard)/service");
+  const handleToggleOffline = useCallback(() => {
+    // Check if there are online services
+    if (onlineServices.length === 0) {
+      Alert.alert(
+        "No Online Services",
+        "You don't have any online services to take offline."
+      );
+      return;
     }
-  }, [isOnline, isTiffinProvider]);
+    setShowOfflineModal(true);
+  }, [onlineServices.length]);
 
-  // Navigation handlers
   const handleAddService = useCallback(() => {
     const route = isTiffinProvider
       ? "/(secure)/(service)/addNewService"
-      : "/(secure)/(hostelService)/addNewHostelService?mode=add";
+      : "/(secure)/(hostelService)/addNewHostelService";
     router.push(route);
   }, [isTiffinProvider]);
 
@@ -240,7 +267,63 @@ export default function ServiceOfflineScreen() {
     router.push("/review");
   }, []);
 
-  // Stats configuration
+  const handleOfflineSuccess = useCallback(() => {
+    setShowOfflineModal(false);
+    loadData(currentPage);
+  }, [loadData, currentPage]);
+
+  const handleGoOnline = useCallback(
+    async (serviceId: string, serviceName: string) => {
+      Alert.alert(
+        "Bring Service Online",
+        `Are you sure you want to bring "${serviceName}" back online?`,
+        [
+          {
+            text: "Cancel",
+            style: "cancel",
+          },
+          {
+            text: "Yes, Go Online",
+            style: "default",
+            onPress: async () => {
+              setLoading(true);
+              try {
+                const response = await updateHostelServiceOnlineStatus([
+                  serviceId,
+                ]);
+
+                if (response.success) {
+                  Alert.alert("Success", "Service is now online!", [
+                    {
+                      text: "OK",
+                      onPress: () => {
+                        loadData(currentPage);
+                      },
+                    },
+                  ]);
+                } else {
+                  throw new Error(
+                    response.error || "Failed to bring service online"
+                  );
+                }
+              } catch (error: any) {
+                console.error("❌ Error bringing service online:", error);
+                Alert.alert(
+                  "Error",
+                  error?.message ||
+                    "Failed to bring service online. Please try again."
+                );
+              } finally {
+                setLoading(false);
+              }
+            },
+          },
+        ]
+      );
+    },
+    [currentPage, loadData, updateHostelServiceOnlineStatus]
+  );
+
   const statsConfig = useMemo(
     () => [
       {
@@ -277,17 +360,21 @@ export default function ServiceOfflineScreen() {
     ]
   );
 
-  // Optimized pagination rendering
   const renderPagination = useCallback(() => {
     if (!pagination || pagination.totalCount <= ITEMS_PER_PAGE) return null;
 
-    const { currentPage: current, totalPages, hasNext, hasPrev } = pagination;
+    const {
+      currentPage: current,
+      totalPages,
+      hasNextPage,
+      hasPrevPage,
+    } = pagination;
 
     return (
       <View style={styles.paginationContainer}>
         <PaginationButton
           onPress={() => handlePageChange(current - 1)}
-          disabled={!hasPrev}
+          disabled={!hasPrevPage}
           iconName="chevron-back"
         />
 
@@ -304,15 +391,14 @@ export default function ServiceOfflineScreen() {
 
         <PaginationButton
           onPress={() => handlePageChange(current + 1)}
-          disabled={!hasNext}
+          disabled={!hasNextPage}
           iconName="chevron-forward"
         />
       </View>
     );
   }, [pagination, handlePageChange]);
 
-  // Optimized service list rendering
-  const renderServices = useMemo(() => {
+  const renderOnlineServices = useMemo(() => {
     if (loading) {
       return (
         <View style={styles.loadingContainer}>
@@ -325,19 +411,38 @@ export default function ServiceOfflineScreen() {
       return <TiffinCard />;
     }
 
-    return hostelServices?.map((hostel: any) => (
+    return filteredOnlineServices.map((hostel: any) => (
       <HostelCard
         hostel={hostel}
         key={hostel._id}
-        onEditPress={() =>
-          router.navigate({
+        onEditPress={() => {
+          console.log("📝 Navigating to edit for hostel:", hostel._id);
+          router.push({
             pathname: "/(secure)/(hostelService)/addNewHostelService",
-            params: { hostelId: hostel._id, mode: "edit" },
-          })
-        }
+            params: {
+              mode: "edit",
+              hostelId: hostel._id,
+            },
+          });
+        }}
       />
     ));
-  }, [loading, isTiffinProvider, hostelServices]);
+  }, [loading, isTiffinProvider, filteredOnlineServices, ,]);
+
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return "N/A";
+    }
+  };
 
   useEffect(() => {
     loadData(1);
@@ -345,7 +450,6 @@ export default function ServiceOfflineScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <Image source={profileImage} style={styles.logo} />
         <View style={styles.headerText}>
@@ -354,126 +458,224 @@ export default function ServiceOfflineScreen() {
         </View>
         <TouchableOpacity
           style={styles.onlineButton}
-          onPress={handleToggleOnline}
+          onPress={handleToggleOffline}
         >
-          <Text style={styles.onlineButtonText}>
-            {isOnline ? "Go Offline" : "Go Online"}
-          </Text>
+          <Text style={styles.onlineButtonText}>Go Offline</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Body */}
-      {!isOnline ? (
-        <View style={styles.body}>
-          <Text style={styles.infoText}>
-            You have marked your service as offline
-          </Text>
-          <Image source={Images.storeclose} style={styles.shopImage} />
-          <Text style={styles.footerText}>
-            Your Service will be offline until you turn it on
-          </Text>
+      <ScrollView
+        style={styles.scrollContainer}
+        contentContainerStyle={SCROLL_BOTTOM_PADDING}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.statsRow}>
+          <StatsCard {...statsConfig[0]} />
+          <StatsCard {...statsConfig[1]} />
         </View>
-      ) : (
-        <ScrollView
-          style={styles.scrollContainer}
-          contentContainerStyle={SCROLL_BOTTOM_PADDING}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Stats */}
-          <View style={styles.statsRow}>
-            <StatsCard {...statsConfig[0]} />
-            <StatsCard {...statsConfig[1]} />
-          </View>
 
-          <View style={styles.statsRowLast}>
-            <StatsCard {...statsConfig[2]} />
-            <StatsCard {...statsConfig[3]} />
-          </View>
+        <View style={styles.statsRowLast}>
+          <StatsCard {...statsConfig[2]} />
+          <StatsCard {...statsConfig[3]} />
+        </View>
 
-          {/* Quick Actions */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Image source={Images.watch} style={styles.icon16} />
-              <Text style={styles.sectionTitle}>Quick Actions</Text>
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Image source={Images.watch} style={styles.icon16} />
+            <Text style={styles.sectionTitle}>Quick Actions</Text>
+          </View>
+          <View style={styles.quickActions}>
+            <TouchableOpacity
+              style={styles.actionButtonPrimary}
+              onPress={handleAddService}
+            >
+              <Ionicons
+                name="add-circle-outline"
+                size={20}
+                color={Colors.white}
+              />
+              <Text style={styles.actionText}>Add Service</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.actionButtonOrange}
+              onPress={handleViewEarnings}
+            >
+              <Ionicons
+                name="trending-up-outline"
+                size={20}
+                color={Colors.white}
+              />
+              <Text style={styles.actionText}>View Earnings</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Image source={Images.total} style={styles.icon16} />
+            <Text style={styles.sectionTitle}>Earnings Overview</Text>
+          </View>
+          <View style={styles.earningsRow}>
+            <Text style={styles.earningsValue}>₹3250</Text>
+            <Text style={styles.earningsChange}>+18%</Text>
+          </View>
+          <View style={styles.earningsRowSecond}>
+            <Text style={styles.subText}>{"This week's total"}</Text>
+            <Text style={styles.subText}>vs last week</Text>
+          </View>
+        </View>
+
+        <View style={styles.reviewBox}>
+          <View style={styles.reviewHeader}>
+            <Text style={styles.reviewTitle}>Reviews</Text>
+            <TouchableOpacity onPress={handleViewReviews}>
+              <Text style={styles.linkText}>See All Reviews</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.reviewRow}>
+            <Image source={Images.star} style={styles.icon20} />
+            <Text style={styles.reviewScore}>{displayRating}</Text>
+            <Text style={styles.subText}>{displayReviewCount}</Text>
+          </View>
+        </View>
+
+        {/* Online Services Section */}
+        <View style={styles.serviceHeader}>
+          <Text style={styles.serviceTitle}>{serviceTitle} (Online)</Text>
+          <Text style={styles.serviceCount}>{serviceCountText}</Text>
+        </View>
+
+        {renderOnlineServices}
+
+        {renderPagination()}
+
+        {/* Offline Services Section */}
+        {!isTiffinProvider && offlineServicesCount > 0 && (
+          <>
+            <View style={styles.offlineServicesHeader}>
+              <View style={styles.offlineHeaderLeft}>
+                <Ionicons name="pause-circle" size={20} color={Colors.red} />
+                <Text style={styles.offlineServicesTitle}>
+                  Offline Services
+                </Text>
+              </View>
+              <Text style={styles.offlineServicesCount}>
+                {offlineServicesCount} offline
+              </Text>
             </View>
-            <View style={styles.quickActions}>
-              <TouchableOpacity
-                style={styles.actionButtonPrimary}
-                onPress={handleAddService}
-              >
-                <Ionicons
-                  name="add-circle-outline"
-                  size={20}
-                  color={Colors.white}
+
+            {offlineServices.map((hostel: any) => (
+              <View key={hostel._id} style={styles.offlineServiceWrapper}>
+                <HostelCard
+                  hostel={hostel}
+                  onEditPress={() => {
+                    console.log(
+                      "📝 Navigating to edit for hostel:",
+                      hostel._id
+                    );
+                    router.push({
+                      pathname: "/(secure)/(hostelService)/addNewHostelService",
+                      params: {
+                        mode: "edit",
+                        hostelId: hostel._id,
+                      },
+                    });
+                  }}
                 />
-                <Text style={styles.actionText}>Add Service</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.actionButtonOrange}
-                onPress={handleViewEarnings}
-              >
-                <Ionicons
-                  name="trending-up-outline"
-                  size={20}
-                  color={Colors.white}
-                />
-                <Text style={styles.actionText}>View Earnings</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
 
-          {/* Earnings Overview */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Image source={Images.total} style={styles.icon16} />
-              <Text style={styles.sectionTitle}>Earnings Overview</Text>
-            </View>
-            <View style={styles.earningsRow}>
-              <Text style={styles.earningsValue}>₹3250</Text>
-              <Text style={styles.earningsChange}>+18%</Text>
-            </View>
-            <View style={styles.earningsRowSecond}>
-              <Text style={styles.subText}>{"This week's total"}</Text>
-              <Text style={styles.subText}>vs last week</Text>
-            </View>
-          </View>
+                {/* Go Online Button */}
+                <TouchableOpacity
+                  style={styles.goOnlineButton}
+                  onPress={() => handleGoOnline(hostel._id, hostel.hostelName)}
+                  activeOpacity={0.8}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <ActivityIndicator size="small" color={Colors.white} />
+                  ) : (
+                    <>
+                      <Ionicons
+                        name="play-circle"
+                        size={20}
+                        color={Colors.white}
+                      />
+                      <Text style={styles.goOnlineButtonText}>
+                        Bring Online
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
 
-          {/* Reviews */}
-          <View style={styles.reviewBox}>
-            <View style={styles.reviewHeader}>
-              <Text style={styles.reviewTitle}>Reviews</Text>
-              <TouchableOpacity onPress={handleViewReviews}>
-                <Text style={styles.linkText}>See All Reviews</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.reviewRow}>
-              <Image source={Images.star} style={styles.icon20} />
-              <Text style={styles.reviewScore}>{displayRating}</Text>
-              <Text style={styles.subText}>{displayReviewCount}</Text>
-            </View>
-          </View>
+                {/* Offline Info Card */}
+                <View style={styles.offlineInfoCard}>
+                  {hostel.offlineDetails?.reason && (
+                    <View style={styles.offlineInfoRow}>
+                      <Ionicons
+                        name="information-circle"
+                        size={16}
+                        color={Colors.orange}
+                      />
+                      <Text style={styles.offlineInfoLabel}>Reason:</Text>
+                      <Text style={styles.offlineInfoValue}>
+                        {hostel.offlineDetails.reason}
+                      </Text>
+                    </View>
+                  )}
 
-          {/* Services */}
-          <View style={styles.serviceHeader}>
-            <Text style={styles.serviceTitle}>{serviceTitle}</Text>
-            <Text style={styles.serviceCount}>{serviceCountText}</Text>
-          </View>
+                  {hostel.offlineDetails?.comeBackOption && (
+                    <View style={styles.offlineInfoRow}>
+                      <Ionicons name="time" size={16} color={Colors.primary} />
+                      <Text style={styles.offlineInfoLabel}>Back in:</Text>
+                      <Text style={styles.offlineInfoValue}>
+                        {hostel.offlineDetails.comeBackOption}
+                      </Text>
+                    </View>
+                  )}
 
-          {renderServices}
+                  {hostel.offlineDetails?.offlineAt && (
+                    <View style={styles.offlineInfoRow}>
+                      <Ionicons name="calendar" size={16} color={Colors.grey} />
+                      <Text style={styles.offlineInfoLabel}>
+                        Offline since:
+                      </Text>
+                      <Text style={styles.offlineInfoValue}>
+                        {formatDate(hostel.offlineDetails.offlineAt)}
+                      </Text>
+                    </View>
+                  )}
 
-          {/* Pagination */}
-          {renderPagination()}
+                  {hostel.offlineDetails?.offlineType && (
+                    <View style={styles.offlineInfoRow}>
+                      <Ionicons name="options" size={16} color={Colors.grey} />
+                      <Text style={styles.offlineInfoLabel}>Type:</Text>
+                      <Text style={styles.offlineInfoValue}>
+                        {hostel.offlineDetails.offlineType === "immediate"
+                          ? "Immediate"
+                          : "Scheduled"}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            ))}
+          </>
+        )}
 
-          <CommonButton title="+ Add New Service" onPress={handleAddService} />
-        </ScrollView>
-      )}
+        <CommonButton title="+ Add New Service" onPress={handleAddService} />
+      </ScrollView>
+
+      <OfflineModal
+        visible={showOfflineModal}
+        onClose={() => setShowOfflineModal(false)}
+        onSuccess={handleOfflineSuccess}
+        isTiffinProvider={isTiffinProvider}
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.white },
-
   header: { flexDirection: "row", alignItems: "center", padding: 15 },
   logo: { width: 40, height: 40, borderRadius: 24, marginRight: 10 },
   headerText: { flex: 1 },
@@ -483,7 +685,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.interRegular,
     color: Colors.grey,
   },
-
   onlineButton: {
     borderColor: Colors.primary,
     borderWidth: 1,
@@ -496,28 +697,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: fonts.interMedium,
   },
-
-  body: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 20,
-  },
-  infoText: {
-    fontSize: 16,
-    fontFamily: fonts.interMedium,
-    color: Colors.title,
-    marginBottom: 20,
-  },
-  shopImage: { width: 208, height: 208, marginBottom: 20 },
-  footerText: {
-    fontSize: 16,
-    fontFamily: fonts.interMedium,
-    color: Colors.title,
-    marginBottom: 20,
-    textAlign: "center",
-  },
-
   statsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -546,7 +725,6 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   cardText: { fontSize: 13, fontFamily: fonts.interRegular, marginTop: 2 },
-
   section: {
     backgroundColor: Colors.white,
     borderRadius: 12,
@@ -562,7 +740,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.interSemibold,
     color: Colors.title,
   },
-
   quickActions: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -590,7 +767,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.interSemibold,
     fontSize: 14,
   },
-
   earningsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -619,12 +795,12 @@ const styles = StyleSheet.create({
     fontFamily: fonts.interRegular,
     marginTop: 4,
   },
-
   reviewBox: {
     backgroundColor: "#F5F5F5",
     borderRadius: 12,
     paddingVertical: 26,
     paddingHorizontal: 16,
+    marginBottom: 24,
   },
   reviewHeader: {
     flexDirection: "row",
@@ -667,20 +843,27 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.grey,
   },
-
   scrollContainer: {
     flex: 1,
     backgroundColor: Colors.white,
     padding: 12,
   },
-
   loadingContainer: {
     paddingVertical: 40,
     alignItems: "center",
     justifyContent: "center",
   },
-
-  // Pagination Styles
+  emptyContainer: {
+    paddingVertical: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+  },
+  emptyText: {
+    fontSize: 14,
+    fontFamily: fonts.interRegular,
+    color: Colors.grey,
+  },
   paginationContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -728,6 +911,86 @@ const styles = StyleSheet.create({
   },
   pageNumberTextActive: {
     color: Colors.white,
+  },
+
+  // Offline Services Styles
+  offlineServicesHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 32,
+    marginBottom: 16,
+    paddingTop: 24,
+    borderTopWidth: 2,
+    borderTopColor: Colors.lightGrey,
+  },
+  offlineHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  offlineServicesTitle: {
+    fontFamily: fonts.interSemibold,
+    fontSize: 16,
+    color: Colors.red,
+  },
+  offlineServicesCount: {
+    fontFamily: fonts.interMedium,
+    fontSize: 13,
+    color: Colors.red,
+    backgroundColor: "#FFE5E5",
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  offlineServiceWrapper: {
+    marginBottom: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: "#FFE5E5",
+    backgroundColor: "#FFF9F9",
+    padding: 12,
+  },
+  goOnlineButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.green,
+    borderRadius: 10,
+    paddingVertical: 14,
+    gap: 8,
+    marginTop: 12,
+  },
+  goOnlineButtonText: {
+    fontSize: 15,
+    fontFamily: fonts.interSemibold,
+    color: Colors.white,
+  },
+  offlineInfoCard: {
+    backgroundColor: Colors.white,
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 12,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: Colors.lightGrey,
+  },
+  offlineInfoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  offlineInfoLabel: {
+    fontSize: 13,
+    fontFamily: fonts.interMedium,
+    color: Colors.grey,
+    minWidth: 90,
+  },
+  offlineInfoValue: {
+    fontSize: 13,
+    fontFamily: fonts.interSemibold,
+    color: Colors.title,
+    flex: 1,
   },
 
   icon16: { height: 16, width: 16 },
