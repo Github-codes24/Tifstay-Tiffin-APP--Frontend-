@@ -12,7 +12,7 @@ import { IS_ANDROID } from "@/constants/Platform";
 import { fonts } from "@/constants/typography";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Image, Alert } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -196,6 +196,62 @@ console.log('=-=',parsed)
         },
       ],
     });
+  };
+
+  const validateForm = () => {
+    if (!formData.tiffinName.trim()) {
+      Alert.alert("Validation Error", "Please enter the Tiffin/Restaurant Name.");
+      return false;
+    }
+
+    if (!formData.description.trim()) {
+      Alert.alert("Validation Error", "Please enter a Description.");
+      return false;
+    }
+
+    // At least one meal should be selected
+    if (!formData.mealTimings.some(m => m.checked)) {
+      Alert.alert("Validation Error", "Please select at least one meal.");
+      return false;
+    }
+
+    // All selected meals should have start and end times
+    for (let meal of formData.mealTimings) {
+      if (meal.checked && (!meal.startTime || !meal.endTime)) {
+        Alert.alert("Validation Error", `Please select timing for ${meal.mealType}.`);
+        return false;
+      }
+    }
+
+    if (!formData.foodType) {
+      Alert.alert("Validation Error", "Please select a Food Type.");
+      return false;
+    }
+
+    if (!formData.includedDescription.trim()) {
+      Alert.alert("Validation Error", "Please enter what's included.");
+      return false;
+    }
+
+    if (!formData.orderTypes.dining && !formData.orderTypes.delivery) {
+      Alert.alert("Validation Error", "Please select at least one Order Type.");
+      return false;
+    }
+
+    // Validate pricing blocks
+    for (let i = 0; i < formData.pricing.length; i++) {
+      const block = formData.pricing[i];
+      if (!block.planType) {
+        Alert.alert("Validation Error", `Please select Plan Type for pricing block ${i + 1}.`);
+        return false;
+      }
+      if (!block.foodType) {
+        Alert.alert("Validation Error", `Please select Food Type for pricing block ${i + 1}.`);
+        return false;
+      }
+    }
+
+    return true;
   };
 
   return (
@@ -383,10 +439,12 @@ console.log('=-=',parsed)
         <CommonButton
           title="Next"
           onPress={() => {
-            router.push({
-              pathname: '/(secure)/(service)/addNewService1',
-              params: { formData: JSON.stringify(formData) , extraData : formDataParam , isEdit , id }
-            })
+            if (validateForm()) {
+              router.push({
+                pathname: '/(secure)/(service)/addNewService1',
+                params: { formData: JSON.stringify(formData), extraData: formDataParam, isEdit, id }
+              });
+            }
           }}
           buttonStyle={{ marginBottom: IS_ANDROID ? 50 : 10 }}
         />

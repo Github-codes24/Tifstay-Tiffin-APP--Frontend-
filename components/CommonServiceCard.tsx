@@ -15,14 +15,21 @@ import { router } from "expo-router";
 const { width } = Dimensions.get("window");
 
 const TiffinCard = ({ tiffin }: any) => {
-  console.log(tiffin?._id)
+  console.log(tiffin)
   return (
     <View style={styles.container}>
       <View style={styles.card}>
         {/* Image */}
         <Image
-          source={tiffin?.photos?.[0] ? { uri: tiffin.photos[0] } : require('../assets/images/tiffin.png')}
-          style={styles.image}
+          source={
+            tiffin?.photos?.[0]
+              ? { uri: tiffin.photos[0] }
+              : tiffin?.vegPhotos?.[0]
+                ? { uri: tiffin.vegPhotos[0] }
+                : tiffin?.nonVegPhotos?.[0]
+                  ? { uri: tiffin.nonVegPhotos[0] }
+                : require('../assets/images/tiffin.png')
+          }          style={styles.image}
           resizeMode="cover"
         />
         {/* Info Section */}
@@ -44,7 +51,7 @@ const TiffinCard = ({ tiffin }: any) => {
               <Text style={styles.label}>Price</Text>
             </View>
             <View style={styles.discount}>
-              <Text style={styles.discountText}>{tiffin?.pricing[0]?.offers}</Text>
+              <Text style={styles.discountText}>{tiffin?.pricing[0]?.offers || '10% Discount'}</Text>
             </View>
           </View>
 

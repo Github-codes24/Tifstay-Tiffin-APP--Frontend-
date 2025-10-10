@@ -81,7 +81,7 @@ const BasicInfoForm = () => {
     } else if (parsedExtra.nonVegPhotos?.length > 0) {
       setPhotos(parsedExtra.nonVegPhotos);
     }
-  }, []); // ✅ Run only once
+  }, []);
 
   const [area, setArea] = useState("");
   const [landmark, setLandmark] = useState("");
@@ -323,12 +323,12 @@ const BasicInfoForm = () => {
       });
 
       // Whats included
-      formDataToSend.append("whatsIncludes", JSON.stringify(parsedData?.includedDescription));
+      formDataToSend.append("whatsIncludes", parsedData?.includedDescription);
       console.log(formDataToSend)
       const response = await fetch(
        isEdit === 'true' ? `https://tifstay-project-be.onrender.com/api/tiffinService/updateTiffinService/${id}` : "https://tifstay-project-be.onrender.com/api/tiffinService/createTiffinService",
         {
-          method: "POST",
+          method: isEdit === 'true'  ? 'PUT' : "POST",
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "multipart/form-data",
