@@ -1,4 +1,5 @@
 import { Colors } from "@/constants/Colors";
+import { IS_IOS } from "@/constants/Platform";
 import { fonts } from "@/constants/typography";
 import useServiceStore from "@/store/serviceStore";
 import { Ionicons } from "@expo/vector-icons";
@@ -53,8 +54,11 @@ const OfflineModal: React.FC<OfflineModalProps> = ({
   onSuccess,
   isTiffinProvider,
 }) => {
-  const { hostelServices, updateHostelServiceOfflineStatus } =
-    useServiceStore();
+  const {
+    hostelServices,
+    updateHostelServiceOfflineStatus,
+    updateHostelServiceOnlineStatus,
+  } = useServiceStore();
 
   const [selectedReason, setSelectedReason] = useState<string>("");
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
@@ -63,11 +67,19 @@ const OfflineModal: React.FC<OfflineModalProps> = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Filter only available (online) services
-  const availableServices =
+  // Separate online and offline services
+  const onlineServices =
     hostelServices?.filter((service) => service.isAvailable === true) || [];
+  const offlineServices =
+    hostelServices?.filter((service) => service.isAvailable === false) || [];
 
-  const filteredServices = availableServices.filter((service) =>
+  // Filter online services
+  const filteredOnlineServices = onlineServices.filter((service) =>
+    service.hostelName?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Filter offline services
+  const filteredOfflineServices = offlineServices.filter((service) =>
     service.hostelName?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -80,12 +92,12 @@ const OfflineModal: React.FC<OfflineModalProps> = ({
   }, []);
 
   const handleSelectAll = useCallback(() => {
-    if (selectedServices.length === filteredServices.length) {
+    if (selectedServices.length === filteredOnlineServices.length) {
       setSelectedServices([]);
     } else {
-      setSelectedServices(filteredServices.map((s) => s._id));
+      setSelectedServices(filteredOnlineServices.map((s) => s._id));
     }
-  }, [selectedServices, filteredServices]);
+  }, [selectedServices, filteredOnlineServices]);
 
   const mapOfflineType = (option: string): "immediate" | "scheduled" => {
     return option === "Until I turn myself on" ? "scheduled" : "immediate";
@@ -152,6 +164,55 @@ const OfflineModal: React.FC<OfflineModalProps> = ({
     }
   };
 
+  const handleBringOnline = async (serviceId: string, serviceName: string) => {
+    Alert.alert(
+      "Bring Service Online",
+      `Are you sure you want to bring "${serviceName}" back online?`,
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Yes, Go Online",
+          style: "default",
+          onPress: async () => {
+            setLoading(true);
+            try {
+              const response = await updateHostelServiceOnlineStatus([
+                serviceId,
+              ]);
+
+              if (response.success) {
+                Alert.alert("Success", "Service is now online!", [
+                  {
+                    text: "OK",
+                    onPress: () => {
+                      onSuccess();
+                    },
+                  },
+                ]);
+              } else {
+                throw new Error(
+                  response.error || "Failed to bring service online"
+                );
+              }
+            } catch (error: any) {
+              console.error("❌ Error bringing service online:", error);
+              Alert.alert(
+                "Error",
+                error?.message ||
+                  "Failed to bring service online. Please try again."
+              );
+            } finally {
+              setLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const resetModal = () => {
     setSelectedReason("");
     setSelectedServices([]);
@@ -166,7 +227,21 @@ const OfflineModal: React.FC<OfflineModalProps> = ({
     }
   };
 
-  const renderServiceItem = ({ item }: { item: any }) => {
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return "N/A";
+    }
+  };
+
+  const renderOnlineServiceItem = ({ item }: { item: any }) => {
     const isSelected = selectedServices.includes(item._id);
 
     return (
@@ -186,6 +261,73 @@ const OfflineModal: React.FC<OfflineModalProps> = ({
           )}
         </View>
       </TouchableOpacity>
+    );
+  };
+
+  const renderOfflineServiceItem = ({ item }: { item: any }) => {
+    return (
+      <View style={styles.offlineServiceItem}>
+        <View style={styles.offlineServiceHeader}>
+          <View style={styles.serviceInfo}>
+            <View style={styles.offlineServiceNameRow}>
+              <Text style={styles.serviceName}>{item.hostelName}</Text>
+              <View style={styles.offlineBadge}>
+                <Text style={styles.offlineBadgeText}>Offline</Text>
+              </View>
+            </View>
+            <Text style={styles.serviceType}>{item.hostelType}</Text>
+          </View>
+        </View>
+
+        {/* Offline Details */}
+        {item.offlineDetails && (
+          <View style={styles.offlineDetails}>
+            {item.offlineDetails.reason && (
+              <View style={styles.offlineDetailRow}>
+                <Ionicons
+                  name="information-circle-outline"
+                  size={14}
+                  color={Colors.orange}
+                />
+                <Text style={styles.offlineDetailText}>
+                  {item.offlineDetails.reason}
+                </Text>
+              </View>
+            )}
+            {item.offlineDetails.comeBackOption && (
+              <View style={styles.offlineDetailRow}>
+                <Ionicons name="time-outline" size={14} color={Colors.grey} />
+                <Text style={styles.offlineDetailText}>
+                  Back in: {item.offlineDetails.comeBackOption}
+                </Text>
+              </View>
+            )}
+            {item.offlineDetails.offlineAt && (
+              <View style={styles.offlineDetailRow}>
+                <Ionicons
+                  name="calendar-outline"
+                  size={14}
+                  color={Colors.grey}
+                />
+                <Text style={styles.offlineDetailText}>
+                  Since: {formatDate(item.offlineDetails.offlineAt)}
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* Bring Online Button */}
+        <TouchableOpacity
+          style={styles.bringOnlineButton}
+          onPress={() => handleBringOnline(item._id, item.hostelName)}
+          disabled={loading}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="play-circle" size={18} color={Colors.green} />
+          <Text style={styles.bringOnlineButtonText}>Bring Online</Text>
+        </TouchableOpacity>
+      </View>
     );
   };
 
@@ -214,7 +356,7 @@ const OfflineModal: React.FC<OfflineModalProps> = ({
           >
             <Ionicons name="close" size={28} color={Colors.title} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Going Offline</Text>
+          <Text style={styles.headerTitle}>Manage Services</Text>
           <View style={{ width: 28 }} />
         </View>
 
@@ -225,43 +367,9 @@ const OfflineModal: React.FC<OfflineModalProps> = ({
             <View style={styles.content}>
               {/* Subtitle */}
               <Text style={styles.subtitle}>
-                {
-                  "Select online services to take offline and specify when you'll be available again"
-                }
+                Select online services to take offline or bring offline services
+                back online
               </Text>
-
-              {/* Reason Selection */}
-              <View style={styles.section}>
-                <Text style={styles.sectionLabel}>
-                  Why are you going offline?{" "}
-                  <Text style={styles.required}>*</Text>
-                </Text>
-                <View style={styles.reasonContainer}>
-                  {OFFLINE_REASONS.map((reason) => (
-                    <TouchableOpacity
-                      key={reason.value}
-                      style={[
-                        styles.reasonChip,
-                        selectedReason === reason.value &&
-                          styles.reasonChipSelected,
-                      ]}
-                      onPress={() => setSelectedReason(reason.value)}
-                      disabled={loading}
-                      activeOpacity={0.7}
-                    >
-                      <Text
-                        style={[
-                          styles.reasonChipText,
-                          selectedReason === reason.value &&
-                            styles.reasonChipTextSelected,
-                        ]}
-                      >
-                        {reason.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
 
               {/* Search Bar */}
               <View style={styles.section}>
@@ -296,128 +404,204 @@ const OfflineModal: React.FC<OfflineModalProps> = ({
                 </View>
               </View>
 
-              {/* Service Selection */}
-              <View style={styles.section}>
-                <View style={styles.selectAllContainer}>
-                  <Text style={styles.sectionLabel}>
-                    Select Services <Text style={styles.required}>*</Text>
-                  </Text>
-                  <TouchableOpacity
-                    onPress={handleSelectAll}
-                    disabled={loading}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={styles.selectAllText}>
-                      {selectedServices.length === filteredServices.length
-                        ? "Deselect All"
-                        : "Select All"}
+              {/* Online Services Section */}
+              {filteredOnlineServices.length > 0 && (
+                <>
+                  {/* Reason Selection */}
+                  <View style={styles.section}>
+                    <Text style={styles.sectionLabel}>
+                      Why are you going offline?{" "}
+                      <Text style={styles.required}>*</Text>
                     </Text>
-                  </TouchableOpacity>
-                </View>
+                    <View style={styles.reasonContainer}>
+                      {OFFLINE_REASONS.map((reason) => (
+                        <TouchableOpacity
+                          key={reason.value}
+                          style={[
+                            styles.reasonChip,
+                            selectedReason === reason.value &&
+                              styles.reasonChipSelected,
+                          ]}
+                          onPress={() => setSelectedReason(reason.value)}
+                          disabled={loading}
+                          activeOpacity={0.7}
+                        >
+                          <Text
+                            style={[
+                              styles.reasonChipText,
+                              selectedReason === reason.value &&
+                                styles.reasonChipTextSelected,
+                            ]}
+                          >
+                            {reason.label}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
 
-                {filteredServices.length === 0 ? (
+                  {/* Online Service Selection */}
+                  <View style={styles.section}>
+                    <View style={styles.selectAllContainer}>
+                      <Text style={styles.sectionLabel}>
+                        Select Online Services{" "}
+                        <Text style={styles.required}>*</Text>
+                      </Text>
+                      <TouchableOpacity
+                        onPress={handleSelectAll}
+                        disabled={loading}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.selectAllText}>
+                          {selectedServices.length ===
+                          filteredOnlineServices.length
+                            ? "Deselect All"
+                            : "Select All"}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.serviceListContainer}>
+                      {filteredOnlineServices.map((service) => (
+                        <View key={service._id}>
+                          {renderOnlineServiceItem({ item: service })}
+                        </View>
+                      ))}
+                    </View>
+
+                    {selectedServices.length > 0 && (
+                      <View style={styles.selectedCount}>
+                        <Text style={styles.selectedCountText}>
+                          {selectedServices.length} service
+                          {selectedServices.length !== 1 ? "s" : ""} selected
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Comeback Options */}
+                  <View style={styles.section}>
+                    <Text style={styles.sectionLabel}>
+                      When will you be back?{" "}
+                      <Text style={styles.required}>*</Text>
+                    </Text>
+                    <View style={styles.comebackContainer}>
+                      {COMEBACK_OPTIONS.map((option) => (
+                        <TouchableOpacity
+                          key={option}
+                          style={[
+                            styles.comebackChip,
+                            selectedComebackOption === option &&
+                              styles.comebackChipSelected,
+                          ]}
+                          onPress={() => setSelectedComebackOption(option)}
+                          disabled={loading}
+                          activeOpacity={0.7}
+                        >
+                          <Ionicons
+                            name={
+                              option === "30 minutes" || option === "2 hours"
+                                ? "time-outline"
+                                : option === "Tomorrow opening time"
+                                ? "sunny-outline"
+                                : "power-outline"
+                            }
+                            size={20}
+                            color={
+                              selectedComebackOption === option
+                                ? Colors.white
+                                : Colors.primary
+                            }
+                          />
+                          <Text
+                            style={[
+                              styles.comebackChipText,
+                              selectedComebackOption === option &&
+                                styles.comebackChipTextSelected,
+                            ]}
+                          >
+                            {option}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                </>
+              )}
+
+              {/* Offline Services Section */}
+              {filteredOfflineServices.length > 0 && (
+                <View style={styles.section}>
+                  <View style={styles.offlineServicesHeader}>
+                    <Ionicons
+                      name="pause-circle"
+                      size={20}
+                      color={Colors.red}
+                    />
+                    <Text style={styles.offlineServicesTitle}>
+                      Currently Offline Services
+                    </Text>
+                    <View style={styles.offlineCountBadge}>
+                      <Text style={styles.offlineCountText}>
+                        {filteredOfflineServices.length}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.offlineServiceListContainer}>
+                    {filteredOfflineServices.map((service) => (
+                      <View key={service._id}>
+                        {renderOfflineServiceItem({ item: service })}
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              {/* Empty State */}
+              {filteredOnlineServices.length === 0 &&
+                filteredOfflineServices.length === 0 && (
                   <View style={styles.emptyContainer}>
                     <Ionicons
                       name="information-circle-outline"
                       size={48}
                       color={Colors.grey}
                     />
-                    <Text style={styles.emptyText}>
-                      No online services found
-                    </Text>
-                  </View>
-                ) : (
-                  <View style={styles.serviceListContainer}>
-                    {filteredServices.map((service) => (
-                      <View key={service._id}>
-                        {renderServiceItem({ item: service })}
-                      </View>
-                    ))}
+                    <Text style={styles.emptyText}>No services found</Text>
                   </View>
                 )}
-
-                {selectedServices.length > 0 && (
-                  <View style={styles.selectedCount}>
-                    <Text style={styles.selectedCountText}>
-                      {selectedServices.length} service
-                      {selectedServices.length !== 1 ? "s" : ""} selected
-                    </Text>
-                  </View>
-                )}
-              </View>
-
-              {/* Comeback Options */}
-              <View style={styles.section}>
-                <Text style={styles.sectionLabel}>
-                  When will you be back? <Text style={styles.required}>*</Text>
-                </Text>
-                <View style={styles.comebackContainer}>
-                  {COMEBACK_OPTIONS.map((option) => (
-                    <TouchableOpacity
-                      key={option}
-                      style={[
-                        styles.comebackChip,
-                        selectedComebackOption === option &&
-                          styles.comebackChipSelected,
-                      ]}
-                      onPress={() => setSelectedComebackOption(option)}
-                      disabled={loading}
-                      activeOpacity={0.7}
-                    >
-                      <Ionicons
-                        name={
-                          option === "30 minutes" || option === "2 hours"
-                            ? "time-outline"
-                            : option === "Tomorrow opening time"
-                            ? "sunny-outline"
-                            : "power-outline"
-                        }
-                        size={20}
-                        color={
-                          selectedComebackOption === option
-                            ? Colors.white
-                            : Colors.primary
-                        }
-                      />
-                      <Text
-                        style={[
-                          styles.comebackChipText,
-                          selectedComebackOption === option &&
-                            styles.comebackChipTextSelected,
-                        ]}
-                      >
-                        {option}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
             </View>
           )}
           keyExtractor={(item) => item.key}
           showsVerticalScrollIndicator={false}
         />
 
-        {/* Fixed Footer */}
-        <View style={styles.footer}>
-          <TouchableOpacity
-            style={[styles.continueButton, loading && styles.buttonDisabled]}
-            onPress={handleContinue}
-            disabled={loading}
-            activeOpacity={0.8}
-          >
-            {loading ? (
-              <ActivityIndicator color={Colors.white} />
-            ) : (
-              <>
-                <Text style={styles.continueButtonText}>
-                  Continue & Go Offline
-                </Text>
-                <Ionicons name="arrow-forward" size={20} color={Colors.white} />
-              </>
-            )}
-          </TouchableOpacity>
-        </View>
+        {/* Fixed Footer - Only show if there are online services */}
+        {filteredOnlineServices.length > 0 && (
+          <View style={styles.footer}>
+            <TouchableOpacity
+              style={[styles.continueButton, loading && styles.buttonDisabled]}
+              onPress={handleContinue}
+              disabled={loading}
+              activeOpacity={0.8}
+            >
+              {loading ? (
+                <ActivityIndicator color={Colors.white} />
+              ) : (
+                <>
+                  <Text style={styles.continueButtonText}>
+                    Continue & Go Offline
+                  </Text>
+                  <Ionicons
+                    name="arrow-forward"
+                    size={20}
+                    color={Colors.white}
+                  />
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
       </SafeAreaView>
     </Modal>
   );
@@ -427,6 +611,8 @@ const styles = StyleSheet.create({
   fullScreenContainer: {
     flex: 1,
     backgroundColor: Colors.white,
+    paddingBottom: IS_IOS ? 120 : 20,
+    paddingTop: 2,
   },
   header: {
     flexDirection: "row",
@@ -616,6 +802,96 @@ const styles = StyleSheet.create({
   comebackChipTextSelected: {
     color: Colors.white,
   },
+
+  // Offline Services Styles
+  offlineServicesHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 16,
+  },
+  offlineServicesTitle: {
+    fontSize: 15,
+    fontFamily: fonts.interSemibold,
+    color: Colors.red,
+    flex: 1,
+  },
+  offlineCountBadge: {
+    backgroundColor: "#FFE5E5",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  offlineCountText: {
+    fontSize: 12,
+    fontFamily: fonts.interSemibold,
+    color: Colors.red,
+  },
+  offlineServiceListContainer: {
+    gap: 12,
+  },
+  offlineServiceItem: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: "#FFE5E5",
+    backgroundColor: "#FFF9F9",
+  },
+  offlineServiceHeader: {
+    marginBottom: 12,
+  },
+  offlineServiceNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 4,
+  },
+  offlineBadge: {
+    backgroundColor: Colors.red,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  offlineBadgeText: {
+    fontSize: 10,
+    fontFamily: fonts.interSemibold,
+    color: Colors.white,
+  },
+  offlineDetails: {
+    backgroundColor: Colors.white,
+    borderRadius: 8,
+    padding: 12,
+    gap: 8,
+    marginBottom: 12,
+  },
+  offlineDetailRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  offlineDetailText: {
+    fontSize: 12,
+    fontFamily: fonts.interMedium,
+    color: Colors.grey,
+    flex: 1,
+  },
+  bringOnlineButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: Colors.white,
+    borderWidth: 1.5,
+    borderColor: Colors.green,
+    borderRadius: 10,
+    paddingVertical: 12,
+  },
+  bringOnlineButtonText: {
+    fontSize: 14,
+    fontFamily: fonts.interSemibold,
+    color: Colors.green,
+  },
+
   footer: {
     position: "absolute",
     bottom: 0,

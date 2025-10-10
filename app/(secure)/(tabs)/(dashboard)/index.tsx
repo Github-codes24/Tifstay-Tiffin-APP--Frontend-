@@ -18,7 +18,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -107,7 +106,6 @@ export default function ServiceOfflineScreen() {
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [showOfflineModal, setShowOfflineModal] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState<string>("all");
 
   const isTiffinProvider = useMemo(
@@ -139,21 +137,24 @@ export default function ServiceOfflineScreen() {
     [isTiffinProvider]
   );
 
-  // Filter services: only show available (isAvailable: true) services
-  const filteredServices = useMemo(() => {
+  // Separate online and offline services
+  const onlineServices = useMemo(() => {
     if (!hostelServices) return [];
-
-    // First filter by availability (online services)
-    let filtered = hostelServices.filter(
+    return hostelServices.filter(
       (service: any) => service.isAvailable === true
     );
+  }, [hostelServices]);
 
-    // Apply search
-    if (searchQuery.trim()) {
-      filtered = filtered.filter((service: any) =>
-        service.hostelName?.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
+  const offlineServices = useMemo(() => {
+    if (!hostelServices) return [];
+    return hostelServices.filter(
+      (service: any) => service.isAvailable === false
+    );
+  }, [hostelServices]);
+
+  // Filter ONLY online services for search and filter
+  const filteredOnlineServices = useMemo(() => {
+    let filtered = [...onlineServices];
 
     // Apply filter by hostel type
     if (selectedFilter !== "all") {
@@ -163,24 +164,22 @@ export default function ServiceOfflineScreen() {
     }
 
     return filtered;
-  }, [hostelServices, searchQuery, selectedFilter]);
+  }, [onlineServices, selectedFilter]);
 
-  // Offline services count
-  const offlineServicesCount = useMemo(() => {
-    return (
-      hostelServices?.filter((service: any) => service.isAvailable === false)
-        .length || 0
-    );
-  }, [hostelServices]);
+  const totalOnlineServices = useMemo(
+    () => filteredOnlineServices?.length || 0,
+    [filteredOnlineServices]
+  );
 
-  const totalServices = useMemo(
-    () => filteredServices?.length || 0,
-    [filteredServices]
+  const offlineServicesCount = useMemo(
+    () => offlineServices?.length || 0,
+    [offlineServices]
   );
 
   const serviceCountText = useMemo(
-    () => `${totalServices} service${totalServices !== 1 ? "s" : ""}`,
-    [totalServices]
+    () =>
+      `${totalOnlineServices} service${totalOnlineServices !== 1 ? "s" : ""}`,
+    [totalOnlineServices]
   );
 
   const displayRating = useMemo(() => {
@@ -242,8 +241,16 @@ export default function ServiceOfflineScreen() {
   );
 
   const handleToggleOffline = useCallback(() => {
+    // Check if there are online services
+    if (onlineServices.length === 0) {
+      Alert.alert(
+        "No Online Services",
+        "You don't have any online services to take offline."
+      );
+      return;
+    }
     setShowOfflineModal(true);
-  }, []);
+  }, [onlineServices.length]);
 
   const handleAddService = useCallback(() => {
     const route = isTiffinProvider
@@ -266,10 +273,10 @@ export default function ServiceOfflineScreen() {
   }, [loadData, currentPage]);
 
   const handleGoOnline = useCallback(
-    async (serviceIds: string[]) => {
+    async (serviceId: string, serviceName: string) => {
       Alert.alert(
         "Bring Service Online",
-        "Are you sure you want to bring this service back online?",
+        `Are you sure you want to bring "${serviceName}" back online?`,
         [
           {
             text: "Cancel",
@@ -281,13 +288,19 @@ export default function ServiceOfflineScreen() {
             onPress: async () => {
               setLoading(true);
               try {
-                const response = await updateHostelServiceOnlineStatus(
-                  serviceIds
-                );
+                const response = await updateHostelServiceOnlineStatus([
+                  serviceId,
+                ]);
 
                 if (response.success) {
-                  Alert.alert("Success", "Service is now online!");
-                  loadData(currentPage);
+                  Alert.alert("Success", "Service is now online!", [
+                    {
+                      text: "OK",
+                      onPress: () => {
+                        loadData(currentPage);
+                      },
+                    },
+                  ]);
                 } else {
                   throw new Error(
                     response.error || "Failed to bring service online"
@@ -350,13 +363,18 @@ export default function ServiceOfflineScreen() {
   const renderPagination = useCallback(() => {
     if (!pagination || pagination.totalCount <= ITEMS_PER_PAGE) return null;
 
-    const { currentPage: current, totalPages, hasNext, hasPrev } = pagination;
+    const {
+      currentPage: current,
+      totalPages,
+      hasNextPage,
+      hasPrevPage,
+    } = pagination;
 
     return (
       <View style={styles.paginationContainer}>
         <PaginationButton
           onPress={() => handlePageChange(current - 1)}
-          disabled={!hasPrev}
+          disabled={!hasPrevPage}
           iconName="chevron-back"
         />
 
@@ -373,14 +391,14 @@ export default function ServiceOfflineScreen() {
 
         <PaginationButton
           onPress={() => handlePageChange(current + 1)}
-          disabled={!hasNext}
+          disabled={!hasNextPage}
           iconName="chevron-forward"
         />
       </View>
     );
   }, [pagination, handlePageChange]);
 
-  const renderServices = useMemo(() => {
+  const renderOnlineServices = useMemo(() => {
     if (loading) {
       return (
         <View style={styles.loadingContainer}>
@@ -393,15 +411,7 @@ export default function ServiceOfflineScreen() {
       return <TiffinCard />;
     }
 
-    if (filteredServices.length === 0) {
-      return (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No available services found</Text>
-        </View>
-      );
-    }
-
-    return filteredServices.map((hostel: any) => (
+    return filteredOnlineServices.map((hostel: any) => (
       <HostelCard
         hostel={hostel}
         key={hostel._id}
@@ -417,7 +427,22 @@ export default function ServiceOfflineScreen() {
         }}
       />
     ));
-  }, [loading, isTiffinProvider, filteredServices, router]);
+  }, [loading, isTiffinProvider, filteredOnlineServices, ,]);
+
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return "N/A";
+    }
+  };
 
   useEffect(() => {
     loadData(1);
@@ -514,112 +539,13 @@ export default function ServiceOfflineScreen() {
           </View>
         </View>
 
-        {/* Search and Filter Section */}
-        <View style={styles.searchFilterContainer}>
-          <View style={styles.searchBox}>
-            <Ionicons
-              name="search-outline"
-              size={20}
-              color={Colors.grey}
-              style={styles.searchIcon}
-            />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search services..."
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholderTextColor={Colors.grey}
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchQuery("")}>
-                <Ionicons name="close-circle" size={20} color={Colors.grey} />
-              </TouchableOpacity>
-            )}
-          </View>
-
-          {!isTiffinProvider && (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.filterContainer}
-            >
-              <TouchableOpacity
-                style={[
-                  styles.filterChip,
-                  selectedFilter === "all" && styles.filterChipActive,
-                ]}
-                onPress={() => setSelectedFilter("all")}
-              >
-                <Text
-                  style={[
-                    styles.filterChipText,
-                    selectedFilter === "all" && styles.filterChipTextActive,
-                  ]}
-                >
-                  All
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.filterChip,
-                  selectedFilter === "Boys Hostel" && styles.filterChipActive,
-                ]}
-                onPress={() => setSelectedFilter("Boys Hostel")}
-              >
-                <Text
-                  style={[
-                    styles.filterChipText,
-                    selectedFilter === "Boys Hostel" &&
-                      styles.filterChipTextActive,
-                  ]}
-                >
-                  Boys Hostel
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.filterChip,
-                  selectedFilter === "Girls Hostel" && styles.filterChipActive,
-                ]}
-                onPress={() => setSelectedFilter("Girls Hostel")}
-              >
-                <Text
-                  style={[
-                    styles.filterChipText,
-                    selectedFilter === "Girls Hostel" &&
-                      styles.filterChipTextActive,
-                  ]}
-                >
-                  Girls Hostel
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.filterChip,
-                  selectedFilter === "PG" && styles.filterChipActive,
-                ]}
-                onPress={() => setSelectedFilter("PG")}
-              >
-                <Text
-                  style={[
-                    styles.filterChipText,
-                    selectedFilter === "PG" && styles.filterChipTextActive,
-                  ]}
-                >
-                  PG
-                </Text>
-              </TouchableOpacity>
-            </ScrollView>
-          )}
-        </View>
-
         {/* Online Services Section */}
         <View style={styles.serviceHeader}>
-          <Text style={styles.serviceTitle}>{serviceTitle}</Text>
+          <Text style={styles.serviceTitle}>{serviceTitle} (Online)</Text>
           <Text style={styles.serviceCount}>{serviceCountText}</Text>
         </View>
 
-        {renderServices}
+        {renderOnlineServices}
 
         {renderPagination()}
 
@@ -638,88 +564,100 @@ export default function ServiceOfflineScreen() {
               </Text>
             </View>
 
-            {hostelServices
-              ?.filter((service: any) => service.isAvailable === false)
-              .map((hostel: any) => (
-                <View key={hostel._id} style={styles.offlineServiceWrapper}>
-                  <HostelCard
-                    hostel={hostel}
-                    onEditPress={() => {
-                      console.log(
-                        "📝 Navigating to edit for hostel:",
-                        hostel._id
-                      );
-                      router.push({
-                        pathname:
-                          "/(secure)/(hostelService)/addNewHostelService",
-                        params: {
-                          mode: "edit",
-                          hostelId: hostel._id,
-                        },
-                      });
-                    }}
-                  />
+            {offlineServices.map((hostel: any) => (
+              <View key={hostel._id} style={styles.offlineServiceWrapper}>
+                <HostelCard
+                  hostel={hostel}
+                  onEditPress={() => {
+                    console.log(
+                      "📝 Navigating to edit for hostel:",
+                      hostel._id
+                    );
+                    router.push({
+                      pathname: "/(secure)/(hostelService)/addNewHostelService",
+                      params: {
+                        mode: "edit",
+                        hostelId: hostel._id,
+                      },
+                    });
+                  }}
+                />
 
-                  {/* Go Online Button */}
-                  <TouchableOpacity
-                    style={styles.goOnlineButton}
-                    onPress={() => handleGoOnline([hostel._id])}
-                    activeOpacity={0.8}
-                  >
-                    <Ionicons
-                      name="play-circle"
-                      size={20}
-                      color={Colors.white}
-                    />
-                    <Text style={styles.goOnlineButtonText}>Bring Online</Text>
-                  </TouchableOpacity>
+                {/* Go Online Button */}
+                <TouchableOpacity
+                  style={styles.goOnlineButton}
+                  onPress={() => handleGoOnline(hostel._id, hostel.hostelName)}
+                  activeOpacity={0.8}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <ActivityIndicator size="small" color={Colors.white} />
+                  ) : (
+                    <>
+                      <Ionicons
+                        name="play-circle"
+                        size={20}
+                        color={Colors.white}
+                      />
+                      <Text style={styles.goOnlineButtonText}>
+                        Bring Online
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
 
-                  {/* Offline Info */}
+                {/* Offline Info Card */}
+                <View style={styles.offlineInfoCard}>
                   {hostel.offlineDetails?.reason && (
-                    <View style={styles.offlineInfoCard}>
-                      <View style={styles.offlineInfoRow}>
-                        <Ionicons
-                          name="information-circle"
-                          size={16}
-                          color={Colors.orange}
-                        />
-                        <Text style={styles.offlineInfoLabel}>Reason:</Text>
-                        <Text style={styles.offlineInfoValue}>
-                          {hostel.offlineDetails.reason}
-                        </Text>
-                      </View>
-                      {hostel.offlineDetails?.comeBackOption && (
-                        <View style={styles.offlineInfoRow}>
-                          <Ionicons
-                            name="time"
-                            size={16}
-                            color={Colors.primary}
-                          />
-                          <Text style={styles.offlineInfoLabel}>Back in:</Text>
-                          <Text style={styles.offlineInfoValue}>
-                            {hostel.offlineDetails.comeBackOption}
-                          </Text>
-                        </View>
-                      )}
-                      {hostel.offlineDetails?.offlineAt && (
-                        <View style={styles.offlineInfoRow}>
-                          <Ionicons
-                            name="calendar"
-                            size={16}
-                            color={Colors.grey}
-                          />
-                          <Text style={styles.offlineInfoLabel}>Since:</Text>
-                          <Text style={styles.offlineInfoValue}>
-                            {new Date(
-                              hostel.offlineDetails.offlineAt
-                            ).toLocaleDateString()}
-                          </Text>
-                        </View>
-                      )}
+                    <View style={styles.offlineInfoRow}>
+                      <Ionicons
+                        name="information-circle"
+                        size={16}
+                        color={Colors.orange}
+                      />
+                      <Text style={styles.offlineInfoLabel}>Reason:</Text>
+                      <Text style={styles.offlineInfoValue}>
+                        {hostel.offlineDetails.reason}
+                      </Text>
+                    </View>
+                  )}
+
+                  {hostel.offlineDetails?.comeBackOption && (
+                    <View style={styles.offlineInfoRow}>
+                      <Ionicons name="time" size={16} color={Colors.primary} />
+                      <Text style={styles.offlineInfoLabel}>Back in:</Text>
+                      <Text style={styles.offlineInfoValue}>
+                        {hostel.offlineDetails.comeBackOption}
+                      </Text>
+                    </View>
+                  )}
+
+                  {hostel.offlineDetails?.offlineAt && (
+                    <View style={styles.offlineInfoRow}>
+                      <Ionicons name="calendar" size={16} color={Colors.grey} />
+                      <Text style={styles.offlineInfoLabel}>
+                        Offline since:
+                      </Text>
+                      <Text style={styles.offlineInfoValue}>
+                        {formatDate(hostel.offlineDetails.offlineAt)}
+                      </Text>
+                    </View>
+                  )}
+
+                  {hostel.offlineDetails?.offlineType && (
+                    <View style={styles.offlineInfoRow}>
+                      <Ionicons name="options" size={16} color={Colors.grey} />
+                      <Text style={styles.offlineInfoLabel}>Type:</Text>
+                      <Text style={styles.offlineInfoValue}>
+                        {hostel.offlineDetails.offlineType === "immediate"
+                          ? "Immediate"
+                          : "Scheduled"}
+                      </Text>
                     </View>
                   )}
                 </View>
-              ))}
+              </View>
+            ))}
           </>
         )}
 
@@ -888,55 +826,7 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     marginRight: 4,
   },
-  searchFilterContainer: {
-    marginTop: 20,
-    marginBottom: 16,
-  },
-  searchBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: Colors.white,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: Colors.lightGrey,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 12,
-  },
-  searchIcon: {
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
-    fontFamily: fonts.interRegular,
-    color: Colors.title,
-  },
-  filterContainer: {
-    flexDirection: "row",
-    marginTop: 8,
-  },
-  filterChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: Colors.white,
-    borderWidth: 1,
-    borderColor: Colors.lightGrey,
-    marginRight: 8,
-  },
-  filterChipActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  filterChipText: {
-    fontSize: 13,
-    fontFamily: fonts.interMedium,
-    color: Colors.title,
-  },
-  filterChipTextActive: {
-    color: Colors.white,
-  },
+
   serviceHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -967,6 +857,7 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
     alignItems: "center",
     justifyContent: "center",
+    gap: 12,
   },
   emptyText: {
     fontSize: 14,
@@ -1044,9 +935,9 @@ const styles = StyleSheet.create({
     color: Colors.red,
   },
   offlineServicesCount: {
-    fontFamily: fonts.interRegular,
+    fontFamily: fonts.interMedium,
     fontSize: 13,
-    color: Colors.grey,
+    color: Colors.red,
     backgroundColor: "#FFE5E5",
     paddingHorizontal: 12,
     paddingVertical: 4,
@@ -1080,19 +971,20 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     marginTop: 12,
-    gap: 8,
+    gap: 10,
     borderWidth: 1,
     borderColor: Colors.lightGrey,
   },
   offlineInfoRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 8,
   },
   offlineInfoLabel: {
     fontSize: 13,
     fontFamily: fonts.interMedium,
     color: Colors.grey,
+    minWidth: 90,
   },
   offlineInfoValue: {
     fontSize: 13,

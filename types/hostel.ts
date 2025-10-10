@@ -22,6 +22,8 @@ export interface PaginationData {
   totalCount: number;
   hasNext: boolean;
   hasPrev: boolean;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
 }
 
 export interface Pricing {
