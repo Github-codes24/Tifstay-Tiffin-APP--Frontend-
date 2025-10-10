@@ -1,5 +1,4 @@
 import { Colors } from "@/constants/Colors";
-import { IS_IOS } from "@/constants/Platform";
 import { fonts } from "@/constants/typography";
 import useServiceStore from "@/store/serviceStore";
 import { Ionicons } from "@expo/vector-icons";
@@ -611,8 +610,6 @@ const styles = StyleSheet.create({
   fullScreenContainer: {
     flex: 1,
     backgroundColor: Colors.white,
-    paddingBottom: IS_IOS ? 120 : 20,
-    paddingTop: 2,
   },
   header: {
     flexDirection: "row",
@@ -622,12 +619,13 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
   },
   closeButton: {
-    paddingTop: 20,
+    paddingTop: 40,
   },
   headerTitle: {
     fontSize: 20,
     fontFamily: fonts.interSemibold,
     color: Colors.title,
+    paddingTop: 48,
   },
   content: {
     flex: 1,
