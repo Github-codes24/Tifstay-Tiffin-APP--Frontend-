@@ -1,6 +1,10 @@
 import { Colors } from "@/constants/Colors";
 import { Images } from "@/constants/Images";
 import { fonts } from "@/constants/typography";
+import hostelApiService from "@/services/hostelApiService";
+import tiffinApiService from "@/services/tiffinApiServices";
+import useAuthStore from "@/store/authStore";
+import { CustomerData } from "@/types/hostel";
 import { useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -13,33 +17,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
-interface RoomDetail {
-  roomNumber: string;
-  bedNumbers: number[];
-}
-
-interface Duration {
-  checkInDate: string;
-  checkOutDate: string;
-}
-
-interface CustomerData {
-  _id: string;
-  name: string;
-  email: string;
-  profileImage: string;
-  phoneNumber: string;
-  planPurchased: string[];
-  roomDetails: RoomDetail[];
-  duration: Duration;
-}
-
-interface ApiResponse {
-  success: boolean;
-  message: string;
-  data: CustomerData;
-}
 
 const InfoRow = ({
   icon,
@@ -61,6 +38,7 @@ const InfoRow = ({
 
 const MyProfileScreen = () => {
   const { customerId } = useLocalSearchParams();
+  const { userServiceType } = useAuthStore();
   const [customerData, setCustomerData] = useState<CustomerData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -76,27 +54,21 @@ const MyProfileScreen = () => {
       setLoading(true);
       setError(null);
 
-      // Replace with your actual API base URL
-      const response = await fetch(
-        `YOUR_BASE_URL/api/hostelOwner/customer/getCustomerById/${customerId}`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            // Add authentication token if required
-            // "Authorization": `Bearer ${token}`,
-          },
-        }
-      );
+      let response;
 
-      const result: ApiResponse = await response.json();
-
-      if (result.success) {
-        setCustomerData(result.data);
+      // Call appropriate API based on service type
+      if (userServiceType === "hostel_owner") {
+        response = await hostelApiService.getCustomerInfo(customerId as string);
       } else {
-        setError(result.message || "Failed to fetch customer data");
+        response = await tiffinApiService.getCustomerInfo(customerId as string);
       }
-    } catch (err) {
+
+      if (response.success) {
+        setCustomerData(response.data.data);
+      } else {
+        setError(response.error || "Failed to fetch customer details");
+      }
+    } catch (err: any) {
       console.error("Error fetching customer data:", err);
       setError("Failed to load customer information");
     } finally {
@@ -175,6 +147,7 @@ const MyProfileScreen = () => {
             style={styles.profileImage}
           />
           <Text style={styles.profileName}>{customerData.name}</Text>
+          <Text style={styles.customerIdText}>ID: {customerData._id}</Text>
         </View>
 
         <View style={styles.infoCard}>
@@ -197,16 +170,20 @@ const MyProfileScreen = () => {
             label="Plan Purchased"
             value={formatPlanPurchased()}
           />
-          <InfoRow
-            icon={Images.name}
-            label="Room Details"
-            value={formatRoomDetails()}
-          />
-          <InfoRow
-            icon={Images.name}
-            label="Duration"
-            value={formatDuration()}
-          />
+          {userServiceType === "hostel_owner" && (
+            <>
+              <InfoRow
+                icon={Images.name}
+                label="Room Details"
+                value={formatRoomDetails()}
+              />
+              <InfoRow
+                icon={Images.name}
+                label="Duration"
+                value={formatDuration()}
+              />
+            </>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -256,21 +233,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: fonts.interSemibold,
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 30,
-    justifyContent: "space-between",
-  },
-  backIcon: {
-    width: 24,
-    height: 24,
-    tintColor: "#000",
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-  },
   profileSection: {
     alignItems: "center",
     marginTop: 24,
@@ -286,6 +248,13 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: fonts.interSemibold,
     marginTop: 12,
+    color: Colors.title,
+  },
+  customerIdText: {
+    fontSize: 12,
+    fontFamily: fonts.interRegular,
+    color: Colors.grey,
+    marginTop: 4,
   },
   infoCard: {
     backgroundColor: "#F8F5FF",
@@ -317,37 +286,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.interMedium,
     color: Colors.grey,
     lineHeight: 20,
-  },
-  menuItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 24,
-    paddingHorizontal: 20,
-    justifyContent: "space-between",
-    backgroundColor: "#F8F7FF",
-    marginTop: 16,
-    height: 72,
-    marginHorizontal: 26,
-    borderRadius: 12,
-  },
-  menuLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  menuIcon: {
-    width: 40,
-    height: 40,
-    marginRight: 12,
-  },
-  menuText: {
-    fontSize: 14,
-    fontFamily: fonts.interSemibold,
-    color: Colors.title,
-  },
-  arrowIcon: {
-    width: 18,
-    height: 18,
-    tintColor: Colors.title,
   },
 });
 

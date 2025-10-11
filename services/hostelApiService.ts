@@ -754,13 +754,32 @@ async rejectBooking(bookingId: string) {
 }
 
 async getAllCustomerList(page: number = 1, limit: number = 10) {
-  return this.api.get(`/api/hostelOwner/customer/getAllCustomers`, {
-    params: { page, limit },
-  });
+  try {
+    const response = await this.api.get(
+      `/api/hostelOwner/customer/getAllCustomers`,
+      { params: { page, limit } }
+    );
+    return { success: true, data: response.data };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.response?.data?.message || "Failed to fetch customers.",
+    };
+  }
 }
 
-async getCustomerInfo(customerId: string){
-  return this.api.get(`/api/hostelOwner/customer/getCustomerInfo/${customerId}`);
+async getCustomerInfo(customerId: string) {
+  try {
+    const response = await this.api.get(
+      `/api/hostelOwner/customer/getCustomerById/${customerId}`
+    );
+    return { success: true, data: response.data };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.response?.data?.message || "Failed to fetch customer info.",
+    };
+  }
 }
 // Chat API
 async sendMessageToAdmin(message: string) {

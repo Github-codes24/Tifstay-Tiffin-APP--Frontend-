@@ -298,6 +298,34 @@ async getTiffinProviderPreviousChat() {
     };
   }
 }
+async getAllCustomerList(page: number = 1, limit: number = 10) {
+  try {
+    const response = await this.api.get(
+      `/api/tiffinProvider/customer/getAllCustomers`,
+      { params: { page, limit } }
+    );
+    return { success: true, data: response.data };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.response?.data?.message || "Failed to fetch customers.",
+    };
+  }
+}
+
+async getCustomerInfo(customerId: string) {
+  try {
+    const response = await this.api.get(
+      `/api/tiffinProvider/customer/getCustomerInfo/${customerId}`
+    );
+    return { success: true, data: response.data };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.response?.data?.message || "Failed to fetch customer info.",
+    };
+  }
+}
 }
 
 export default new TiffinApiService();

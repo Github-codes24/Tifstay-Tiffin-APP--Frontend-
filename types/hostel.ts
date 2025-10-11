@@ -473,3 +473,25 @@ export interface UpdateBookingStatusResponse {
   message: string;
   data?: any;
 }
+
+export interface RoomDetail {
+  roomNumber: string;
+  bedNumbers: number[];
+}
+
+export interface Duration {
+  checkInDate: string;
+  checkOutDate: string;
+}
+
+export interface CustomerData {
+  _id: string;
+  name: string;
+  email: string;
+  profileImage: string;
+  phoneNumber: string;
+  planPurchased: string[];
+  roomDetails: RoomDetail[];
+  duration: Duration;
+}
+
