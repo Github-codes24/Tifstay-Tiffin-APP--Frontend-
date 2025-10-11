@@ -14,8 +14,27 @@ import {
   Text,
   TouchableOpacity,
   View,
+  ActivityIndicator,
+  RefreshControl,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+const BASE_URL = "https://tifstay-project-be.onrender.com/api";
+
+interface Booking {
+  _id: string;
+  bookingId: string;
+  orderDate: string;
+  tiffinService: string;
+  customer: string;
+  customerPhone: string;
+  startDate: string;
+  mealType: string;
+  plan: string;
+  orderType: string;
+  status: string;
+}
 
 const subscribers = [
   { id: "1", name: "Onli Karmokar", plan: "Weekly (Veg Lunch)" },
@@ -24,139 +43,265 @@ const subscribers = [
 
 // ------------------ Tab Screens ------------------
 
-const RequestsRoute = () => (
-  <ScrollView style={styles.scene} showsVerticalScrollIndicator={false}>
-    <View style={styles.badgeOrange}>
-      <Text style={styles.badgeTextOrange}>Confirmed</Text>
-    </View>
-    <BookingCard
-      status="Confirmed"
-      bookingId="#TF2024002"
-      orderedDate="21/07/2025"
-      tiffinService="Maharashtrian Ghar Ka Khana"
-      customer="Onil Karmokar"
-      startDate="21/07/25"
-      mealType="Breakfast, Lunch, Dinner"
-      plan="Daily"
-      orderType="Delivery"
-      onPressUpdate={() => alert("Update Order Summary clicked!")}
-      isReq
-      onAccept={() => {}}
-      onReject={() => {}}
-    />
+const RequestsRoute = ({ bookings, loading, onRefresh, refreshing, onAccept, onReject }: any) => (
+  <ScrollView
+    style={styles.scene}
+    showsVerticalScrollIndicator={false}
+    refreshControl={
+      <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+    }
+  >
+    {loading ? (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    ) : bookings.length > 0 ? (
+      <>
+        <View style={styles.badgeOrange}>
+          <Text style={styles.badgeTextOrange}>Requests</Text>
+        </View>
+        {bookings.map((booking: Booking) => (
+          <BookingCard
+            key={booking._id}
+            status={booking.status}
+            bookingId={`#${booking.bookingId}`}
+            orderedDate={booking.orderDate}
+            tiffinService={booking.tiffinService}
+            customer={booking.customer}
+            startDate={booking.startDate}
+            mealType={booking.mealType}
+            plan={booking.plan}
+            orderType={booking.orderType}
+            onPressUpdate={() => alert("Update Order Summary clicked!")}
+            isReq
+            onAccept={() => onReject(booking._id)}
+            onReject={() => onAccept(booking._id)}
+          />
+        ))}
+      </>
+    ) : (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>No requests found</Text>
+      </View>
+    )}
   </ScrollView>
 );
 
-const RequestsAcceptRoute = () => (
-  <ScrollView style={styles.scene} showsVerticalScrollIndicator={false}>
-    <View style={styles.badgePrimary}>
-      <Text style={styles.badgeTextPrimary}>Confirmed</Text>
-    </View>
-    <BookingCardHostel
-      status="Confirmed"
-      bookingId="#TF2024002"
-      orderedDate="21/07/2025"
-      tiffinService="Scholars Den Boys Hostel"
-      customer="Onil Karmokar"
-      startDate="Weekly"
-      mealType="12"
-      plan="10,11,12"
-      orderType="01/08/25"
-      onPressUpdate={() =>
-        router.push({
-          pathname: "/orderDetails",
-          params: { isSubscriber: "false" },
-        })
-      }
-    />
+const RequestsAcceptRoute = ({ bookings, loading, onRefresh, refreshing }: any) => (
+  <ScrollView
+    style={styles.scene}
+    showsVerticalScrollIndicator={false}
+    refreshControl={
+      <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+    }
+  >
+    {loading ? (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    ) : bookings.length > 0 ? (
+      <>
+        <View style={styles.badgePrimary}>
+          <Text style={styles.badgeTextPrimary}>Confirmed</Text>
+        </View>
+        {bookings.map((booking: Booking) => (
+          <BookingCardHostel
+            key={booking._id}
+            status={booking.status}
+            bookingId={`#${booking.bookingId}`}
+            orderedDate={booking.orderDate}
+            tiffinService={booking.tiffinService}
+            customer={booking.customer}
+            startDate={booking.plan}
+            mealType="12"
+            plan="10,11,12"
+            orderType={booking.startDate}
+            onPressUpdate={() =>
+              router.push({
+                pathname: "/orderDetails",
+                params: { isSubscriber: "false" },
+              })
+            }
+          />
+        ))}
+      </>
+    ) : (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>No confirmed bookings found</Text>
+      </View>
+    )}
   </ScrollView>
 );
 
-const RequestsRouteHostel = () => (
-  <ScrollView style={styles.scene} showsVerticalScrollIndicator={false}>
-    <View style={styles.badgeOrange}>
-      <Text style={styles.badgeTextOrange}>Requests</Text>
-    </View>
-    <BookingCardHostel
-      status="Accepted"
-      bookingId="#TF2024002"
-      orderedDate="21/07/2025"
-      tiffinService="Scholars Den Boys Hostel"
-      customer="Onil Karmokar"
-      startDate="Weekly"
-      mealType="12"
-      plan="10,11,12"
-      orderType="01/08/25"
-      onPressUpdate={() => alert("Update Order Summary clicked!")}
-      isReq
-      onAccept={() => {}}
-      onReject={() => {}}
-    />
+const RequestsRouteHostel = ({ bookings, loading, onRefresh, refreshing, onAccept, onReject }: any) => (
+  <ScrollView
+    style={styles.scene}
+    showsVerticalScrollIndicator={false}
+    refreshControl={
+      <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+    }
+  >
+    {loading ? (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    ) : bookings.length > 0 ? (
+      <>
+        <View style={styles.badgeOrange}>
+          <Text style={styles.badgeTextOrange}>Requests</Text>
+        </View>
+        {bookings.map((booking: Booking) => (
+          <BookingCardHostel
+            key={booking._id}
+            status={booking.status}
+            bookingId={`#${booking.bookingId}`}
+            orderedDate={booking.orderDate}
+            tiffinService={booking.tiffinService}
+            customer={booking.customer}
+            startDate={booking.plan}
+            mealType="12"
+            plan="10,11,12"
+            orderType={booking.startDate}
+            onPressUpdate={() => alert("Update Order Summary clicked!")}
+            isReq
+            onAccept={() => onReject(booking._id)}
+            onReject={() => onAccept(booking._id)}
+          />
+        ))}
+      </>
+    ) : (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>No requests found</Text>
+      </View>
+    )}
   </ScrollView>
 );
 
-const AcceptedRoute = () => (
-  <ScrollView style={styles.scene} showsVerticalScrollIndicator={false}>
-    <View style={styles.badgePrimary}>
-      <Text style={styles.badgeTextPrimary}>Accepted</Text>
-    </View>
-    <BookingCard
-      status="Accepted"
-      bookingId="#TF2024002"
-      orderedDate="21/07/2025"
-      tiffinService="Maharashtrian Ghar Ka Khana"
-      customer="Onil Karmokar"
-      startDate="21/07/25"
-      mealType="Breakfast, Lunch, Dinner"
-      plan="Daily"
-      orderType="Delivery"
-      onPressUpdate={() =>
-        router.push({
-          pathname: "/orderDetails",
-          params: { isSubscriber: "false" },
-        })
-      }
-    />
+const AcceptedRoute = ({ bookings, loading, onRefresh, refreshing }: any) => (
+  <ScrollView
+    style={styles.scene}
+    showsVerticalScrollIndicator={false}
+    refreshControl={
+      <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+    }
+  >
+    {loading ? (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    ) : bookings.length > 0 ? (
+      <>
+        <View style={styles.badgePrimary}>
+          <Text style={styles.badgeTextPrimary}>Confirmed</Text>
+        </View>
+        {bookings.map((booking: Booking) => (
+          <BookingCard
+            key={booking._id}
+            status={booking.status}
+            bookingId={`#${booking.bookingId}`}
+            orderedDate={booking.orderDate}
+            tiffinService={booking.tiffinService}
+            customer={booking.customer}
+            startDate={booking.startDate}
+            mealType={booking.mealType}
+            plan={booking.plan}
+            orderType={booking.orderType}
+            onPressUpdate={() =>
+              router.push({
+                pathname: "/orderDetails",
+                params: { isSubscriber: "false" },
+              })
+            }
+          />
+        ))}
+      </>
+    ) : (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>No confirmed bookings found</Text>
+      </View>
+    )}
   </ScrollView>
 );
 
-const CompletedRoute = () => (
-  <ScrollView style={styles.scene} showsVerticalScrollIndicator={false}>
-    <View style={styles.badgeGreen}>
-      <Text style={styles.badgeTextGreen}>Completed</Text>
-    </View>
-    <BookingCard
-      status="Accepted"
-      bookingId="#TF2024002"
-      orderedDate="21/07/2025"
-      tiffinService="Maharashtrian Ghar Ka Khana"
-      customer="Onil Karmokar"
-      startDate="21/07/25"
-      mealType="Breakfast, Lunch, Dinner"
-      plan="Daily"
-      orderType="Delivery"
-      statusText="Completed"
-    />
+const CompletedRoute = ({ bookings, loading, onRefresh, refreshing }: any) => (
+  <ScrollView
+    style={styles.scene}
+    showsVerticalScrollIndicator={false}
+    refreshControl={
+      <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+    }
+  >
+    {loading ? (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    ) : bookings.length > 0 ? (
+      <>
+        <View style={styles.badgeGreen}>
+          <Text style={styles.badgeTextGreen}>Rejected</Text>
+        </View>
+        {bookings.map((booking: Booking) => (
+          <BookingCard
+            key={booking._id}
+            status={booking.status}
+            bookingId={`#${booking.bookingId}`}
+            orderedDate={booking.orderDate}
+            tiffinService={booking.tiffinService}
+            customer={booking.customer}
+            startDate={booking.startDate}
+            mealType={booking.mealType}
+            plan={booking.plan}
+            orderType={booking.orderType}
+            statusText="Rejected"
+          />
+        ))}
+      </>
+    ) : (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>No rejected bookings found</Text>
+      </View>
+    )}
   </ScrollView>
 );
 
-const CompletedHostelRoute = () => (
-  <ScrollView style={styles.scene} showsVerticalScrollIndicator={false}>
-    <View style={styles.badgeGreen}>
-      <Text style={styles.badgeTextGreen}>Completed</Text>
-    </View>
-    <BookingCardHostel
-      status="Accepted"
-      bookingId="#TF2024002"
-      orderedDate="21/07/2025"
-      tiffinService="Scholars Den Boys Hostel"
-      customer="Onil Karmokar"
-      startDate="Weekly"
-      mealType="12"
-      plan="10,11,12"
-      orderType="01/08/25"
-      statusText="Completed"
-    />
+const CompletedHostelRoute = ({ bookings, loading, onRefresh, refreshing }: any) => (
+  <ScrollView
+    style={styles.scene}
+    showsVerticalScrollIndicator={false}
+    refreshControl={
+      <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+    }
+  >
+    {loading ? (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    ) : bookings.length > 0 ? (
+      <>
+        <View style={styles.badgeGreen}>
+          <Text style={styles.badgeTextGreen}>Rejected</Text>
+        </View>
+        {bookings.map((booking: Booking) => (
+          <BookingCardHostel
+            key={booking._id}
+            status={booking.status}
+            bookingId={`#${booking.bookingId}`}
+            orderedDate={booking.orderDate}
+            tiffinService={booking.tiffinService}
+            customer={booking.customer}
+            startDate={booking.plan}
+            mealType="12"
+            plan="10,11,12"
+            orderType={booking.startDate}
+            statusText="Rejected"
+          />
+        ))}
+      </>
+    ) : (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>No rejected bookings found</Text>
+      </View>
+    )}
   </ScrollView>
 );
 
@@ -202,30 +347,173 @@ const SubscriberRoute = () => (
 
 export default function Order() {
   const [index, setIndex] = React.useState(0);
+  const [bookings, setBookings] = React.useState<Booking[]>([]);
+  const [loading, setLoading] = React.useState(false);
+  const [refreshing, setRefreshing] = React.useState(false);
   const { userServiceType } = useAuthStore();
   const isTiffinProvider = userServiceType === "tiffin_provider";
 
   const routes = isTiffinProvider
     ? [
-        { key: "requests", title: "Requests" },
-        { key: "accepted", title: "Accepted" },
-        { key: "completed", title: "Completed" },
-        { key: "subscriber", title: "Subscriber" },
-      ]
+      { key: "requests", title: "Requests", status: "Pending" },
+      { key: "accepted", title: "Accepted", status: "Confirmed" },
+      { key: "completed", title: "Completed", status: "Rejected" },
+      // { key: "subscriber", title: "Subscriber", status: null },
+    ]
     : [
-        { key: "requests", title: "Requests" },
-        { key: "accepted", title: "Accepted" },
-        { key: "completed", title: "Rejected" },
-      ];
+      { key: "requests", title: "Requests", status: "Requested" },
+      { key: "accepted", title: "Accepted", status: "Confirmed" },
+      { key: "completed", title: "Rejected", status: "Rejected" },
+    ];
+
+  const fetchBookings = async (status: string | null, isRefresh = false) => {
+    if (!status) return; // Skip API call for subscriber tab
+
+    if (isRefresh) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+
+    try {
+      const token = useAuthStore.getState().token;
+
+      const response = await fetch(
+        `${BASE_URL}/tiffinOwner/bookings/getBookingsByStatus?status=${status}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const result = await response.json();
+      console.log(result);
+
+      if (result.success && result.data?.bookings) {
+        setBookings(result.data.bookings);
+      } else {
+        setBookings([]);
+      }
+    } catch (error) {
+      console.error("Error fetching bookings:", error);
+      setBookings([]);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const updateBookingStatus = async (bookingId: string, status: "Confirmed" | "Rejected") => {
+    try {
+      const token = useAuthStore.getState().token;
+
+      const response = await fetch(
+        `${BASE_URL}/tiffinOwner/bookings/updateBookingStatus/${bookingId}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ status }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (result.success) {
+        Alert.alert(
+          "Success",
+          `Booking ${status.toLowerCase()} successfully!`,
+          [
+            {
+              text: "OK",
+              onPress: () => {
+                // Refresh the current tab's bookings
+                const currentStatus = routes[index].status;
+                fetchBookings(currentStatus);
+              },
+            },
+          ]
+        );
+      } else {
+        Alert.alert("Error", result.message || "Failed to update booking status");
+      }
+    } catch (error) {
+      console.error("Error updating booking status:", error);
+      Alert.alert("Error", "Failed to update booking status. Please try again.");
+    }
+  };
+
+  const handleAccept = (bookingId: string) => {
+    Alert.alert(
+      "Confirm Accept",
+      "Are you sure you want to accept this booking?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Accept",
+          onPress: () => updateBookingStatus(bookingId, "Confirmed"),
+        },
+      ]
+    );
+  };
+
+  const handleReject = (bookingId: string) => {
+    Alert.alert(
+      "Confirm Reject",
+      "Are you sure you want to reject this booking?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Reject",
+          style: "destructive",
+          onPress: () => updateBookingStatus(bookingId, "Rejected"),
+        },
+      ]
+    );
+  };
+
+  React.useEffect(() => {
+    const currentStatus = routes[index].status;
+    fetchBookings(currentStatus);
+  }, [index]);
+
+  const handleRefresh = () => {
+    const currentStatus = routes[index].status;
+    fetchBookings(currentStatus, true);
+  };
 
   const renderScene = () => {
+    const commonProps = {
+      bookings,
+      loading,
+      onRefresh: handleRefresh,
+      refreshing,
+    };
+
     switch (routes[index].key) {
       case "requests":
-        return isTiffinProvider ? <RequestsRoute /> : <RequestsRouteHostel />;
+        return isTiffinProvider ? (
+          <RequestsRoute {...commonProps} onAccept={handleAccept} onReject={handleReject} />
+        ) : (
+          <RequestsRouteHostel {...commonProps} onAccept={handleAccept} onReject={handleReject} />
+        );
       case "accepted":
-        return isTiffinProvider ? <AcceptedRoute /> : <RequestsAcceptRoute />;
+        return isTiffinProvider ? (
+          <AcceptedRoute {...commonProps} />
+        ) : (
+          <RequestsAcceptRoute {...commonProps} />
+        );
       case "completed":
-        return isTiffinProvider ? <CompletedRoute /> : <CompletedHostelRoute />;
+        return isTiffinProvider ? (
+          <CompletedRoute {...commonProps} />
+        ) : (
+          <CompletedHostelRoute {...commonProps} />
+        );
       case "subscriber":
         return <SubscriberRoute />;
       default:
@@ -334,7 +622,7 @@ const styles = StyleSheet.create({
   },
   tabItem: {
     paddingVertical: 12,
-    justifyContent: "center",
+    // justifyContent: "center",
     alignItems: "center",
   },
   tabTitle: {
@@ -377,6 +665,23 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontSize: 14,
     fontFamily: fonts.interMedium,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 40,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 40,
+  },
+  emptyText: {
+    fontSize: 14,
+    fontFamily: fonts.interRegular,
+    color: Colors.lightGrey,
   },
   // Badge styles
   badgeOrange: {

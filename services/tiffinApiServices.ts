@@ -175,16 +175,16 @@ class TiffinApiService {
   }
 // In tiffinApiServices.ts
 async getRequestedTiffinServicesCount() {
-  return this.api.get("/api/tiffinService/getRequestedTiffinServicesCount");
+  return this.api.get("/api/tiffinOwner/bookings/getTotalPendingBookingCount");
 }
 async getTotalTiffinServicesCount() {
-  return this.api.get("/api/tiffinService/getTotalTiffinServicesCount");
+  return this.api.get("/api/tiffinOwner/bookings/getTotalBookingsCount");
 }
  async getAcceptedTiffinServicesCount() {
-  return this.api.get("/api/tiffinService/getAcceptedTiffinServicesCount");
+   return this.api.get("/api/tiffinOwner/bookings/getTotalConfirmedBookingCount");
 }
 async getCancelledTiffinServicesCount() {
-  return this.api.get("/api/tiffinService/getCancelledTiffinServicesCount");
+  return this.api.get("/api/tiffinOwner/bookings/getTotalRejectedBookingCount");
 }
   // Address Management APIs for Tiffin Provider
   async addAddress(addressData: {

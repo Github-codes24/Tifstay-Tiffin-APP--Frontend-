@@ -93,9 +93,10 @@ const useServiceStore = create<ServiceState>()(
           } else {
             response = await tiffinApiService.getTotalTiffinServicesCount();
           }
+          console.log('+++++++', response?.data)
 
           if (response.status === 200) {
-            const count = response.data.data.totalHostelServices || 0;
+            const count = userServiceType === "hostel_owner" ? response.data.data.requestedHostelServices || 0 : response?.data?.totalBookings || 0;
             set({
               totalServicesCount: count,
               isLoading: false,
@@ -131,9 +132,8 @@ const useServiceStore = create<ServiceState>()(
           } else {
             response = await tiffinApiService.getRequestedTiffinServicesCount();
           }
-
           if (response.status === 200) {
-            const count = response.data.data.requestedHostelServices || 0;
+            const count = userServiceType === "hostel_owner" ? response.data.data.requestedHostelServices || 0 : response?.data?.totalPendingBookings || 0;
             set({
               requestedServicesCount: count,
               isLoading: false,
@@ -169,9 +169,10 @@ const useServiceStore = create<ServiceState>()(
           } else {
             response = await tiffinApiService.getAcceptedTiffinServicesCount();
           }
+          console.log('++++666++', response?.data)
 
           if (response.status === 200) {
-            const count = response.data.data.acceptedHostelServices || 0;
+            const count = userServiceType === "hostel_owner" ? response.data.data.acceptedHostelServices || 0 : response?.data?.totalConfirmedBookings || 0;
             set({
               acceptedServicesCount: count,
               isLoading: false,
@@ -207,9 +208,8 @@ const useServiceStore = create<ServiceState>()(
           } else {
             response = await tiffinApiService.getCancelledTiffinServicesCount();
           }
-
           if (response.status === 200) {
-            const count = response.data.data.cancelledHostelServices || 0;
+            const count = userServiceType === "hostel_owner" ? response.data.data.cancelledHostelServices || 0 : response?.data?.totalRejectedBookings;
             set({
               cancelledServicesCount: count,
               isLoading: false,

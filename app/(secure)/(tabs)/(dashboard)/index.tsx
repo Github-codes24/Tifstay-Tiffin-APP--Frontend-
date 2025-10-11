@@ -165,10 +165,10 @@ console.log(user)
           await Promise.all([
             getAllTiffinServices(page, ITEMS_PER_PAGE),
             getUserProfile(userServiceType),
-            // getTotalServicesCount(),
-            // getRequestedServicesCount(),
-            // getAcceptedServicesCount(),
-            // getCancelledServicesCount(),
+            getTotalServicesCount(),
+            getRequestedServicesCount(),
+            getAcceptedServicesCount(),
+            getCancelledServicesCount(),
             // getReviewsSummary(),
           ]);
         } else {
