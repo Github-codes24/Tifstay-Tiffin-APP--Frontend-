@@ -51,7 +51,7 @@ export default function HostelCard({
     if (hostel.rooms && hostel.rooms.length > 0 && hostel.rooms[0]._id) {
       router.push({
         pathname: "/viewroom",
-        params: { hostelId: hostel._id }, // Changed from roomId
+        params: { hostelId: hostel._id },
       });
     } else {
       Alert.alert("No Rooms", "No rooms available for this hostel");
@@ -65,9 +65,9 @@ export default function HostelCard({
     });
   };
 
-  // Get primary pricing with priority: monthly > weekly > perDay
+  // ✅ FIXED - Safe pricing access
   const getPrimaryPricing = () => {
-    const pricing = hostel.pricing;
+    const pricing = hostel?.pricing || {};
 
     if (pricing.monthly && pricing.monthly > 0) {
       return {
@@ -113,12 +113,14 @@ export default function HostelCard({
           {/* Title and Rating Row */}
           <View style={styles.headerRow}>
             <Text style={styles.hostelName} numberOfLines={1}>
-              {hostel.hostelName}
+              {hostel.hostelName || "Unnamed Hostel"}
             </Text>
           </View>
 
           <Text style={styles.subLocation} numberOfLines={1}>
-            {hostel.location.nearbyLandmarks || hostel.location.area}
+            {hostel?.location?.nearbyLandmarks ||
+              hostel?.location?.area ||
+              "Location not available"}
           </Text>
 
           <View style={styles.amenitiesRow}>
@@ -152,9 +154,9 @@ export default function HostelCard({
             </View>
 
             <View style={styles.infoBlock}>
-              {/* ✅ FIXED - Added optional chaining */}
+              {/* ✅ FIXED - Safe availability access */}
               <Text style={styles.booking}>
-                {hostel.availability?.availabilityString || "Not available"}
+                {hostel?.availability?.availabilityString || "Not available"}
               </Text>
               <Text style={styles.deposit}>Available</Text>
             </View>
@@ -163,12 +165,12 @@ export default function HostelCard({
               <View style={styles.ratingRow}>
                 <Image source={Images.star} style={styles.starIcon} />
                 <Text style={styles.rating}>
-                  {/* ✅ FIXED - Added safe fallback */}
-                  {hostel.overallRating
+                  {/* ✅ FIXED - Safe rating access */}
+                  {hostel?.overallRating
                     ? hostel.overallRating.toFixed(1)
                     : "0.0"}{" "}
                   <Text style={styles.review}>
-                    ({hostel.totalReviews || 0})
+                    ({hostel?.totalReviews || 0})
                   </Text>
                 </Text>
               </View>
@@ -177,7 +179,7 @@ export default function HostelCard({
 
             <View style={styles.infoBlock}>
               <Text style={styles.type} numberOfLines={1}>
-                {hostel.hostelType}
+                {hostel?.hostelType || "N/A"}
               </Text>
               <Text style={styles.deposit}>Type</Text>
             </View>
@@ -209,6 +211,7 @@ export default function HostelCard({
   );
 }
 
+// ... (styles remain the same)
 const styles = StyleSheet.create({
   hostelCard: {
     backgroundColor: "#FFFFFF",

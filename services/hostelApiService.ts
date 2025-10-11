@@ -397,6 +397,30 @@ class ApiService {
       };
     }
   }
+  // Add this method to your ApiService class in hostelApiService.ts
+
+async getHostelServicesList(page: number = 1, limit: number = 100) {
+  try {
+    console.log("📥 Fetching hostel services list with offline status");
+    const response = await this.api.get(
+      `/api/hostelService/getHostelServicesList`,
+      {
+        params: { page, limit },
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    console.log("✅ Hostel services list fetched:", response.data);
+    return { success: true, data: response.data };
+  } catch (error: any) {
+    console.error("❌ Get Hostel Services List Error:", error);
+    return {
+      success: false,
+      error: error.response?.data?.message || "Failed to fetch hostel services list.",
+    };
+  }
+}
 
  
 async getAllRoomsByHostelId(hostelId: string) {
@@ -521,17 +545,19 @@ async updateHostelServiceOnlineStatus(serviceIds: string[]) {
   }
 }
 
-async getOfflineReasons(offlineType: string) {
+async getOfflineReasons(offlineType: "immediate" | "scheduled") {
   try {
+    console.log("📥 Fetching offline reasons for type:", offlineType);
     const response = await this.api.get(
       "/api/hostelService/getOfflineReasons",
       {
-        params: { offlineType },
+        params: { offlineType }, // ✅ Pass as query param
       }
     );
+    console.log("✅ Offline reasons response:", response.data);
     return { success: true, data: response.data };
   } catch (error: any) {
-    console.error("Get Offline Reasons Error:", error);
+    console.error("❌ Get Offline Reasons Error:", error);
     return {
       success: false,
       error: error.response?.data?.message || "Failed to fetch offline reasons.",
@@ -541,10 +567,12 @@ async getOfflineReasons(offlineType: string) {
 
 async getComebackOptions() {
   try {
+    console.log("📥 Fetching comeback options");
     const response = await this.api.get("/api/hostelService/getComeBackOptions");
+    console.log("✅ Comeback options response:", response.data);
     return { success: true, data: response.data };
   } catch (error: any) {
-    console.error("Get Comeback Options Error:", error);
+    console.error("❌ Get Comeback Options Error:", error);
     return {
       success: false,
       error: error.response?.data?.message || "Failed to fetch comeback options.",

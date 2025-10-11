@@ -29,7 +29,7 @@ interface ServiceState {
   pagination: PaginationData | null;
   overallRating: number;
   totalReviews: number;
-  
+  hostelServicesList: any[]; 
   // Offline/Online Management
   offlineReasons: string[];
   comebackOptions: string[];
@@ -49,6 +49,8 @@ interface ServiceState {
   getAcceptedServicesCount: () => Promise<ApiResponse<any>>;
   getCancelledServicesCount: () => Promise<ApiResponse<any>>;
   getReviewsSummary: () => Promise<ApiResponse<any>>;
+    getHostelServicesList: (page?: number, limit?: number) => Promise<ApiResponse<any>>; // ✅ ADD THIS
+
 
   // Offline/Online Status Management
   updateHostelServiceOfflineStatus: (payload: {
@@ -58,7 +60,7 @@ interface ServiceState {
     comeBackOption: string;
   }) => Promise<ApiResponse<any>>;
   updateHostelServiceOnlineStatus: (serviceIds: string[]) => Promise<ApiResponse<any>>;
-  getOfflineReasons: (offlineType: string) => Promise<ApiResponse<any>>;
+  getOfflineReasons: (offlineType: "immediate" | "scheduled") => Promise<ApiResponse<any>>;
   getComebackOptions: () => Promise<ApiResponse<any>>;
 
   // Form management
@@ -91,6 +93,8 @@ const useServiceStore = create<ServiceState>()(
       pagination: null,
       offlineReasons: [],
       comebackOptions: [],
+      hostelServicesList: [],
+
 
       // Get Total Services Count
       getTotalServicesCount: async () => {
@@ -497,36 +501,63 @@ const useServiceStore = create<ServiceState>()(
         }
       },
 
-      getOfflineReasons: async (offlineType: string) => {
+     getOfflineReasons: async (offlineType: "immediate" | "scheduled") => {
+  try {
+    const response = await hostelServiceApiService.getOfflineReasons(offlineType);
+
+    if (response.success) {
+      set({ offlineReasons: response.data?.data?.offlineReasons || [] });
+      return { success: true, data: response.data };
+    } else {
+      return { success: false, error: response.error };
+    }
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+      },
+
+getComebackOptions: async () => {
+  try {
+    const response = await hostelServiceApiService.getComebackOptions();
+
+    if (response.success) {
+      set({ comebackOptions: response.data?.data?.comebackOptions || [] });
+      return { success: true, data: response.data };
+    } else {
+      return { success: false, error: response.error };
+    }
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+},
+ getHostelServicesList: async (page = 1, limit = 100) => {
+        set({ isLoading: true, error: null });
+
         try {
-          const response = await hostelServiceApiService.getOfflineReasons(offlineType);
+          const response = await hostelServiceApiService.getHostelServicesList(page, limit);
 
           if (response.success) {
-            set({ offlineReasons: response.data?.data?.offlineReasons || [] });
+            set({
+              hostelServicesList: response.data?.data?.hostelServices || [],
+              isLoading: false,
+              error: null,
+            });
             return { success: true, data: response.data };
           } else {
+            set({
+              isLoading: false,
+              error: response.error || "Failed to fetch hostel services list",
+            });
             return { success: false, error: response.error };
           }
         } catch (error: any) {
+          set({
+            isLoading: false,
+            error: error.message || "Failed to fetch hostel services list",
+          });
           return { success: false, error: error.message };
         }
       },
-
-      getComebackOptions: async () => {
-        try {
-          const response = await hostelServiceApiService.getComebackOptions();
-
-          if (response.success) {
-            set({ comebackOptions: response.data?.data?.comebackOptions || [] });
-            return { success: true, data: response.data };
-          } else {
-            return { success: false, error: response.error };
-          }
-        } catch (error: any) {
-          return { success: false, error: error.message };
-        }
-      },
-
       // Form management actions
       setFormPage1Data: (data: FormPage1Data) => {
         set({ formPage1Data: data });

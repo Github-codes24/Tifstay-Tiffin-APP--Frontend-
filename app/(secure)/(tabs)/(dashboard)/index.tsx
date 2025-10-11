@@ -241,14 +241,6 @@ export default function ServiceOfflineScreen() {
   );
 
   const handleToggleOffline = useCallback(() => {
-    // Check if there are online services
-    if (onlineServices.length === 0) {
-      Alert.alert(
-        "No Online Services",
-        "You don't have any online services to take offline."
-      );
-      return;
-    }
     setShowOfflineModal(true);
   }, [onlineServices.length]);
 
