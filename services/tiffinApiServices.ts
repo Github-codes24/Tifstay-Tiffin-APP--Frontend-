@@ -362,11 +362,12 @@ async getEarningsHistory() {
     return {
       success: true,
       data: response.data.data.payouts,
+      pagination: response.data.data.pagination,
     };
   } catch (error: any) {
     return {
       success: false,
-      error: error.response?.data?.message || "Failed to get earnings dataaa",
+      error: error.response?.data?.message || "Failed to get earnings history",
     };
   }
 }
