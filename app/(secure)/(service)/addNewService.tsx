@@ -86,12 +86,10 @@ const AddNewHostelService = () => {
 
       setIsLoadingData(true);
       try {
-        console.log("📥 Loading hostel data for ID:", hostelId);
         const response = await hostelApiService.getHostelServiceById(hostelId);
 
         if (response.success && response.data?.data) {
           const hostelData = response.data.data;
-          console.log("✅ Loaded hostel data:", hostelData);
 
           setHostelName(hostelData.hostelName || "");
           setDescription(hostelData.description || "");
@@ -162,13 +160,10 @@ const AddNewHostelService = () => {
             setRooms(transformedRooms);
             setActiveRoomId(transformedRooms[0].id);
           }
-
-          console.log("✅ Form populated successfully");
         } else {
           Alert.alert("Error", "Failed to load hostel data");
         }
       } catch (error) {
-        console.error("❌ Error loading hostel data:", error);
         Alert.alert("Error", "Failed to load hostel data. Please try again.");
       } finally {
         setIsLoadingData(false);

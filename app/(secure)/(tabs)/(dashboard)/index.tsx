@@ -101,6 +101,8 @@ export default function ServiceOfflineScreen() {
     totalReviews,
     pagination,
     updateHostelServiceOnlineStatus,
+    getEarningsAnalytics,
+    earningsAnalyticsData,
   } = useServiceStore();
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -195,7 +197,10 @@ export default function ServiceOfflineScreen() {
       setLoading(true);
       try {
         if (isTiffinProvider) {
-          await Promise.all([getUserProfile(userServiceType)]);
+          await Promise.all([
+            getUserProfile(userServiceType),
+            getEarningsAnalytics(userServiceType),
+          ]);
         } else {
           await Promise.all([
             getAllHostelServices(page, ITEMS_PER_PAGE),
@@ -205,6 +210,7 @@ export default function ServiceOfflineScreen() {
             getAcceptedServicesCount(),
             getCancelledServicesCount(),
             getReviewsSummary(),
+            getEarningsAnalytics(userServiceType),
           ]);
         }
       } catch (error) {
@@ -222,6 +228,7 @@ export default function ServiceOfflineScreen() {
       getAcceptedServicesCount,
       getCancelledServicesCount,
       getReviewsSummary,
+      getEarningsAnalytics,
       isTiffinProvider,
     ]
   );
@@ -251,7 +258,7 @@ export default function ServiceOfflineScreen() {
     router.push(route);
   }, [isTiffinProvider]);
 
-  const handleViewEarnings = useCallback(() => {
+  const handleViewEarnings = useCallback((userServiceType: string) => {
     router.push("/(secure)/(tabs)/earnings");
   }, []);
 
@@ -408,7 +415,6 @@ export default function ServiceOfflineScreen() {
         hostel={hostel}
         key={hostel._id}
         onEditPress={() => {
-          console.log("📝 Navigating to edit for hostel:", hostel._id);
           router.push({
             pathname: "/(secure)/(hostelService)/addNewHostelService",
             params: {
@@ -490,7 +496,7 @@ export default function ServiceOfflineScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.actionButtonOrange}
-              onPress={handleViewEarnings}
+              onPress={() => handleViewEarnings(userServiceType)}
             >
               <Ionicons
                 name="trending-up-outline"
@@ -508,11 +514,15 @@ export default function ServiceOfflineScreen() {
             <Text style={styles.sectionTitle}>Earnings Overview</Text>
           </View>
           <View style={styles.earningsRow}>
-            <Text style={styles.earningsValue}>₹3250</Text>
-            <Text style={styles.earningsChange}>+18%</Text>
+            <Text style={styles.earningsValue}>
+              {earningsAnalyticsData?.totalEarnings}
+            </Text>
+            <Text style={styles.earningsChange}>
+              {earningsAnalyticsData?.percentageChange}%
+            </Text>
           </View>
           <View style={styles.earningsRowSecond}>
-            <Text style={styles.subText}>{"This week's total"}</Text>
+            <Text style={styles.subText}>{earningsAnalyticsData?.period}</Text>
             <Text style={styles.subText}>vs last week</Text>
           </View>
         </View>
@@ -561,10 +571,6 @@ export default function ServiceOfflineScreen() {
                 <HostelCard
                   hostel={hostel}
                   onEditPress={() => {
-                    console.log(
-                      "📝 Navigating to edit for hostel:",
-                      hostel._id
-                    );
                     router.push({
                       pathname: "/(secure)/(hostelService)/addNewHostelService",
                       params: {

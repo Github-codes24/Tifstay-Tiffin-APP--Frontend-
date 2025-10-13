@@ -12,7 +12,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AxiosResponse } from "axios";
 import { create } from "zustand";
 import { createJSONStorage, persist } from 'zustand/middleware';
-import hostelServiceApiService from "../services/hostelApiService";
+import hostelApiService from "../services/hostelApiService";
 import tiffinApiService from "../services/tiffinApiServices";
 import useAuthStore from "./authStore";
 
@@ -30,9 +30,14 @@ interface ServiceState {
   overallRating: number;
   totalReviews: number;
   hostelServicesList: any[]; 
-  // Offline/Online Management
   offlineReasons: string[];
   comebackOptions: string[];
+  earningsAnalyticsData: {
+    totalEarnings: number;
+    period: string;
+    percentageChange: number;
+  } | null;
+
   
   // Form data for multi-step form
   formPage1Data: FormPage1Data | null;
@@ -49,7 +54,9 @@ interface ServiceState {
   getAcceptedServicesCount: () => Promise<ApiResponse<any>>;
   getCancelledServicesCount: () => Promise<ApiResponse<any>>;
   getReviewsSummary: () => Promise<ApiResponse<any>>;
-    getHostelServicesList: (page?: number, limit?: number) => Promise<ApiResponse<any>>; // ✅ ADD THIS
+  getHostelServicesList: (page?: number, limit?: number) => Promise<ApiResponse<any>>; 
+  getEarningsAnalytics: (type: "hostel_owner" | "tiffin_provider") => Promise<any>;
+
 
 
   // Offline/Online Status Management
@@ -94,6 +101,7 @@ const useServiceStore = create<ServiceState>()(
       offlineReasons: [],
       comebackOptions: [],
       hostelServicesList: [],
+      earningsAnalyticsData: null,
 
 
       // Get Total Services Count
@@ -105,7 +113,7 @@ const useServiceStore = create<ServiceState>()(
           let response: AxiosResponse;
 
           if (userServiceType === "hostel_owner") {
-            response = await hostelServiceApiService.getTotalHostelServicesCount();
+            response = await hostelApiService.getTotalHostelServicesCount();
           } else {
             response = await tiffinApiService.getTotalTiffinServicesCount();
           }
@@ -143,7 +151,7 @@ const useServiceStore = create<ServiceState>()(
           let response: AxiosResponse;
 
           if (userServiceType === "hostel_owner") {
-            response = await hostelServiceApiService.getRequestedHostelServicesCount();
+            response = await hostelApiService.getRequestedHostelServicesCount();
           } else {
             response = await tiffinApiService.getRequestedTiffinServicesCount();
           }
@@ -181,7 +189,7 @@ const useServiceStore = create<ServiceState>()(
           let response: AxiosResponse;
 
           if (userServiceType === "hostel_owner") {
-            response = await hostelServiceApiService.getAcceptedHostelServicesCount();
+            response = await hostelApiService.getAcceptedHostelServicesCount();
           } else {
             response = await tiffinApiService.getAcceptedTiffinServicesCount();
           }
@@ -219,7 +227,7 @@ const useServiceStore = create<ServiceState>()(
           let response: AxiosResponse;
 
           if (userServiceType === "hostel_owner") {
-            response = await hostelServiceApiService.getCancelledHostelServicesCount();
+            response = await hostelApiService.getCancelledHostelServicesCount();
           } else {
             response = await tiffinApiService.getCancelledTiffinServicesCount();
           }
@@ -253,11 +261,11 @@ const useServiceStore = create<ServiceState>()(
         set({ isLoading: true, error: null });
 
         try {
-          const response = await hostelServiceApiService.createHostelService(data);
+          const response = await hostelApiService.createHostelService(data);
 
           if (response.success) {
             // Refresh the hostel services list (first page)
-            const allServices = await hostelServiceApiService.getAllHostelServices(1, 10);
+            const allServices = await hostelApiService.getAllHostelServices(1, 10);
             if (allServices.success) {
               set({
                 hostelServices: allServices.data?.data?.hostelServices || [],
@@ -290,7 +298,7 @@ const useServiceStore = create<ServiceState>()(
         set({ isLoading: true, error: null });
 
         try {
-          const response = await hostelServiceApiService.getAllHostelServices(page, limit);
+          const response = await hostelApiService.getAllHostelServices(page, limit);
 
           if (response.success) {
             set({
@@ -320,11 +328,11 @@ const useServiceStore = create<ServiceState>()(
         set({ isLoading: true, error: null });
       
         try {
-          const response = await hostelServiceApiService.updateHostelService(hostelServiceId, data);
+          const response = await hostelApiService.updateHostelService(hostelServiceId, data);
       
           if (response.success) {
             // ✅ Fetch the full updated hostel details to ensure all fields are populated
-            const detailsResponse = await hostelServiceApiService.getHostelServiceById(hostelServiceId);
+            const detailsResponse = await hostelApiService.getHostelServiceById(hostelServiceId);
             
             const updatedHostelData = detailsResponse.success 
               ? detailsResponse.data.data 
@@ -362,7 +370,7 @@ const useServiceStore = create<ServiceState>()(
         set({ isLoading: true, error: null });
 
         try {
-          const response = await hostelServiceApiService.deleteHostelService(hostelServiceId);
+          const response = await hostelApiService.deleteHostelService(hostelServiceId);
 
           if (response.success) {
             // Remove the deleted service from the list
@@ -400,7 +408,7 @@ const useServiceStore = create<ServiceState>()(
         set({ isLoading: true, error: null });
 
         try {
-          const response = await hostelServiceApiService.deleteRoomPhotos(hostelServiceId, roomId, photoUrls);
+          const response = await hostelApiService.deleteRoomPhotos(hostelServiceId, roomId, photoUrls);
 
           if (response.success) {
             // Update the room photos in the selected hostel service
@@ -441,7 +449,7 @@ const useServiceStore = create<ServiceState>()(
         set({ isLoading: true, error: null });
 
         try {
-          const response = await hostelServiceApiService.updateHostelServiceOfflineStatus(payload);
+          const response = await hostelApiService.updateHostelServiceOfflineStatus(payload);
 
           if (response.success) {
             // Refresh services list
@@ -473,7 +481,7 @@ const useServiceStore = create<ServiceState>()(
         set({ isLoading: true, error: null });
       
         try {
-          const response = await hostelServiceApiService.updateHostelServiceOnlineStatus(serviceIds);
+          const response = await hostelApiService.updateHostelServiceOnlineStatus(serviceIds);
       
           if (response.success) {
             // Refresh services list
@@ -503,7 +511,7 @@ const useServiceStore = create<ServiceState>()(
 
      getOfflineReasons: async (offlineType: "immediate" | "scheduled") => {
   try {
-    const response = await hostelServiceApiService.getOfflineReasons(offlineType);
+    const response = await hostelApiService.getOfflineReasons(offlineType);
 
     if (response.success) {
       set({ offlineReasons: response.data?.data?.offlineReasons || [] });
@@ -518,7 +526,7 @@ const useServiceStore = create<ServiceState>()(
 
 getComebackOptions: async () => {
   try {
-    const response = await hostelServiceApiService.getComebackOptions();
+    const response = await hostelApiService.getComebackOptions();
 
     if (response.success) {
       set({ comebackOptions: response.data?.data?.comebackOptions || [] });
@@ -534,7 +542,7 @@ getComebackOptions: async () => {
         set({ isLoading: true, error: null });
 
         try {
-          const response = await hostelServiceApiService.getHostelServicesList(page, limit);
+          const response = await hostelApiService.getHostelServicesList(page, limit);
 
           if (response.success) {
             set({
@@ -584,7 +592,7 @@ getComebackOptions: async () => {
         set({ isLoading: true, error: null });
 
         try {
-          const response = await hostelServiceApiService.getReviewsSummary();
+          const response = await hostelApiService.getReviewsSummary();
 
           if (response.success && response.data) {
             set({
@@ -605,6 +613,39 @@ getComebackOptions: async () => {
           set({
             isLoading: false,
             error: error.message || "Failed to fetch reviews summary",
+          });
+          return { success: false, error: error.message };
+        }
+      },
+        getEarningsAnalytics: async (type: "hostel_owner" | "tiffin_provider") => {
+        set({ isLoading: true });
+
+        try {
+          let response;
+          if (type === "hostel_owner") {
+            response = await hostelApiService.getEarningsAnalytics();
+          } else {
+            response = await tiffinApiService.getEarningsAnalytics();
+          }
+
+          if (response.success) {
+            set({
+              earningsAnalyticsData: response.data,
+              isLoading: false,
+              error: null,
+            });
+            return { success: true };
+          } else {
+            set({
+              isLoading: false,
+              error: response.error,
+            });
+            return { success: false, error: response.error };
+          }
+        } catch (error: any) {
+          set({
+            isLoading: false,
+            error: error.message || "Failed to fetch earnings data",
           });
           return { success: false, error: error.message };
         }

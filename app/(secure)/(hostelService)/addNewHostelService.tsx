@@ -96,7 +96,6 @@ const AddNewHostelService = () => {
           setHostelName(hostelData.hostelName || "");
           setDescription(hostelData.description || "");
 
-          // Hostel Type mapping
           const _hostelType = hostelData.hostelType;
           if (_hostelType === "Boys Hostel") {
             setHostelType("boys");

@@ -91,91 +91,54 @@ const OfflineModal: React.FC<OfflineModalProps> = ({
 
   const fetchOfflineReasons = async () => {
     try {
-      console.log("🔄 Fetching offline reasons...");
       const response = await getOfflineReasons("immediate");
 
-      // ✅ Log the entire response structure
-      console.log("📦 Full response:", JSON.stringify(response, null, 2));
-      console.log("📦 response.success:", response.success);
-      console.log("📦 response.data:", response.data);
+      if (response.success && response.data?.data?.reasons) {
+        const reasons = response.data.data.reasons;
 
-      if (response.success && response.data) {
-        // ✅ Try different possible structures
-        let reasons = null;
+        const formattedReasons = reasons.map((reason: string) => ({
+          value: reason,
+          label: reason,
+          icon: getReasonIcon(reason),
+        }));
 
-        // Check if it's response.data.data.offlineReasons
-        if (response.data?.data?.offlineReasons) {
-          reasons = response.data.data.offlineReasons;
-          console.log("✅ Found reasons at response.data.data.offlineReasons");
-        }
-        // Check if it's response.data.offlineReasons
-        else if (response.data?.offlineReasons) {
-          reasons = response.data.offlineReasons;
-          console.log("✅ Found reasons at response.data.offlineReasons");
-        }
-        // Check if data itself is the array
-        else if (Array.isArray(response.data)) {
-          reasons = response.data;
-          console.log("✅ Found reasons - data is array");
-        }
-
-        console.log("📋 Final reasons:", reasons);
-
-        if (reasons && reasons.length > 0) {
-          const formattedReasons = reasons.map((reason: string) => ({
-            value: reason,
-            label: reason,
-            icon: getReasonIcon(reason),
-          }));
-
-          console.log("✅ Formatted reasons:", formattedReasons);
-          setOfflineReasons(formattedReasons);
-          return;
-        }
+        setOfflineReasons(formattedReasons);
+      } else {
+        console.warn("⚠️ Using fallback offline reasons");
+        setOfflineReasons([
+          {
+            value: "Emergency maintenance",
+            label: "Emergency maintenance",
+            icon: "warning",
+          },
+          {
+            value: "Scheduled maintenance",
+            label: "Scheduled maintenance",
+            icon: "calendar",
+          },
+          {
+            value: "Vacation/Holiday",
+            label: "Vacation/Holiday",
+            icon: "sunny",
+          },
+          {
+            value: "Temporary closure",
+            label: "Temporary closure",
+            icon: "close-circle",
+          },
+          { value: "Staff shortage", label: "Staff shortage", icon: "people" },
+          { value: "Other", label: "Other", icon: "ellipsis-horizontal" },
+        ]);
       }
-
-      // ✅ Fallback to default reasons
-      console.warn("⚠️ Using fallback reasons");
-      setOfflineReasons([
-        {
-          value: "Emergency maintenance",
-          label: "Emergency maintenance",
-          icon: "warning",
-        },
-        {
-          value: "Scheduled maintenance",
-          label: "Scheduled maintenance",
-          icon: "calendar",
-        },
-        { value: "Vacation/Holiday", label: "Vacation/Holiday", icon: "sunny" },
-        {
-          value: "Temporary closure",
-          label: "Temporary closure",
-          icon: "close-circle",
-        },
-        { value: "Staff shortage", label: "Staff shortage", icon: "people" },
-        { value: "Other", label: "Other", icon: "ellipsis-horizontal" },
-      ]);
     } catch (error) {
       console.error("❌ Error fetching offline reasons:", error);
-      // Fallback to default reasons
       setOfflineReasons([
         {
           value: "Emergency maintenance",
           label: "Emergency maintenance",
           icon: "warning",
         },
-        {
-          value: "Scheduled maintenance",
-          label: "Scheduled maintenance",
-          icon: "calendar",
-        },
         { value: "Vacation/Holiday", label: "Vacation/Holiday", icon: "sunny" },
-        {
-          value: "Temporary closure",
-          label: "Temporary closure",
-          icon: "close-circle",
-        },
         { value: "Staff shortage", label: "Staff shortage", icon: "people" },
         { value: "Other", label: "Other", icon: "ellipsis-horizontal" },
       ]);
@@ -184,68 +147,37 @@ const OfflineModal: React.FC<OfflineModalProps> = ({
 
   const fetchComebackOptions = async () => {
     try {
-      console.log("🔄 Fetching comeback options...");
       const response = await getComebackOptions();
 
-      // ✅ Log the entire response structure
-      console.log("📦 Full response:", JSON.stringify(response, null, 2));
-      console.log("📦 response.success:", response.success);
-      console.log("📦 response.data:", response.data);
+      if (response.success && response.data?.data?.comebackOptions) {
+        const options = response.data.data.comebackOptions;
 
-      if (response.success && response.data) {
-        // ✅ Try different possible structures
-        let options = null;
+        const formattedOptions = options.map((option: string) => ({
+          value: option,
+          label: option,
+          icon: getComebackIcon(option),
+        }));
 
-        // Check if it's response.data.data.comebackOptions
-        if (response.data?.data?.comebackOptions) {
-          options = response.data.data.comebackOptions;
-          console.log("✅ Found options at response.data.data.comebackOptions");
-        }
-        // Check if it's response.data.comebackOptions
-        else if (response.data?.comebackOptions) {
-          options = response.data.comebackOptions;
-          console.log("✅ Found options at response.data.comebackOptions");
-        }
-        // Check if data itself is the array
-        else if (Array.isArray(response.data)) {
-          options = response.data;
-          console.log("✅ Found options - data is array");
-        }
-
-        console.log("📋 Final options:", options);
-
-        if (options && options.length > 0) {
-          const formattedOptions = options.map((option: string) => ({
-            value: option,
-            label: option,
-            icon: getComebackIcon(option),
-          }));
-
-          console.log("✅ Formatted options:", formattedOptions);
-          setComebackOptions(formattedOptions);
-          return;
-        }
+        setComebackOptions(formattedOptions);
+      } else {
+        console.warn("⚠️ Using fallback comeback options");
+        setComebackOptions([
+          { value: "30 minutes", label: "30 minutes", icon: "time-outline" },
+          { value: "2 hours", label: "2 hours", icon: "time-outline" },
+          {
+            value: "Until I turn myself on",
+            label: "Until I turn myself on",
+            icon: "power-outline",
+          },
+          {
+            value: "Tomorrow opening time",
+            label: "Tomorrow opening time",
+            icon: "sunny-outline",
+          },
+        ]);
       }
-
-      // ✅ Fallback to default options
-      console.warn("⚠️ Using fallback options");
-      setComebackOptions([
-        { value: "30 minutes", label: "30 minutes", icon: "time-outline" },
-        { value: "2 hours", label: "2 hours", icon: "time-outline" },
-        {
-          value: "Until I turn myself on",
-          label: "Until I turn myself on",
-          icon: "power-outline",
-        },
-        {
-          value: "Tomorrow opening time",
-          label: "Tomorrow opening time",
-          icon: "sunny-outline",
-        },
-      ]);
     } catch (error) {
       console.error("❌ Error fetching comeback options:", error);
-      // Fallback to default options
       setComebackOptions([
         { value: "30 minutes", label: "30 minutes", icon: "time-outline" },
         { value: "2 hours", label: "2 hours", icon: "time-outline" },
@@ -253,11 +185,6 @@ const OfflineModal: React.FC<OfflineModalProps> = ({
           value: "Until I turn myself on",
           label: "Until I turn myself on",
           icon: "power-outline",
-        },
-        {
-          value: "Tomorrow opening time",
-          label: "Tomorrow opening time",
-          icon: "sunny-outline",
         },
       ]);
     }
@@ -366,8 +293,6 @@ const OfflineModal: React.FC<OfflineModalProps> = ({
         reason: selectedReason,
         comeBackOption: selectedComebackOption,
       };
-
-      console.log("📤 Sending offline request:", payload);
 
       const response = await updateHostelServiceOfflineStatus(payload);
 

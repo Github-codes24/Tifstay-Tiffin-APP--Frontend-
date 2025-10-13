@@ -1,16 +1,48 @@
-import React from "react";
-import { View, Text, StyleSheet, FlatList, Image } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { Colors } from "@/constants/Colors";
 import CommonHeader from "@/components/CommonHeader";
+import { Colors } from "@/constants/Colors";
 import { Images } from "@/constants/Images";
 import { fonts } from "@/constants/typography";
+import hostelApiService from "@/services/hostelApiService";
+import tiffinApiServices from "@/services/tiffinApiServices";
+import useAuthStore from "@/store/authStore";
+import React, { useEffect, useMemo, useState } from "react";
+import { FlatList, Image, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const EarningsScreen = () => {
+  const { userServiceType } = useAuthStore();
+  const [data, setData] = useState<{
+    thisMonth?: number;
+    thisWeek?: number;
+    totalBalance?: number;
+  }>({});
+
+  const isTiffinProvider = useMemo(
+    () => userServiceType === "tiffin_provider",
+    [userServiceType]
+  );
+
   const payoutHistory = [
     { id: "1", amount: 15200, date: "2025-07-10", status: "Processing" },
     { id: "2", amount: 5200, date: "2024-01-20", status: "Completed" },
   ];
+
+  useEffect(() => {
+    const loadData = async () => {
+      let response;
+      if (isTiffinProvider) {
+        response = await tiffinApiServices.getEarningsOverview();
+        console.log(response);
+      } else {
+        response = await hostelApiService.getEarningsOverview();
+        console.log(response);
+      }
+      if (response.success) {
+        setData(response.data.data);
+      }
+    };
+    loadData();
+  }, [isTiffinProvider]);
 
   const renderPayoutItem = ({ item }: any) => (
     <View style={styles.payoutRow}>
@@ -55,7 +87,7 @@ const EarningsScreen = () => {
           <View style={styles.overviewRow}>
             <View style={[styles.overviewBox]}>
               <Text style={[styles.overviewValue, { color: Colors.primary }]}>
-                ₹15420
+                ₹{data?.totalBalance}
               </Text>
               <Text style={[styles.overviewLabel, { color: Colors.primary }]}>
                 Total Balance
@@ -63,7 +95,7 @@ const EarningsScreen = () => {
             </View>
             <View style={[styles.overviewBox]}>
               <Text style={[styles.overviewValue, { color: Colors.orange }]}>
-                ₹3250
+                ₹{data?.thisWeek}
               </Text>
               <Text style={[styles.overviewLabel, { color: Colors.orange }]}>
                 This Week
@@ -74,7 +106,7 @@ const EarningsScreen = () => {
             style={[styles.overviewBox, { alignSelf: "center", marginTop: 12 }]}
           >
             <Text style={[styles.overviewValue, { color: Colors.green }]}>
-              ₹12450
+              ₹{data?.thisMonth}
             </Text>
             <Text style={[styles.overviewLabel, { color: Colors.green }]}>
               This Month

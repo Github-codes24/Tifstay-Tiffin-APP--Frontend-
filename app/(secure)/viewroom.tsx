@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 import { Colors } from "@/constants/Colors";
 import { Images } from "@/constants/Images";
 import { fonts } from "@/constants/typography";
@@ -19,10 +18,9 @@ import {
 
 const { width: screenWidth } = Dimensions.get("window");
 const CARD_WIDTH = screenWidth - 32;
-const IMAGE_WIDTH = CARD_WIDTH - 24; // ✅ Card width minus padding
+const IMAGE_WIDTH = CARD_WIDTH - 24;
 const IMAGE_HEIGHT = 240;
 
-// ✅ Interface matching API response
 interface BedData {
   _id: string;
   bedNumber: number;
@@ -64,7 +62,6 @@ const RoomDetailsScreen = () => {
   const fetchRooms = async () => {
     try {
       setLoading(true);
-      console.log("📥 Fetching rooms for hostel:", hostelId);
 
       const response = await apiService.getAllRoomsByHostelId(
         hostelId as string
@@ -74,13 +71,6 @@ const RoomDetailsScreen = () => {
         const data = response.data.data;
         setRoomsData(data);
 
-        console.log("✅ Rooms fetched successfully:", {
-          hostelName: data.hostelName,
-          totalRooms: data.totalRooms,
-          roomsCount: data.rooms.length,
-        });
-
-        // Initialize image indices for all rooms
         const initialIndices: { [key: string]: number } = {};
         data.rooms.forEach((room: RoomData) => {
           initialIndices[room._id] = 0;
@@ -90,14 +80,12 @@ const RoomDetailsScreen = () => {
         Alert.alert("Error", response.error || "Failed to fetch rooms");
       }
     } catch (error) {
-      console.error("Error fetching rooms:", error);
       Alert.alert("Error", "Failed to fetch room details");
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ FIXED: Handle image scroll for individual room
   const handleImageScroll = (roomId: string, offsetX: number) => {
     const index = Math.round(offsetX / IMAGE_WIDTH);
     setImageIndices((prev) => ({
@@ -106,14 +94,12 @@ const RoomDetailsScreen = () => {
     }));
   };
 
-  // Handle room card scroll
   const handleRoomScroll = (event: any) => {
     const offsetX = event.nativeEvent.contentOffset.x;
     const index = Math.round(offsetX / (CARD_WIDTH + 32));
     setCurrentRoomIndex(index);
   };
 
-  // ✅ FIXED: Render image carousel for each room
   const renderImageCarousel = (room: RoomData) => {
     const roomPhotos =
       room.photos && room.photos.length > 0
@@ -172,22 +158,16 @@ const RoomDetailsScreen = () => {
     );
   };
 
-  // Render individual room card
   const renderRoomCard = ({ item: room }: { item: RoomData }) => {
     return (
       <View style={styles.card}>
-        {/* Image Carousel */}
         {renderImageCarousel(room)}
 
-        {/* Room Info */}
         <Text style={styles.roomTitle}>Room No.: {room.roomNumber}</Text>
         <Text style={styles.subTitle}>Total Beds: {room.totalBedsCount}</Text>
 
         <Text style={styles.description}>{room.roomDescription}</Text>
-
-        {/* Beds Table */}
         <View style={styles.tableContainer}>
-          {/* Table Header */}
           <View style={[styles.tableRow, styles.tableHeader]}>
             <Text style={[styles.tableHeaderText, { flex: 1.2 }]}>Bed No.</Text>
             <Text style={[styles.tableHeaderText, { flex: 1 }]}>Status</Text>
@@ -197,7 +177,6 @@ const RoomDetailsScreen = () => {
             </Text>
           </View>
 
-          {/* Table Rows */}
           {room.totalBeds?.map((bed, index) => (
             <View key={bed._id || index} style={styles.tableRow}>
               <View
@@ -261,7 +240,6 @@ const RoomDetailsScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Room Cards Carousel */}
       <FlatList
         data={roomsData.rooms}
         horizontal
@@ -275,7 +253,6 @@ const RoomDetailsScreen = () => {
         keyExtractor={(item) => item._id}
       />
 
-      {/* Room Counter */}
       {roomsData.rooms.length > 1 && (
         <View style={styles.roomCounterContainer}>
           <Text style={styles.roomCounterText}>
@@ -284,7 +261,6 @@ const RoomDetailsScreen = () => {
         </View>
       )}
 
-      {/* Room Dots Indicator */}
       {roomsData.rooms.length > 1 && (
         <View style={styles.roomDotsContainer}>
           {roomsData.rooms.map((_, index) => (
@@ -339,13 +315,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     overflow: "hidden",
   },
-  // ✅ ADDED: Wrapper for each image
   imageWrapper: {
     width: IMAGE_WIDTH,
     height: IMAGE_HEIGHT,
   },
   roomImage: {
-    width: IMAGE_WIDTH, // ✅ FIXED: Match wrapper width
+    width: IMAGE_WIDTH,
     height: IMAGE_HEIGHT,
     borderRadius: 10,
   },

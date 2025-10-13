@@ -326,6 +326,52 @@ async getCustomerInfo(customerId: string) {
     };
   }
 }
+async getEarningsAnalytics() {
+  try {
+    const response = await this.api.get("/api/tiffinOwner/earnings/analytics");
+    return {
+      success: true,
+      data: response.data.data,
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.response?.data?.message || "Failed to get earnings data",
+    };
+  }
+}
+async getEarningsOverview() {
+  try {
+    const response = await this.api.get("/api/tiffinOwner/earnings/overview");
+    console.log("response.data", response.data);
+    return {
+      success: true,
+      data: response.data,
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.response?.data?.message || "Failed to get earnings data",
+    };
+  }
+}
+async getEarningsHistory() {
+  try {
+    const response = await this.api.get("/api/tiffinOwner/earnings/payoutHistory");
+    console.log("response.data.data.payouts", response.data.data.payouts);
+    return {
+      success: true,
+      data: response.data.data.payouts,
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.response?.data?.message || "Failed to get earnings dataaa",
+    };
+  }
+}
+
+
 }
 
 export default new TiffinApiService();

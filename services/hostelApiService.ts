@@ -31,7 +31,6 @@ class ApiService {
 
     this.api.interceptors.response.use(
       (response) => {
-        console.log("API Response:", response.status, response.config.url);
         return response;
       },
       async (error) => {
@@ -300,8 +299,6 @@ class ApiService {
         });
       }
 
-      console.log("📤 Updating hostel service:", hostelServiceId);
-
       const response = await this.api.put(
         `/api/hostelService/updateHostelService/${hostelServiceId}`,
         formData,
@@ -313,7 +310,6 @@ class ApiService {
         }
       );
 
-      console.log("✅ Update Response:", response.data);
       return { success: true, data: response.data };
     } catch (error: any) {
       console.error("❌ Update Hostel Service Error:", error.response?.data || error.message);
@@ -326,7 +322,6 @@ class ApiService {
 
   async deleteRoomPhotos(hostelServiceId: string, roomId: string, photoUrls: string[]) {
     try {
-      console.log("🗑️ Deleting room photos:", { hostelServiceId, roomId, photoUrls });
       
       const response = await this.api.delete(
         `/api/hostelService/deleteRoomPhotos/${hostelServiceId}/${roomId}`,
@@ -340,7 +335,6 @@ class ApiService {
         }
       );
 
-      console.log("✅ Room photos deleted:", response.data);
       return { success: true, data: response.data };
     } catch (error: any) {
       console.error("❌ Delete Room Photos Error:", error.response?.data || error.message);
@@ -353,7 +347,6 @@ class ApiService {
 
   async deleteHostelPhotos(hostelServiceId: string, photoUrls: string[]) {
     try {
-      console.log("🗑️ Deleting hostel photos:", { hostelServiceId, photoUrls });
       
       const response = await this.api.delete(
         `/api/hostelService/deleteHostelPhotos/${hostelServiceId}`,
@@ -367,7 +360,6 @@ class ApiService {
         }
       );
 
-      console.log("✅ Hostel photos deleted:", response.data);
       return { success: true, data: response.data };
     } catch (error: any) {
       console.error("❌ Delete Hostel Photos Error:", error.response?.data || error.message);
@@ -401,7 +393,6 @@ class ApiService {
 
 async getHostelServicesList(page: number = 1, limit: number = 100) {
   try {
-    console.log("📥 Fetching hostel services list with offline status");
     const response = await this.api.get(
       `/api/hostelService/getHostelServicesList`,
       {
@@ -411,7 +402,6 @@ async getHostelServicesList(page: number = 1, limit: number = 100) {
         },
       }
     );
-    console.log("✅ Hostel services list fetched:", response.data);
     return { success: true, data: response.data };
   } catch (error: any) {
     console.error("❌ Get Hostel Services List Error:", error);
@@ -425,9 +415,7 @@ async getHostelServicesList(page: number = 1, limit: number = 100) {
  
 async getAllRoomsByHostelId(hostelId: string) {
   try {
-    console.log("📥 Fetching all rooms for hostel:", hostelId);
     const response = await this.api.get(`/api/hostelService/getAllRooms/${hostelId}`);
-    console.log("✅ Rooms fetched successfully:", response.data);
     return { success: true, data: response.data };
   } catch (error: any) {
     console.error("❌ Get All Rooms Error:", error);
@@ -501,7 +489,6 @@ async updateHostelServiceOfflineStatus(payload: {
   comeBackOption: string;
 }) {
   try {
-    console.log("📤 Updating offline status:", payload);
     const response = await this.api.put(
       "/api/hostelService/updateHostelServiceOfflineStatus",
       payload,
@@ -511,7 +498,6 @@ async updateHostelServiceOfflineStatus(payload: {
         },
       }
     );
-    console.log("✅ Offline status updated:", response.data);
     return { success: true, data: response.data };
   } catch (error: any) {
     console.error("❌ Update Offline Status Error:", error.response?.data || error);
@@ -524,7 +510,6 @@ async updateHostelServiceOfflineStatus(payload: {
 
 async updateHostelServiceOnlineStatus(serviceIds: string[]) {
   try {
-    console.log("📤 Updating online status:", serviceIds);
     const response = await this.api.put(
       "/api/hostelService/updateHostelServiceOnlineStatus",
       { hostelServiceIds: serviceIds },
@@ -534,7 +519,6 @@ async updateHostelServiceOnlineStatus(serviceIds: string[]) {
         },
       }
     );
-    console.log("✅ Online status updated:", response.data);
     return { success: true, data: response.data };
   } catch (error: any) {
     console.error("❌ Update Online Status Error:", error.response?.data || error);
@@ -547,14 +531,12 @@ async updateHostelServiceOnlineStatus(serviceIds: string[]) {
 
 async getOfflineReasons(offlineType: "immediate" | "scheduled") {
   try {
-    console.log("📥 Fetching offline reasons for type:", offlineType);
     const response = await this.api.get(
       "/api/hostelService/getOfflineReasons",
       {
         params: { offlineType }, // ✅ Pass as query param
       }
     );
-    console.log("✅ Offline reasons response:", response.data);
     return { success: true, data: response.data };
   } catch (error: any) {
     console.error("❌ Get Offline Reasons Error:", error);
@@ -567,9 +549,7 @@ async getOfflineReasons(offlineType: "immediate" | "scheduled") {
 
 async getComebackOptions() {
   try {
-    console.log("📥 Fetching comeback options");
     const response = await this.api.get("/api/hostelService/getComeBackOptions");
-    console.log("✅ Comeback options response:", response.data);
     return { success: true, data: response.data };
   } catch (error: any) {
     console.error("❌ Get Comeback Options Error:", error);
@@ -727,7 +707,6 @@ async getComebackOptions() {
 //Booking
 async getBookingsByStatus(status: string) {
   try {
-    console.log("📥 Fetching bookings with status:", status);
     const response = await this.api.get(
       `/api/hostelOwner/bookings/getBookingsByStatus`,
       {
@@ -738,10 +717,8 @@ async getBookingsByStatus(status: string) {
       }
     );
 
-    console.log("✅ Bookings Response:", response.data);
     return { success: true, data: response.data };
   } catch (error: any) {
-    console.error("❌ Get Bookings Error:", error);
     return {
       success: false,
       error: error.response?.data?.message || "Failed to fetch bookings.",
@@ -751,8 +728,7 @@ async getBookingsByStatus(status: string) {
 
 async updateBookingStatus(bookingId: string, status: "Confirmed" | "Rejected") {
   try {
-    console.log(`📝 Updating booking ${bookingId} to status:`, status);
-    const response = await this.api.put(  // ⚠️ Changed from .post to .put
+    const response = await this.api.put(
       `/api/hostelOwner/bookings/updateBookingStatus/${bookingId}`,
       { status },
       {
@@ -762,10 +738,8 @@ async updateBookingStatus(bookingId: string, status: "Confirmed" | "Rejected") {
       }
     );
 
-    console.log("✅ Update Response:", response.data);
     return { success: true, data: response.data };
   } catch (error: any) {
-    console.error("❌ Update Booking Status Error:", error);
     return {
       success: false,
       error: error.response?.data?.message || `Failed to ${status.toLowerCase()} booking.`,
@@ -833,6 +807,52 @@ async sendMessageToAdmin(message: string) {
       };
     }
   }
-
+  //earning 
+async getEarningsAnalytics() {
+  try {
+    const response = await this.api.get("/api/hostelOwner/earnings/analytics");
+    console.log("response.data", response.data);
+    return {
+      success: true,
+      data: response.data.data,
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.response?.data?.message || "Failed to get earnings data",
+    };
+  }
 }
+async getEarningsOverview() {
+    try {
+      const response = await this.api.get("/api/hostelOwner/earnings/overview");
+      console.log("response.data.data", response.data.data);
+      return {
+        success: true,
+        data: response.data.data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to get earnings data",
+      };
+    }
+  }
+  async getEarningsHistory() {
+  try {
+    const response = await this.api.get("/api/hostelOwner/earnings/payoutHistory");
+    console.log("response.data.data.payouts", response.data.data.payouts);
+    return {
+      success: true,
+      data: response.data.data.payouts,
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.response?.data?.message || "Failed to get earnings data",
+    };
+  }
+}
+}
+
 export default new ApiService();
