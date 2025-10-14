@@ -1,7 +1,7 @@
 import CommonButton from "@/components/CommonButton";
-import TiffinCard from "@/components/CommonServiceCard";
 import HostelCard from "@/components/HostelCard";
 import OfflineModal from "@/components/OfflineModal";
+import TiffinCard from "@/components/TiffinCard";
 import { Colors } from "@/constants/Colors";
 import { Images } from "@/constants/Images";
 import { IS_IOS } from "@/constants/Platform";
@@ -87,7 +87,9 @@ export default function ServiceOfflineScreen() {
   const { getUserProfile, user, userServiceType } = useAuthStore();
   const {
     hostelServices,
+    tiffinServices, // ✅ Add tiffin services
     getAllHostelServices,
+    getAllTiffinServices, // ✅ Add tiffin method
     getTotalServicesCount,
     totalServicesCount,
     getRequestedServicesCount,
@@ -121,9 +123,8 @@ export default function ServiceOfflineScreen() {
   );
 
   const headerTitle = useMemo(
-    () =>
-      isTiffinProvider ? "Maharashtrian Ghar Ka Khana" : user?.fullName || "",
-    [isTiffinProvider, user?.fullName]
+    () => (isTiffinProvider ? user?.name : user?.fullName || ""),
+    [isTiffinProvider, user?.fullName, user?.name]
   );
 
   const headerSubtitle = useMemo(
@@ -139,34 +140,45 @@ export default function ServiceOfflineScreen() {
     [isTiffinProvider]
   );
 
+  // ✅ Get the correct services based on user type
+  const currentServices = useMemo(() => {
+    return isTiffinProvider ? tiffinServices : hostelServices;
+  }, [isTiffinProvider, tiffinServices, hostelServices]);
+
   // Separate online and offline services
   const onlineServices = useMemo(() => {
-    if (!hostelServices) return [];
-    return hostelServices.filter(
+    if (!currentServices) return [];
+    return currentServices.filter(
       (service: any) => service.isAvailable === true
     );
-  }, [hostelServices]);
+  }, [currentServices]);
 
   const offlineServices = useMemo(() => {
-    if (!hostelServices) return [];
-    return hostelServices.filter(
+    if (!currentServices) return [];
+    return currentServices.filter(
       (service: any) => service.isAvailable === false
     );
-  }, [hostelServices]);
+  }, [currentServices]);
 
   // Filter ONLY online services for search and filter
   const filteredOnlineServices = useMemo(() => {
     let filtered = [...onlineServices];
 
-    // Apply filter by hostel type
+    // Apply filter by service type (hostel type or tiffin food type)
     if (selectedFilter !== "all") {
-      filtered = filtered.filter(
-        (service: any) => service.hostelType === selectedFilter
-      );
+      if (isTiffinProvider) {
+        filtered = filtered.filter(
+          (service: any) => service.foodType === selectedFilter
+        );
+      } else {
+        filtered = filtered.filter(
+          (service: any) => service.hostelType === selectedFilter
+        );
+      }
     }
 
     return filtered;
-  }, [onlineServices, selectedFilter]);
+  }, [onlineServices, selectedFilter, isTiffinProvider]);
 
   const totalOnlineServices = useMemo(
     () => filteredOnlineServices?.length || 0,
@@ -198,8 +210,21 @@ export default function ServiceOfflineScreen() {
       try {
         if (isTiffinProvider) {
           await Promise.all([
+            getAllTiffinServices(page, ITEMS_PER_PAGE), // ✅ Load tiffin services
             getUserProfile(userServiceType),
+            getTotalServicesCount(),
+            getRequestedServicesCount(),
+            getAcceptedServicesCount(),
+            getCancelledServicesCount(),
+            getReviewsSummary(),
             getEarningsAnalytics(userServiceType),
+            console.log(
+              "isTiffinProvider",
+              isTiffinProvider,
+              getRequestedServicesCount(),
+              getAcceptedServicesCount(),
+              getCancelledServicesCount()
+            ),
           ]);
         } else {
           await Promise.all([
@@ -221,6 +246,7 @@ export default function ServiceOfflineScreen() {
     },
     [
       getAllHostelServices,
+      getAllTiffinServices, // ✅ Add to dependencies
       getUserProfile,
       userServiceType,
       getTotalServicesCount,
@@ -249,7 +275,7 @@ export default function ServiceOfflineScreen() {
 
   const handleToggleOffline = useCallback(() => {
     setShowOfflineModal(true);
-  }, [onlineServices.length]);
+  }, []);
 
   const handleAddService = useCallback(() => {
     const route = isTiffinProvider
@@ -407,9 +433,25 @@ export default function ServiceOfflineScreen() {
     }
 
     if (isTiffinProvider) {
-      return <TiffinCard />;
+      // ✅ Render tiffin cards
+      return filteredOnlineServices.map((tiffin: any) => (
+        <TiffinCard
+          key={tiffin._id}
+          tiffin={tiffin}
+          onEditPress={() => {
+            router.push({
+              pathname: "/(secure)/(service)/addNewService",
+              params: {
+                mode: "edit",
+                tiffinId: tiffin._id,
+              },
+            });
+          }}
+        />
+      ));
     }
 
+    // ✅ Render hostel cards
     return filteredOnlineServices.map((hostel: any) => (
       <HostelCard
         hostel={hostel}
@@ -425,7 +467,7 @@ export default function ServiceOfflineScreen() {
         }}
       />
     ));
-  }, [loading, isTiffinProvider, filteredOnlineServices, ,]);
+  }, [loading, isTiffinProvider, filteredOnlineServices]);
 
   const formatDate = (dateString: string) => {
     try {
@@ -440,6 +482,11 @@ export default function ServiceOfflineScreen() {
     } catch {
       return "N/A";
     }
+  };
+
+  // ✅ Get service name based on type
+  const getServiceName = (service: any) => {
+    return isTiffinProvider ? service.tiffinName : service.hostelName;
   };
 
   useEffect(() => {
@@ -552,7 +599,7 @@ export default function ServiceOfflineScreen() {
         {renderPagination()}
 
         {/* Offline Services Section */}
-        {!isTiffinProvider && offlineServicesCount > 0 && (
+        {offlineServicesCount > 0 && (
           <>
             <View style={styles.offlineServicesHeader}>
               <View style={styles.offlineHeaderLeft}>
@@ -566,96 +613,128 @@ export default function ServiceOfflineScreen() {
               </Text>
             </View>
 
-            {offlineServices.map((hostel: any) => (
-              <View key={hostel._id} style={styles.offlineServiceWrapper}>
-                <HostelCard
-                  hostel={hostel}
-                  onEditPress={() => {
-                    router.push({
-                      pathname: "/(secure)/(hostelService)/addNewHostelService",
-                      params: {
-                        mode: "edit",
-                        hostelId: hostel._id,
-                      },
-                    });
-                  }}
-                />
+            {offlineServices.map((service: any) => {
+              const serviceName = getServiceName(service);
 
-                {/* Go Online Button */}
-                <TouchableOpacity
-                  style={styles.goOnlineButton}
-                  onPress={() => handleGoOnline(hostel._id, hostel.hostelName)}
-                  activeOpacity={0.8}
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <ActivityIndicator size="small" color={Colors.white} />
+              return (
+                <View key={service._id} style={styles.offlineServiceWrapper}>
+                  {isTiffinProvider ? (
+                    <TiffinCard
+                      tiffin={service}
+                      onEditPress={() => {
+                        router.push({
+                          pathname: "/(secure)/(service)/addNewService",
+                          params: {
+                            mode: "edit",
+                            tiffinId: service._id,
+                          },
+                        });
+                      }}
+                    />
                   ) : (
-                    <>
-                      <Ionicons
-                        name="play-circle"
-                        size={20}
-                        color={Colors.white}
-                      />
-                      <Text style={styles.goOnlineButtonText}>
-                        Bring Online
-                      </Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-
-                {/* Offline Info Card */}
-                <View style={styles.offlineInfoCard}>
-                  {hostel.offlineDetails?.reason && (
-                    <View style={styles.offlineInfoRow}>
-                      <Ionicons
-                        name="information-circle"
-                        size={16}
-                        color={Colors.orange}
-                      />
-                      <Text style={styles.offlineInfoLabel}>Reason:</Text>
-                      <Text style={styles.offlineInfoValue}>
-                        {hostel.offlineDetails.reason}
-                      </Text>
-                    </View>
+                    <HostelCard
+                      hostel={service}
+                      onEditPress={() => {
+                        router.push({
+                          pathname:
+                            "/(secure)/(hostelService)/addNewHostelService",
+                          params: {
+                            mode: "edit",
+                            hostelId: service._id,
+                          },
+                        });
+                      }}
+                    />
                   )}
 
-                  {hostel.offlineDetails?.comeBackOption && (
-                    <View style={styles.offlineInfoRow}>
-                      <Ionicons name="time" size={16} color={Colors.primary} />
-                      <Text style={styles.offlineInfoLabel}>Back in:</Text>
-                      <Text style={styles.offlineInfoValue}>
-                        {hostel.offlineDetails.comeBackOption}
-                      </Text>
-                    </View>
-                  )}
+                  {/* Go Online Button */}
+                  <TouchableOpacity
+                    style={styles.goOnlineButton}
+                    onPress={() => handleGoOnline(service._id, serviceName)}
+                    activeOpacity={0.8}
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <ActivityIndicator size="small" color={Colors.white} />
+                    ) : (
+                      <>
+                        <Ionicons
+                          name="play-circle"
+                          size={20}
+                          color={Colors.white}
+                        />
+                        <Text style={styles.goOnlineButtonText}>
+                          Bring Online
+                        </Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
 
-                  {hostel.offlineDetails?.offlineAt && (
-                    <View style={styles.offlineInfoRow}>
-                      <Ionicons name="calendar" size={16} color={Colors.grey} />
-                      <Text style={styles.offlineInfoLabel}>
-                        Offline since:
-                      </Text>
-                      <Text style={styles.offlineInfoValue}>
-                        {formatDate(hostel.offlineDetails.offlineAt)}
-                      </Text>
-                    </View>
-                  )}
+                  {/* Offline Info Card */}
+                  <View style={styles.offlineInfoCard}>
+                    {service.offlineDetails?.reason && (
+                      <View style={styles.offlineInfoRow}>
+                        <Ionicons
+                          name="information-circle"
+                          size={16}
+                          color={Colors.orange}
+                        />
+                        <Text style={styles.offlineInfoLabel}>Reason:</Text>
+                        <Text style={styles.offlineInfoValue}>
+                          {service.offlineDetails.reason}
+                        </Text>
+                      </View>
+                    )}
 
-                  {hostel.offlineDetails?.offlineType && (
-                    <View style={styles.offlineInfoRow}>
-                      <Ionicons name="options" size={16} color={Colors.grey} />
-                      <Text style={styles.offlineInfoLabel}>Type:</Text>
-                      <Text style={styles.offlineInfoValue}>
-                        {hostel.offlineDetails.offlineType === "immediate"
-                          ? "Immediate"
-                          : "Scheduled"}
-                      </Text>
-                    </View>
-                  )}
+                    {service.offlineDetails?.comeBackOption && (
+                      <View style={styles.offlineInfoRow}>
+                        <Ionicons
+                          name="time"
+                          size={16}
+                          color={Colors.primary}
+                        />
+                        <Text style={styles.offlineInfoLabel}>Back in:</Text>
+                        <Text style={styles.offlineInfoValue}>
+                          {service.offlineDetails.comeBackOption}
+                        </Text>
+                      </View>
+                    )}
+
+                    {service.offlineDetails?.offlineAt && (
+                      <View style={styles.offlineInfoRow}>
+                        <Ionicons
+                          name="calendar"
+                          size={16}
+                          color={Colors.grey}
+                        />
+                        <Text style={styles.offlineInfoLabel}>
+                          Offline since:
+                        </Text>
+                        <Text style={styles.offlineInfoValue}>
+                          {formatDate(service.offlineDetails.offlineAt)}
+                        </Text>
+                      </View>
+                    )}
+
+                    {service.offlineDetails?.offlineType && (
+                      <View style={styles.offlineInfoRow}>
+                        <Ionicons
+                          name="options"
+                          size={16}
+                          color={Colors.grey}
+                        />
+                        <Text style={styles.offlineInfoLabel}>Type:</Text>
+                        <Text style={styles.offlineInfoValue}>
+                          {service.offlineDetails.offlineType === "immediate"
+                            ? "Immediate"
+                            : "Scheduled"}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
                 </View>
-              </View>
-            ))}
+              );
+            })}
           </>
         )}
 

@@ -19,7 +19,9 @@ import useAuthStore from "./authStore";
 interface ServiceState {
   // Data
   hostelServices: HostelService[];
+  tiffinServices: any[]; // Add tiffin services
   selectedHostelService: HostelService | null;
+  selectedTiffinService: any | null; // Add selected tiffin service
   isLoading: boolean;
   error: string | null;
   totalServicesCount: number;
@@ -46,6 +48,8 @@ interface ServiceState {
   // Actions
   createHostelService: (data: CreateHostelServiceRequest) => Promise<ApiResponse<HostelService>>;
   getAllHostelServices: (page?: number, limit?: number) => Promise<ApiResponse<any>>;
+  getAllTiffinServices: (page?: number, limit?: number) => Promise<ApiResponse<any>>; // Add tiffin method
+  getTiffinServiceById: (tiffinId: string) => Promise<ApiResponse<any>>; // Add tiffin details method
   updateHostelService: (hostelServiceId: string, data: UpdateHostelServiceRequest) => Promise<ApiResponse<HostelService>>;
   deleteHostelService: (hostelServiceId: string) => Promise<ApiResponse<any>>;
   deleteRoomPhotos: (hostelServiceId: string, roomId: string, photoUrls: string[]) => Promise<ApiResponse<any>>;
@@ -79,6 +83,7 @@ interface ServiceState {
   // Utility
   clearError: () => void;
   setSelectedHostelService: (hostelService: HostelService | null) => void;
+  setSelectedTiffinService: (tiffinService: any | null) => void; // Add tiffin setter
 }
 
 const useServiceStore = create<ServiceState>()(
@@ -86,7 +91,9 @@ const useServiceStore = create<ServiceState>()(
     (set, get) => ({
       // Initial state
       hostelServices: [],
+      tiffinServices: [], // Initialize tiffin services
       selectedHostelService: null,
+      selectedTiffinService: null, // Initialize selected tiffin
       isLoading: false,
       totalServicesCount: 0,
       requestedServicesCount: 0,
@@ -103,7 +110,6 @@ const useServiceStore = create<ServiceState>()(
       hostelServicesList: [],
       earningsAnalyticsData: null,
 
-
       // Get Total Services Count
       getTotalServicesCount: async () => {
         set({ isLoading: true, error: null });
@@ -119,13 +125,13 @@ const useServiceStore = create<ServiceState>()(
           }
 
           if (response.status === 200) {
-            const count = response.data.data.totalHostelServices || 0;
+            const count = response.data.data.totalHostelServices || response.data.data.totalTiffinServices || 0;
             set({
               totalServicesCount: count,
               isLoading: false,
               error: null,
             });
-            return { success: true, data: response.data.data.totalHostelService };
+            return { success: true, data: response.data.data };
           } else {
             set({
               isLoading: false,
@@ -157,13 +163,13 @@ const useServiceStore = create<ServiceState>()(
           }
 
           if (response.status === 200) {
-            const count = response.data.data.requestedHostelServices || 0;
+            const count = response.data.data.requestedHostelServices || response.data.data.requestedTiffinServices || 0;
             set({
               requestedServicesCount: count,
               isLoading: false,
               error: null,
             });
-            return { success: true, data: response.data.data.requestedHostelService };
+            return { success: true, data: response.data.data };
           } else {
             set({
               isLoading: false,
@@ -195,13 +201,13 @@ const useServiceStore = create<ServiceState>()(
           }
 
           if (response.status === 200) {
-            const count = response.data.data.acceptedHostelServices || 0;
+            const count = response.data.data.acceptedHostelServices || response.data.data.acceptedTiffinServices || 0;
             set({
               acceptedServicesCount: count,
               isLoading: false,
               error: null,
             });
-            return { success: true, data: response.data.data.acceptedHostelService };
+            return { success: true, data: response.data.data };
           } else {
             set({
               isLoading: false,
@@ -233,13 +239,13 @@ const useServiceStore = create<ServiceState>()(
           }
 
           if (response.status === 200) {
-            const count = response.data.data.cancelledHostelServices || 0;
+            const count = response.data.data.cancelledHostelServices || response.data.data.cancelledTiffinServices || 0;
             set({
               cancelledServicesCount: count,
               isLoading: false,
               error: null,
             });
-            return { success: true, data: response.data.data.cancelledHostelService };
+            return { success: true, data: response.data.data };
           } else {
             set({
               isLoading: false,
@@ -264,7 +270,6 @@ const useServiceStore = create<ServiceState>()(
           const response = await hostelApiService.createHostelService(data);
 
           if (response.success) {
-            // Refresh the hostel services list (first page)
             const allServices = await hostelApiService.getAllHostelServices(1, 10);
             if (allServices.success) {
               set({
@@ -324,6 +329,67 @@ const useServiceStore = create<ServiceState>()(
         }
       },
 
+      // ✅ NEW: Get All Tiffin Services
+      getAllTiffinServices: async (page = 1, limit = 10) => {
+        set({ isLoading: true, error: null });
+
+        try {
+          const response = await tiffinApiService.getAllTiffinServices(page, limit);
+
+          if (response.success) {
+            set({
+              tiffinServices: response.data?.data?.tiffinServices || [],
+              pagination: response.data?.data?.pagination || null,
+              isLoading: false,
+              error: null,
+            });
+            return { success: true, data: response.data };
+          } else {
+            set({
+              isLoading: false,
+              error: response.error || "Failed to fetch tiffin services",
+            });
+            return { success: false, error: response.error };
+          }
+        } catch (error: any) {
+          set({
+            isLoading: false,
+            error: error.message || "Failed to fetch tiffin services",
+          });
+          return { success: false, error: error.message };
+        }
+      },
+
+      // ✅ NEW: Get Tiffin Service By ID
+      getTiffinServiceById: async (tiffinId: string) => {
+        set({ isLoading: true, error: null });
+
+        try {
+          const response = await tiffinApiService.getTiffinServiceById(tiffinId);
+
+          if (response.success) {
+            set({
+              selectedTiffinService: response.data?.data || null,
+              isLoading: false,
+              error: null,
+            });
+            return { success: true, data: response.data };
+          } else {
+            set({
+              isLoading: false,
+              error: response.error || "Failed to fetch tiffin service details",
+            });
+            return { success: false, error: response.error };
+          }
+        } catch (error: any) {
+          set({
+            isLoading: false,
+            error: error.message || "Failed to fetch tiffin service details",
+          });
+          return { success: false, error: error.message };
+        }
+      },
+
       updateHostelService: async (hostelServiceId: string, data: UpdateHostelServiceRequest) => {
         set({ isLoading: true, error: null });
       
@@ -331,7 +397,6 @@ const useServiceStore = create<ServiceState>()(
           const response = await hostelApiService.updateHostelService(hostelServiceId, data);
       
           if (response.success) {
-            // ✅ Fetch the full updated hostel details to ensure all fields are populated
             const detailsResponse = await hostelApiService.getHostelServiceById(hostelServiceId);
             
             const updatedHostelData = detailsResponse.success 
@@ -373,7 +438,6 @@ const useServiceStore = create<ServiceState>()(
           const response = await hostelApiService.deleteHostelService(hostelServiceId);
 
           if (response.success) {
-            // Remove the deleted service from the list
             const updatedServices = get().hostelServices.filter(
               service => service._id !== hostelServiceId
             );
@@ -411,7 +475,6 @@ const useServiceStore = create<ServiceState>()(
           const response = await hostelApiService.deleteRoomPhotos(hostelServiceId, roomId, photoUrls);
 
           if (response.success) {
-            // Update the room photos in the selected hostel service
             if (get().selectedHostelService?._id === hostelServiceId) {
               const updatedService = { ...get().selectedHostelService! };
               updatedService.rooms = updatedService.rooms.map(room =>
@@ -449,11 +512,27 @@ const useServiceStore = create<ServiceState>()(
         set({ isLoading: true, error: null });
 
         try {
-          const response = await hostelApiService.updateHostelServiceOfflineStatus(payload);
+          const userServiceType = useAuthStore.getState().userServiceType;
+          let response;
+
+          if (userServiceType === "hostel_owner") {
+            response = await hostelApiService.updateHostelServiceOfflineStatus(payload);
+          } else {
+            response = await tiffinApiService.updateTiffinServiceOfflineStatus({
+              tiffinServiceIds: payload.hostelServiceIds,
+              offlineType: payload.offlineType,
+              reason: payload.reason,
+              comeBackOption: payload.comeBackOption,
+            });
+          }
 
           if (response.success) {
             // Refresh services list
-            await get().getAllHostelServices(1, 10);
+            if (userServiceType === "hostel_owner") {
+              await get().getAllHostelServices(1, 10);
+            } else {
+              await get().getAllTiffinServices(1, 10);
+            }
             
             set({
               isLoading: false,
@@ -481,11 +560,22 @@ const useServiceStore = create<ServiceState>()(
         set({ isLoading: true, error: null });
       
         try {
-          const response = await hostelApiService.updateHostelServiceOnlineStatus(serviceIds);
+          const userServiceType = useAuthStore.getState().userServiceType;
+          let response;
+
+          if (userServiceType === "hostel_owner") {
+            response = await hostelApiService.updateHostelServiceOnlineStatus(serviceIds);
+          } else {
+            response = await tiffinApiService.updateTiffinServiceOnlineStatus(serviceIds);
+          }
       
           if (response.success) {
             // Refresh services list
-            await get().getAllHostelServices(1, 10);
+            if (userServiceType === "hostel_owner") {
+              await get().getAllHostelServices(1, 10);
+            } else {
+              await get().getAllTiffinServices(1, 10);
+            }
             
             set({
               isLoading: false,
@@ -509,36 +599,51 @@ const useServiceStore = create<ServiceState>()(
         }
       },
 
-     getOfflineReasons: async (offlineType: "immediate" | "scheduled") => {
-  try {
-    const response = await hostelApiService.getOfflineReasons(offlineType);
+      getOfflineReasons: async (offlineType: "immediate" | "scheduled") => {
+        try {
+          const userServiceType = useAuthStore.getState().userServiceType;
+          let response;
 
-    if (response.success) {
-      set({ offlineReasons: response.data?.data?.offlineReasons || [] });
-      return { success: true, data: response.data };
-    } else {
-      return { success: false, error: response.error };
-    }
-  } catch (error: any) {
-    return { success: false, error: error.message };
-  }
+          if (userServiceType === "hostel_owner") {
+            response = await hostelApiService.getOfflineReasons(offlineType);
+          } else {
+            response = await tiffinApiService.getOfflineReasons(offlineType);
+          }
+
+          if (response.success) {
+            set({ offlineReasons: response.data?.data?.offlineReasons || [] });
+            return { success: true, data: response.data };
+          } else {
+            return { success: false, error: response.error };
+          }
+        } catch (error: any) {
+          return { success: false, error: error.message };
+        }
       },
 
-getComebackOptions: async () => {
-  try {
-    const response = await hostelApiService.getComebackOptions();
+      getComebackOptions: async () => {
+        try {
+          const userServiceType = useAuthStore.getState().userServiceType;
+          let response;
 
-    if (response.success) {
-      set({ comebackOptions: response.data?.data?.comebackOptions || [] });
-      return { success: true, data: response.data };
-    } else {
-      return { success: false, error: response.error };
-    }
-  } catch (error: any) {
-    return { success: false, error: error.message };
-  }
-},
- getHostelServicesList: async (page = 1, limit = 100) => {
+          if (userServiceType === "hostel_owner") {
+            response = await hostelApiService.getComebackOptions();
+          } else {
+            response = await tiffinApiService.getComebackOptions();
+          }
+
+          if (response.success) {
+            set({ comebackOptions: response.data?.data?.comebackOptions || [] });
+            return { success: true, data: response.data };
+          } else {
+            return { success: false, error: response.error };
+          }
+        } catch (error: any) {
+          return { success: false, error: error.message };
+        }
+      },
+
+      getHostelServicesList: async (page = 1, limit = 100) => {
         set({ isLoading: true, error: null });
 
         try {
@@ -566,6 +671,7 @@ getComebackOptions: async () => {
           return { success: false, error: error.message };
         }
       },
+
       // Form management actions
       setFormPage1Data: (data: FormPage1Data) => {
         set({ formPage1Data: data });
@@ -592,7 +698,14 @@ getComebackOptions: async () => {
         set({ isLoading: true, error: null });
 
         try {
-          const response = await hostelApiService.getReviewsSummary();
+          const userServiceType = useAuthStore.getState().userServiceType;
+          let response;
+
+          if (userServiceType === "hostel_owner") {
+            response = await hostelApiService.getReviewsSummary();
+          } else {
+            response = await tiffinApiService.getReviewsSummary();
+          }
 
           if (response.success && response.data) {
             set({
@@ -617,7 +730,8 @@ getComebackOptions: async () => {
           return { success: false, error: error.message };
         }
       },
-        getEarningsAnalytics: async (type: "hostel_owner" | "tiffin_provider") => {
+
+      getEarningsAnalytics: async (type: "hostel_owner" | "tiffin_provider") => {
         set({ isLoading: true });
 
         try {
@@ -656,6 +770,9 @@ getComebackOptions: async () => {
 
       setSelectedHostelService: (hostelService: HostelService | null) =>
         set({ selectedHostelService: hostelService }),
+
+      setSelectedTiffinService: (tiffinService: any | null) =>
+        set({ selectedTiffinService: tiffinService }),
     }),
     {
       name: 'service-storage',
@@ -664,4 +781,4 @@ getComebackOptions: async () => {
   )
 );
 
-export default useServiceStore;
+export default useServiceStore;    
