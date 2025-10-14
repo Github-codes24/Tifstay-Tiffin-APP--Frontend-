@@ -1,6 +1,7 @@
 import { Colors } from "@/constants/Colors";
 import { Images } from "@/constants/Images";
 import { fonts } from "@/constants/typography";
+import { router } from "expo-router";
 import React from "react";
 import {
   Dimensions,
@@ -24,8 +25,15 @@ const TiffinCard: React.FC<TiffinCardProps> = ({
   tiffin,
   onEditPress,
   onViewPress,
-  onReviewPress,
 }) => {
+  const handleViewReviews = () => {
+    router.push({
+      pathname: "/review",
+      params: { tiffinId: tiffin._id },
+    });
+  };
+  console.log(tiffin._id);
+
   // Get the first veg photo or fallback
   const tiffinImage =
     tiffin?.vegPhotos?.[0] || tiffin?.nonVegPhotos?.[0] || Images.food;
@@ -136,14 +144,18 @@ const TiffinCard: React.FC<TiffinCardProps> = ({
             <Text style={styles.buttonText}>Edit</Text>
           </TouchableOpacity>
         </View>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={onReviewPress}
-          activeOpacity={0.7}
-        >
-          <Image source={Images.edit} style={styles.btnIcon} />
-          <Text style={styles.buttonText}>Review</Text>
-        </TouchableOpacity>
+
+        {/* Action Buttons - Row 2 */}
+        <View style={styles.buttonRow}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={handleViewReviews}
+            activeOpacity={0.7}
+          >
+            <Image source={Images.star} style={styles.btnIcon} />
+            <Text style={styles.buttonText}>View Reviews</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -282,6 +294,7 @@ const styles = StyleSheet.create({
   buttonRow: {
     flexDirection: "row",
     gap: 7,
+    marginTop: 7,
   },
   actionButton: {
     flexDirection: "row",
@@ -293,7 +306,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 6,
     gap: 2,
-    width: "50%",
+    flex: 1,
   },
   btnIcon: {
     height: 16,

@@ -98,7 +98,6 @@ const useAuthStore = create<AuthState>()(
     try {
       let response: any;
 
-      console.log("Login button pressed", type);
 
       if (type === "hostel_owner") {
         response = await hostelApiService.login(email, password);
@@ -269,7 +268,6 @@ const useAuthStore = create<AuthState>()(
       } else {
         response = await tiffinApiService.getUserProfile();
       }
-      console.log("User Profile:", response.data);
       if (response.success) {
         set({
           user: type === "hostel_owner" ? response.data?.hostelOwner : response.data?.tiffinOwner,

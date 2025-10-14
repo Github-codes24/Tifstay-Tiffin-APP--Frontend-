@@ -808,7 +808,6 @@ async getCancelledTiffinServicesCount() {
   async getEarningsAnalytics() {
     try {
       const response = await this.api.get("/api/tiffinOwner/earnings/analytics");
-      console.log("response.data", response.data);
       return {
         success: true,
         data: response.data.data,
@@ -824,7 +823,6 @@ async getCancelledTiffinServicesCount() {
   async getEarningsOverview() {
     try {
       const response = await this.api.get("/api/tiffinOwner/earnings/overview");
-      console.log("response.data.data", response.data.data);
       return {
         success: true,
         data: response.data.data,
@@ -840,7 +838,6 @@ async getCancelledTiffinServicesCount() {
   async getEarningsHistory() {
     try {
       const response = await this.api.get("/api/tiffinOwner/earnings/payoutHistory");
-      console.log("response.data.data.payouts", response.data.data.payouts);
       return {
         success: true,
         data: response.data.data.payouts,
