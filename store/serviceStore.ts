@@ -724,12 +724,21 @@ getCancelledServicesCount: async () => {
           }
 
           if (response.success && response.data) {
+            if(userServiceType === "hostel_owner"){
             set({
               overallRating: response.data.data.overallRating || 0,
               totalReviews: response.data.data.totalReviews || 0,
               isLoading: false,
               error: null,
             });
+          }else{
+            set({
+              overallRating: response.data.data.summary.overallRating || 0,
+              totalReviews: response.data.data.summary.totalReviews || 0,
+              isLoading: false,
+              error: null,
+            });
+          }
             return { success: true, data: response.data };
           } else {
             set({

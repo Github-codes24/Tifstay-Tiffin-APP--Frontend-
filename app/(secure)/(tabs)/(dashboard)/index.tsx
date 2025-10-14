@@ -218,13 +218,6 @@ export default function ServiceOfflineScreen() {
             getCancelledServicesCount(),
             getReviewsSummary(),
             getEarningsAnalytics(userServiceType),
-            console.log(
-              "isTiffinProvider",
-              isTiffinProvider,
-              getRequestedServicesCount(),
-              getAcceptedServicesCount(),
-              getCancelledServicesCount()
-            ),
           ]);
         } else {
           await Promise.all([
@@ -276,6 +269,12 @@ export default function ServiceOfflineScreen() {
   const handleToggleOffline = useCallback(() => {
     setShowOfflineModal(true);
   }, []);
+
+  const handleManageService = useCallback(() => {
+    if (isTiffinProvider) {
+      router.push("/(secure)/(tabs)/(dashboard)/service");
+    }
+  }, [isTiffinProvider]);
 
   const handleAddService = useCallback(() => {
     const route = isTiffinProvider
@@ -499,7 +498,9 @@ export default function ServiceOfflineScreen() {
         <Image source={profileImage} style={styles.logo} />
         <View style={styles.headerText}>
           <Text style={styles.title}>{headerTitle}</Text>
-          <Text style={styles.subtitle}>{headerSubtitle}</Text>
+          <TouchableOpacity onPress={handleManageService}>
+            <Text style={styles.subtitle}>{headerSubtitle}</Text>
+          </TouchableOpacity>
         </View>
         <TouchableOpacity
           style={styles.onlineButton}

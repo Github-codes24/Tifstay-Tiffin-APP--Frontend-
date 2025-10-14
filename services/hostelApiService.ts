@@ -602,7 +602,7 @@ async getComebackOptions() {
     }
   }
 
-  async getReviewsByHostelId(hostelId: string, page: number = 1, limit: number = 10, rating?: number) {
+  async getReviewsByHostelId(hostelId: string, page: number = 1, limit: number = 10, rating?: string) {
     try {
       let url = `/api/hostelOwner/reviews/getReviewsByHostelId/${hostelId}?page=${page}&limit=${limit}`;
       if (rating) {

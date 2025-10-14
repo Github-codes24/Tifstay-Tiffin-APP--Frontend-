@@ -17,12 +17,14 @@ interface TiffinCardProps {
   tiffin: any;
   onEditPress?: () => void;
   onViewPress?: () => void;
+  onReviewPress?: () => void;
 }
 
 const TiffinCard: React.FC<TiffinCardProps> = ({
   tiffin,
   onEditPress,
   onViewPress,
+  onReviewPress,
 }) => {
   // Get the first veg photo or fallback
   const tiffinImage =
@@ -134,6 +136,14 @@ const TiffinCard: React.FC<TiffinCardProps> = ({
             <Text style={styles.buttonText}>Edit</Text>
           </TouchableOpacity>
         </View>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={onReviewPress}
+          activeOpacity={0.7}
+        >
+          <Image source={Images.edit} style={styles.btnIcon} />
+          <Text style={styles.buttonText}>Review</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );

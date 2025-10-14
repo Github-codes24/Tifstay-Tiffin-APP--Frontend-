@@ -594,24 +594,6 @@ async getCancelledTiffinServicesCount() {
   }
 
   // Reviews
-  
-  async getAllReviews(page: number = 1, limit: number = 10, rating?: number) {
-    try {
-      let url = `/api/tiffinservices/getAllOwnerTiffinReviews?page=${page}&limit=${limit}`;
-      if (rating) {
-        url += `&rating=${rating}`;
-      }
-      const response = await this.api.get(url);
-      return { success: true, data: response.data };
-    } catch (error: any) {
-      console.error("Get All Reviews Error:", error);
-      return {
-        success: false,
-        error: error.response?.data?.message || "Failed to fetch reviews.",
-      };
-    }
-  }
-
   async getReviewsByTiffinId(tiffinId: string, page: number = 1, limit: number = 10, rating?: number) {
     try {
       let url = `/api/tiffinOwner/reviews/getReviewsByTiffinId/${tiffinId}?page=${page}&limit=${limit}`;
@@ -629,9 +611,9 @@ async getCancelledTiffinServicesCount() {
     }
   }
 
-  async getReviewsSummary() {
+  async getReviewsSummary(page: number = 1, limit: number = 10, ratingType?: string) {
     try {
-      const response = await this.api.get("/api/tiffinservices/getAllOwnerTiffinReviews?page=1&limit=1");
+      const response = await this.api.get(`/api/tiffinService/getAllOwnerTiffinReviews?page=${page}&limit=${limit}&${ratingType ? `ratingType=${ratingType}` : ""}`);
       return { success: true, data: response.data };
     } catch (error: any) {
       console.error("Get Reviews Summary Error:", error);
