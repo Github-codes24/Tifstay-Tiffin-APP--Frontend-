@@ -1,24 +1,33 @@
 import { Colors } from "@/constants/Colors";
-import React, { useState, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import { TouchableOpacity, StyleSheet, Animated } from "react-native";
 
-const CustomSwitch = () => {
-  const [isOn, setIsOn] = useState(false);
-  const translateX = useRef(new Animated.Value(0)).current;
+interface CustomSwitchProps {
+  value?: boolean;
+  onValueChange?: (value: boolean) => void;
+}
 
-  const toggleSwitch = () => {
-    setIsOn(!isOn);
+const CustomSwitch: React.FC<CustomSwitchProps> = ({ value = false, onValueChange }) => {
+  const translateX = useRef(new Animated.Value(value ? 12 : 0)).current;
 
+  // Sync animation with external value changes
+  useEffect(() => {
     Animated.timing(translateX, {
-      toValue: !isOn ? 12 : 0,  
+      toValue: value ? 12 : 0,
       duration: 200,
       useNativeDriver: true,
     }).start();
+  }, [value]);
+
+  const toggleSwitch = () => {
+    if (onValueChange) {
+      onValueChange(!value);
+    }
   };
 
   return (
     <TouchableOpacity
-      style={[styles.switchContainer, isOn ? styles.switchOn : styles.switchOff]}
+      style={[styles.switchContainer, value ? styles.switchOn : styles.switchOff]}
       activeOpacity={0.8}
       onPress={toggleSwitch}
     >
@@ -44,7 +53,7 @@ const styles = StyleSheet.create({
   knob: {
     width: 14,
     height: 8,
-    borderRadius: 4, // half of height for pill shape
+    borderRadius: 4,
     backgroundColor: "#fff",
   },
 });

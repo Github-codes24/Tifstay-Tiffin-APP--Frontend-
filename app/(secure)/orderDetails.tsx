@@ -1,83 +1,63 @@
 import BookingCard from "@/components/BookingCard";
-import CommonButton from "@/components/CommonButton";
-import CustomSwitch from "@/components/CommonSwitch";
 import { Colors } from "@/constants/Colors";
 import { fonts } from "@/constants/typography";
-import { router, useLocalSearchParams } from "expo-router";
-import React, { useState } from "react";
+import useAuthStore from "@/store/authStore";
+import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
-  View,
-  Text,
+  Alert,
   StyleSheet,
-  FlatList,
+  Text,
+  View,
+  ActivityIndicator,
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import { Ionicons } from "@expo/vector-icons";
-
-const orderSummary = [
-  { date: "21/07/25", breakfast: true, lunch: false, dinner: false },
-  { date: "22/07/25", breakfast: false, lunch: false, dinner: false },
-  { date: "23/07/25", breakfast: false, lunch: false, dinner: false },
-  { date: "24/07/25", breakfast: false, lunch: false, dinner: false },
-  { date: "25/07/25", breakfast: false, lunch: false, dinner: false },
-  { date: "26/07/25", breakfast: true, lunch: true, dinner: true },
-  { date: "27/07/25", breakfast: true, lunch: true, dinner: true },
-  { date: "29/07/25", breakfast: null, lunch: null, dinner: null },
-  { date: "30/07/25", breakfast: null, lunch: null, dinner: null },
-  { date: "31/07/25", breakfast: null, lunch: null, dinner: null },
-];
 
 export default function OrderDetail() {
-  return (
-    <View style={{ flex: 1, backgroundColor: "#fff" }}>
-      <KeyboardAwareScrollView
-        style={styles.scene}
-        showsVerticalScrollIndicator={false}
-        enableOnAndroid
-        extraScrollHeight={20}
-        keyboardShouldPersistTaps="handled"
-      >
-        {/* Booking Info */}
-        <BookingCard
-          status="Accepted"
-          bookingId="#TF2024002"
-          orderedDate="21/07/2025"
-          tiffinService="Maharashtrian Ghar Ka Khana"
-          customer="Onil Karmokar"
-          startDate="21/07/25"
-          mealType="Breakfast, Lunch, Dinner"
-          plan="Daily"
-          orderType="Delivery"
-        />
+  const { booking }: any = useLocalSearchParams();
+  const bookingData = booking ? JSON.parse(booking) : null;
+  const [orderSummary, setOrderSummary] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-        {/* Order Summary Table */}
-        <View style={styles.section}>
-          <Text style={styles.header}>Full Month Order Summary</Text>
+  useEffect(() => {
+    if (bookingData?.orderId) {
+      fetchOrderSummary();
+    }
+  }, [bookingData?.orderId]);
 
-          {/* Table Header */}
-          <View style={[styles.row, styles.tableHeader]}>
-            <Text style={[styles.cell, styles.headerCell, { flex: 1.2 }]}>Date</Text>
-            <Text style={[styles.cell, styles.headerCell]}>Breakfast</Text>
-            <Text style={[styles.cell, styles.headerCell]}>Lunch</Text>
-            <Text style={[styles.cell, styles.headerCell]}>Dinner</Text>
-          </View>
+  const fetchOrderSummary = async () => {
+    const token = useAuthStore.getState().token;
 
-          {/* Table Rows */}
-          {orderSummary.map((item, index) => (
-            <View key={index} style={styles.row}>
-              <Text style={[styles.cell, { flex: 1.2 }]}>{item.date}</Text>
-              <View style={[styles.cell]}>{renderStatus(item.breakfast)}</View>
-              <View style={styles.cell}>{renderStatus(item.lunch)}</View>
-              <View style={styles.cell}>{renderStatus(item.dinner)}</View>
-            </View>
-          ))}
-        </View>
-      </KeyboardAwareScrollView>
-    </View>
-  );
-}
+    try {
+      const response = await fetch(
+        `https://tifstay-project-be.onrender.com/api/tiffinOrderSummary/getTiffinOrderSummary/${bookingData?.orderId}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
-const renderStatus = (status: boolean | null) => {
+      const result = await response.json();
+      console.log("API Result:", JSON.stringify(result, null, 2));
+
+      if (response.ok && result.success && result.data?.summary) {
+        setOrderSummary(result.data.summary);
+      } else {
+        Alert.alert("Error", result.message || "Failed to fetch order summary");
+      }
+    } catch (error) {
+      console.error("API Error:", error);
+      Alert.alert("Error", "An error occurred while fetching data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const renderStatus = (status: boolean | null) => {
     return (
       <View style={{ alignItems: "center", justifyContent: "center", flex: 1 }}>
         {status === true ? (
@@ -90,7 +70,74 @@ const renderStatus = (status: boolean | null) => {
       </View>
     );
   };
-  
+
+  return (
+    <View style={{ flex: 1, backgroundColor: "#fff" }}>
+      <KeyboardAwareScrollView
+        style={styles.scene}
+        showsVerticalScrollIndicator={false}
+        enableOnAndroid
+        extraScrollHeight={20}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Booking Info */}
+        <BookingCard
+          key={"9898"}
+          bookingId={`#${bookingData.bookingId}`}
+          orderedDate={bookingData.orderDate}
+          tiffinService={bookingData.tiffinService}
+          customer={bookingData.customer}
+          startDate={bookingData.startDate}
+          mealType={bookingData.mealType}
+          plan={bookingData.plan}
+          orderType={bookingData.orderType}
+        />
+
+        {/* Order Summary */}
+        <View style={styles.section}>
+          <Text style={styles.header}>Full Month Order Summary</Text>
+
+          {/* Loading State */}
+          {loading ? (
+            <ActivityIndicator size="small" color={Colors.primary} />
+          ) : orderSummary.length === 0 ? (
+            <Text style={{ color: Colors.grey, textAlign: "center", marginTop: 10 }}>
+              No summary available.
+            </Text>
+          ) : (
+            <>
+              {/* Table Header */}
+              <View style={[styles.row, styles.tableHeader]}>
+                <Text style={[styles.cell, styles.headerCell, { flex: 1.2 }]}>
+                  Date
+                </Text>
+                <Text style={[styles.cell, styles.headerCell]}>Breakfast</Text>
+                <Text style={[styles.cell, styles.headerCell]}>Lunch</Text>
+                <Text style={[styles.cell, styles.headerCell]}>Dinner</Text>
+              </View>
+
+              {/* Table Rows */}
+              {orderSummary.map((item, index) => (
+                <View key={index} style={styles.row}>
+                  <Text style={[styles.cell, { flex: 1.2 }]}>{item.date}</Text>
+                  <View style={styles.cell}>
+                    {renderStatus(item.isBreakfastDone)}
+                  </View>
+                  <View style={styles.cell}>
+                    {renderStatus(item.isLunchDone)}
+                  </View>
+                  <View style={styles.cell}>
+                    {renderStatus(item.isDinnerDone)}
+                  </View>
+                </View>
+              ))}
+            </>
+          )}
+        </View>
+      </KeyboardAwareScrollView>
+    </View>
+  );
+}
 
 const styles = StyleSheet.create({
   scene: {
@@ -120,6 +167,8 @@ const styles = StyleSheet.create({
   tableHeader: {
     paddingBottom: 8,
     marginBottom: 8,
+    // borderBottomWidth: 0.5,
+    // borderBottomColor: Colors.lightGrey,
   },
   cell: {
     flex: 1,
@@ -130,7 +179,7 @@ const styles = StyleSheet.create({
     textAlignVertical: "center",
   },
   headerCell: {
-    fontFamily: fonts.interRegular,
+    fontFamily: fonts.interMedium,
     fontSize: 14,
     color: Colors.title,
   },

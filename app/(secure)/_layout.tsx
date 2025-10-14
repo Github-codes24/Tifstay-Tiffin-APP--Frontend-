@@ -213,7 +213,10 @@ export default function SecureLayout() {
           ),
         }}
       />
-
+<Stack.Screen
+        name="(service)/addNewBooking"
+        options={{ headerShown: false }}
+      />
       <Stack.Screen
         name="(accountScreens)/method"
         options={{ headerShown: false }}

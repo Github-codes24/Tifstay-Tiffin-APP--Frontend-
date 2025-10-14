@@ -68,6 +68,8 @@ const BasicInfoForm = () => {
         weeklyDelivery: 120,
         monthlyDining: 120,
         monthlyDelivery: 120,
+        perBreakfastDining:120,
+        perBreakfastDelivery:120,
       },
     ],
   });
@@ -101,10 +103,12 @@ console.log('=-=',parsed)
               foodType: p.foodType,
               perMealDining: p.perMealDining,
               perMealDelivery: p.perMealDelivery,
-              weeklyDining: p.weeklyDining,
-              weeklyDelivery: p.weeklyDelivery,
-              monthlyDining: p.monthlyDining,
-              monthlyDelivery: p.monthlyDelivery,
+              weeklyDining: p.weeklyDining || 0,
+              weeklyDelivery: p.weeklyDelivery || 0,
+              monthlyDining: p.monthlyDining || 0,
+              monthlyDelivery: p.monthlyDelivery || 0,
+              perBreakfastDining:p.perBreakfastDining || 0,
+              perBreakfastDelivery:p.perBreakfastDelivery || 0,
               offers: p.offers || "",
             })) || [],
         };
@@ -167,6 +171,8 @@ console.log('=-=',parsed)
           weeklyDelivery: 120,
           monthlyDining: 120,
           monthlyDelivery: 120,
+          perBreakfastDelivery:120,
+          perBreakfastDining:200
         },
       ],
     }));
@@ -193,6 +199,8 @@ console.log('=-=',parsed)
           weeklyDelivery: 120,
           monthlyDining: 120,
           monthlyDelivery: 120,
+          perBreakfastDelivery:120,
+          perBreakfastDining:200
         },
       ],
     });
@@ -377,6 +385,24 @@ console.log('=-=',parsed)
               />
               <View style={styles.row}>
                 <StepperInput
+                  label="Per Breakfast for Dining (₹)"
+                  value={block.perBreakfastDining}
+                  onChange={val => updatePricingValue(index, "perBreakfastDining", val)}
+                  step={1}
+                  min={50}
+                  max={500}
+                />
+                <StepperInput
+                  label="Per meal for Breakfast for Delivery (₹)"
+                  value={block.perBreakfastDelivery}
+                  onChange={val => updatePricingValue(index, "perBreakfastDelivery", val)}
+                  step={1}
+                  min={50}
+                  max={500}
+                />
+              </View>
+              <View style={styles.row}>
+                <StepperInput
                   label="Per Meal for Dining (₹)"
                   value={block.perMealDining}
                   onChange={val => updatePricingValue(index, "perMealDining", val)}
@@ -429,6 +455,7 @@ console.log('=-=',parsed)
                   max={500}
                 />
               </View>
+              
             </View>
           ))}
           <TouchableOpacity onPress={addPricingBlock}>

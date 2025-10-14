@@ -47,6 +47,7 @@ const RequestsRoute = ({ bookings, loading, onRefresh, refreshing, onAccept, onR
   <ScrollView
     style={styles.scene}
     showsVerticalScrollIndicator={false}
+    contentContainerStyle={{paddingBottom:100}}
     refreshControl={
       <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
     }
@@ -91,6 +92,7 @@ const RequestsAcceptRoute = ({ bookings, loading, onRefresh, refreshing }: any) 
   <ScrollView
     style={styles.scene}
     showsVerticalScrollIndicator={false}
+    contentContainerStyle={{paddingBottom:100}}
     refreshControl={
       <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
     }
@@ -181,6 +183,7 @@ const AcceptedRoute = ({ bookings, loading, onRefresh, refreshing }: any) => (
   <ScrollView
     style={styles.scene}
     showsVerticalScrollIndicator={false}
+    contentContainerStyle={{paddingBottom:100}}
     refreshControl={
       <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
     }
@@ -208,10 +211,10 @@ const AcceptedRoute = ({ bookings, loading, onRefresh, refreshing }: any) => (
             orderType={booking.orderType}
             onPressUpdate={() =>
               router.push({
-                pathname: "/orderDetails",
-                params: { isSubscriber: "false" },
+                pathname: "/(secure)/(service)/addNewBooking",
+                params: { booking : JSON.stringify(booking) },
               })
-            }
+            } 
           />
         ))}
       </>
@@ -527,7 +530,7 @@ export default function Order() {
         <CommonHeader
           title="Orders"
           actionText="Add New Booking"
-          onActionPress={() => router.push("/(secure)/(service)/addNewService")}
+          onActionPress={() => router.push("/(secure)/(service)/addNewBooking")}
         />
       </SafeAreaView>
 
