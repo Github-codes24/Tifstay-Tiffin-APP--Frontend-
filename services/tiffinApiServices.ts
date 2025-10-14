@@ -470,20 +470,20 @@ class TiffinApiService {
   }
 
   async getTotalTiffinServicesCount() {
-    return this.api.get("/api/tiffinOwner/bookings/getTotalBookingsCount");
-  }
+  return this.api.get("/api/tiffinOwner/bookings/getTotalBookingsCount");
+}
 
-  async getRequestedTiffinServicesCount() {
-    return this.api.get("/api/tiffinOwner/bookings/getTotalPendingBookingCount");
-  }
+async getRequestedTiffinServicesCount() {
+  return this.api.get("/api/tiffinOwner/bookings/getTotalPendingBookingCount");
+}
 
-  async getAcceptedTiffinServicesCount() {
-    return this.api.get("/api/tiffinOwner/bookings/getTotalConfirmedBookingCount");
-  }
+async getAcceptedTiffinServicesCount() {
+  return this.api.get("/api/tiffinOwner/bookings/getTotalConfirmedBookingCount");
+}
 
-  async getCancelledTiffinServicesCount() {
-    return this.api.get("/api/tiffinOwner/bookings/getTotalRejectedBookingCount");
-  }
+async getCancelledTiffinServicesCount() {
+  return this.api.get("/api/tiffinOwner/bookings/getTotalRejectedBookingCount");
+}
 
   // ============================================
   // Offline/Online Status Management
