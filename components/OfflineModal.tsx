@@ -1,5 +1,6 @@
 import { Colors } from "@/constants/Colors";
 import { fonts } from "@/constants/typography";
+import useAuthStore from "@/store/authStore";
 import useServiceStore from "@/store/serviceStore";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useState } from "react";
@@ -32,18 +33,19 @@ interface OfflineModalProps {
   visible: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  isTiffinProvider: boolean;
 }
 
 const OfflineModal: React.FC<OfflineModalProps> = ({
   visible,
   onClose,
   onSuccess,
-  isTiffinProvider,
 }) => {
+  const { userServiceType } = useAuthStore();
   const {
     hostelServicesList,
+    tiffinServices,
     getHostelServicesList,
+    getAllTiffinServices,
     updateHostelServiceOfflineStatus,
     updateHostelServiceOnlineStatus,
     getOfflineReasons,
@@ -67,21 +69,37 @@ const OfflineModal: React.FC<OfflineModalProps> = ({
   const [selectedReason, setSelectedReason] = useState<string>("");
   const [selectedComebackOption, setSelectedComebackOption] =
     useState<string>("");
+
   const insets = useSafeAreaInsets();
+
+  // Determine if tiffin provider
+  const isTiffinProvider = userServiceType === "tiffin_provider";
+
+  // Get the correct services list based on user type
+  const servicesList = isTiffinProvider ? tiffinServices : hostelServicesList;
+
   useEffect(() => {
     if (visible) {
       fetchInitialData();
     }
-  }, [visible]);
+  }, [visible, userServiceType]);
 
   const fetchInitialData = async () => {
     setLoading(true);
     try {
-      await Promise.all([
-        getHostelServicesList(1, 100),
-        fetchOfflineReasons(),
-        fetchComebackOptions(),
-      ]);
+      if (isTiffinProvider) {
+        await Promise.all([
+          getAllTiffinServices(1, 100),
+          fetchOfflineReasons(),
+          fetchComebackOptions(),
+        ]);
+      } else {
+        await Promise.all([
+          getHostelServicesList(1, 100),
+          fetchOfflineReasons(),
+          fetchComebackOptions(),
+        ]);
+      }
     } catch (error) {
       console.error("Error fetching initial data:", error);
     } finally {
@@ -220,34 +238,49 @@ const OfflineModal: React.FC<OfflineModalProps> = ({
     return iconMap[option] || "time-outline";
   };
 
+  // Get service name based on type
+  const getServiceName = (service: any) => {
+    return isTiffinProvider ? service.tiffinName : service.hostelName;
+  };
+
+  // Get service type (only for hostel)
+  const getServiceType = (service: any) => {
+    return isTiffinProvider
+      ? "Tiffin Service"
+      : service.hostelType || "Not specified";
+  };
+
   // Separate online and offline services
   const onlineServices =
-    hostelServicesList?.filter((service) => !service.isOffline) || [];
+    servicesList?.filter((service: any) => !service.isOffline) || [];
   const offlineServices =
-    hostelServicesList?.filter((service) => service.isOffline === true) || [];
+    servicesList?.filter((service: any) => service.isOffline === true) || [];
 
-  // Apply filters
-  const searchFilteredOnlineServices = onlineServices.filter((service) =>
-    service.hostelName?.toLowerCase().includes(searchQuery.toLowerCase())
+  // Apply search filter
+  const searchFilteredOnlineServices = onlineServices.filter((service: any) =>
+    getServiceName(service)?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const searchFilteredOfflineServices = offlineServices.filter((service) =>
-    service.hostelName?.toLowerCase().includes(searchQuery.toLowerCase())
+  const searchFilteredOfflineServices = offlineServices.filter((service: any) =>
+    getServiceName(service)?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const filteredOnlineServices =
-    selectedFilter === "All Types"
-      ? searchFilteredOnlineServices
-      : searchFilteredOnlineServices.filter(
-          (service) => service.hostelType === selectedFilter
-        );
+  // Apply type filter (only for hostel services)
+  const filteredOnlineServices = isTiffinProvider
+    ? searchFilteredOnlineServices
+    : selectedFilter === "All Types"
+    ? searchFilteredOnlineServices
+    : searchFilteredOnlineServices.filter(
+        (service: any) => service.hostelType === selectedFilter
+      );
 
-  const filteredOfflineServices =
-    selectedFilter === "All Types"
-      ? searchFilteredOfflineServices
-      : searchFilteredOfflineServices.filter(
-          (service) => service.hostelType === selectedFilter
-        );
+  const filteredOfflineServices = isTiffinProvider
+    ? searchFilteredOfflineServices
+    : selectedFilter === "All Types"
+    ? searchFilteredOfflineServices
+    : searchFilteredOfflineServices.filter(
+        (service: any) => service.hostelType === selectedFilter
+      );
 
   // Handle service click - open reason popup
   const handleServiceClick = useCallback(
@@ -288,7 +321,7 @@ const OfflineModal: React.FC<OfflineModalProps> = ({
           : "immediate";
 
       const payload = {
-        hostelServiceIds: [selectedServiceId],
+        hostelServiceIds: [selectedServiceId], // Store handles the naming internally
         offlineType,
         reason: selectedReason,
         comeBackOption: selectedComebackOption,
@@ -397,22 +430,23 @@ const OfflineModal: React.FC<OfflineModalProps> = ({
   };
 
   const renderOnlineServiceItem = ({ item }: { item: any }) => {
+    const serviceName = getServiceName(item);
+    const serviceType = getServiceType(item);
+
     return (
       <TouchableOpacity
         style={styles.serviceCard}
-        onPress={() => handleServiceClick(item._id, item.hostelName)}
+        onPress={() => handleServiceClick(item._id, serviceName)}
         disabled={loading}
         activeOpacity={0.7}
       >
         <View style={styles.serviceCardHeader}>
           <View style={styles.onlineIndicator} />
           <Text style={styles.serviceCardName} numberOfLines={1}>
-            {item.hostelName}
+            {serviceName}
           </Text>
         </View>
-        <Text style={styles.serviceCardType}>
-          {item.hostelType || "Not specified"}
-        </Text>
+        <Text style={styles.serviceCardType}>{serviceType}</Text>
         <View style={styles.serviceCardFooter}>
           <View style={styles.statusBadge}>
             <Ionicons name="checkmark-circle" size={14} color={Colors.green} />
@@ -425,20 +459,21 @@ const OfflineModal: React.FC<OfflineModalProps> = ({
   };
 
   const renderOfflineServiceItem = ({ item }: { item: any }) => {
+    const serviceName = getServiceName(item);
+    const serviceType = getServiceType(item);
+
     return (
       <View style={styles.offlineServiceCard}>
         <View style={styles.serviceCardHeader}>
           <View style={styles.offlineIndicator} />
           <Text style={styles.serviceCardName} numberOfLines={1}>
-            {item.hostelName}
+            {serviceName}
           </Text>
           <View style={styles.offlineBadge}>
             <Text style={styles.offlineBadgeText}>Offline</Text>
           </View>
         </View>
-        <Text style={styles.serviceCardType}>
-          {item.hostelType || "Not specified"}
-        </Text>
+        <Text style={styles.serviceCardType}>{serviceType}</Text>
 
         {/* Offline Details */}
         <View style={styles.offlineDetailsCard}>
@@ -472,7 +507,7 @@ const OfflineModal: React.FC<OfflineModalProps> = ({
         {/* Bring Online Button */}
         <TouchableOpacity
           style={styles.bringOnlineButton}
-          onPress={() => handleBringOnline(item._id, item.hostelName)}
+          onPress={() => handleBringOnline(item._id, serviceName)}
           disabled={loading}
           activeOpacity={0.7}
         >
@@ -504,7 +539,11 @@ const OfflineModal: React.FC<OfflineModalProps> = ({
           >
             <Ionicons name="close" size={28} color={Colors.title} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Manage Services</Text>
+          <Text style={styles.headerTitle}>
+            {isTiffinProvider
+              ? "Manage Tiffin Services"
+              : "Manage Hostel Services"}
+          </Text>
           <View style={{ width: 28 }} />
         </View>
 
@@ -533,59 +572,61 @@ const OfflineModal: React.FC<OfflineModalProps> = ({
             </View>
           </View>
 
-          {/* Filter Dropdown */}
-          <View style={styles.filterSection}>
-            <TouchableOpacity
-              style={styles.filterButton}
-              onPress={() => setShowFilterDropdown(!showFilterDropdown)}
-              disabled={loading}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="filter" size={20} color={Colors.primary} />
-              <Text style={styles.filterButtonText}>{selectedFilter}</Text>
-              <Ionicons
-                name={showFilterDropdown ? "chevron-up" : "chevron-down"}
-                size={20}
-                color={Colors.grey}
-              />
-            </TouchableOpacity>
+          {/* Filter Dropdown - Only show for hostel services */}
+          {!isTiffinProvider && (
+            <View style={styles.filterSection}>
+              <TouchableOpacity
+                style={styles.filterButton}
+                onPress={() => setShowFilterDropdown(!showFilterDropdown)}
+                disabled={loading}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="filter" size={20} color={Colors.primary} />
+                <Text style={styles.filterButtonText}>{selectedFilter}</Text>
+                <Ionicons
+                  name={showFilterDropdown ? "chevron-up" : "chevron-down"}
+                  size={20}
+                  color={Colors.grey}
+                />
+              </TouchableOpacity>
 
-            {showFilterDropdown && (
-              <View style={styles.filterDropdown}>
-                {HOSTEL_TYPES.map((type) => (
-                  <TouchableOpacity
-                    key={type}
-                    style={[
-                      styles.filterOption,
-                      selectedFilter === type && styles.filterOptionSelected,
-                    ]}
-                    onPress={() => {
-                      setSelectedFilter(type);
-                      setShowFilterDropdown(false);
-                    }}
-                    activeOpacity={0.7}
-                  >
-                    <Text
+              {showFilterDropdown && (
+                <View style={styles.filterDropdown}>
+                  {HOSTEL_TYPES.map((type) => (
+                    <TouchableOpacity
+                      key={type}
                       style={[
-                        styles.filterOptionText,
-                        selectedFilter === type &&
-                          styles.filterOptionTextSelected,
+                        styles.filterOption,
+                        selectedFilter === type && styles.filterOptionSelected,
                       ]}
+                      onPress={() => {
+                        setSelectedFilter(type);
+                        setShowFilterDropdown(false);
+                      }}
+                      activeOpacity={0.7}
                     >
-                      {type}
-                    </Text>
-                    {selectedFilter === type && (
-                      <Ionicons
-                        name="checkmark"
-                        size={20}
-                        color={Colors.primary}
-                      />
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-          </View>
+                      <Text
+                        style={[
+                          styles.filterOptionText,
+                          selectedFilter === type &&
+                            styles.filterOptionTextSelected,
+                        ]}
+                      >
+                        {type}
+                      </Text>
+                      {selectedFilter === type && (
+                        <Ionicons
+                          name="checkmark"
+                          size={20}
+                          color={Colors.primary}
+                        />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
+          )}
 
           {/* Services List */}
           <FlatList
@@ -614,7 +655,7 @@ const OfflineModal: React.FC<OfflineModalProps> = ({
                     </View>
 
                     <View style={styles.servicesGrid}>
-                      {filteredOnlineServices.map((service) => (
+                      {filteredOnlineServices.map((service: any) => (
                         <View key={service._id}>
                           {renderOnlineServiceItem({ item: service })}
                         </View>
@@ -659,7 +700,7 @@ const OfflineModal: React.FC<OfflineModalProps> = ({
                     </View>
 
                     <View style={styles.servicesGrid}>
-                      {filteredOfflineServices.map((service) => (
+                      {filteredOfflineServices.map((service: any) => (
                         <View key={service._id}>
                           {renderOfflineServiceItem({ item: service })}
                         </View>

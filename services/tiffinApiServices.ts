@@ -485,9 +485,8 @@ async getCancelledTiffinServicesCount() {
   return this.api.get("/api/tiffinOwner/bookings/getTotalRejectedBookingCount");
 }
 
-  // ============================================
+
   // Offline/Online Status Management
-  // ============================================
   async updateTiffinServiceOfflineStatus(payload: {
     tiffinServiceIds: string[];
     offlineType: "immediate" | "scheduled";

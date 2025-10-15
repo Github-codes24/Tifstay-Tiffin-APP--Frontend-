@@ -239,7 +239,7 @@ export default function ServiceOfflineScreen() {
     },
     [
       getAllHostelServices,
-      getAllTiffinServices, // ✅ Add to dependencies
+      getAllTiffinServices,
       getUserProfile,
       userServiceType,
       getTotalServicesCount,
@@ -746,7 +746,6 @@ export default function ServiceOfflineScreen() {
         visible={showOfflineModal}
         onClose={() => setShowOfflineModal(false)}
         onSuccess={handleOfflineSuccess}
-        isTiffinProvider={isTiffinProvider}
       />
     </SafeAreaView>
   );
