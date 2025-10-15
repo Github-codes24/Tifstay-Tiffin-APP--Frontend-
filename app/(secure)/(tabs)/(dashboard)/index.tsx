@@ -210,7 +210,7 @@ export default function ServiceOfflineScreen() {
       try {
         if (isTiffinProvider) {
           await Promise.all([
-            getAllTiffinServices(page, ITEMS_PER_PAGE), // ✅ Load tiffin services
+            getAllTiffinServices(page, ITEMS_PER_PAGE),
             getUserProfile(userServiceType),
             getTotalServicesCount(),
             getRequestedServicesCount(),

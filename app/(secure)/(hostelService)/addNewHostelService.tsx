@@ -90,7 +90,6 @@ const AddNewHostelService = () => {
 
         if (response.success) {
           const hostelData = response.data.data;
-          console.log("✅ Hostel data received:", hostelData);
 
           // ========== PAGE 1 DATA ==========
           setHostelName(hostelData.hostelName || "");

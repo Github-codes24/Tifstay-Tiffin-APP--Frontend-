@@ -566,9 +566,7 @@ async getCancelledTiffinServicesCount() {
     }
   }
 
-  // ============================================
   // Privacy Policy and Terms
-  // ============================================
   async getPrivacyPolicy() {
     try {
       const response = await this.api.get("/api/tiffinOwner/staticPage/get-privacy-policy");
@@ -849,6 +847,36 @@ async getCancelledTiffinServicesCount() {
         error: error.response?.data?.message || "Failed to get earnings history",
       };
     }
+  }
+   // Get Tiffin Service List
+  async getTiffinServiceList() {
+    const response = await this.api.get(
+      "/api/tiffinOwner/mealSchedule/getTiffinServiceList"
+    );
+    return response.data;
+  }
+
+  // Get Meal Schedule for a specific tiffin service
+  async getMealSchedule(tiffinServiceId: string) {
+    const response = await this.api.get(
+      `/api/tiffinOwner/mealSchedule/getMealSchedule/${tiffinServiceId}`
+    );
+    return response.data;
+  }
+
+  // Update Meal Schedule
+  async updateMealSchedule(
+    tiffinServiceId: string,
+    customDaySchedules: any[]
+  ) {
+    const response = await this.api.put(
+      "/api/tiffinOwner/mealSchedule/updateMealSchedule",
+      {
+        tiffinServiceId,
+        customDaySchedules,
+      }
+    );
+    return response.data;
   }
 }
 

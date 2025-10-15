@@ -32,7 +32,6 @@ const TiffinCard: React.FC<TiffinCardProps> = ({
       params: { tiffinId: tiffin._id },
     });
   };
-  console.log(tiffin._id);
 
   // Get the first veg photo or fallback
   const tiffinImage =

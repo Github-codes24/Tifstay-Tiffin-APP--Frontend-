@@ -495,3 +495,32 @@ export interface CustomerData {
   duration: Duration;
 }
 
+export interface MealTiming {
+  mealType: string;
+  startTime: string;
+  endTime: string;
+  isAvailable: boolean;
+  _id?: string;
+}
+
+export interface DaySchedule {
+  day: string;
+  mealTimings: MealTiming[];
+}
+
+export interface TiffinService {
+  id: string;
+  name: string;
+  currentDaySchedule: DaySchedule | null;
+}
+
+export interface MealSchedule {
+  tiffinServiceId: string;
+  weeklySchedule: DaySchedule[];
+  isAvailable: boolean;
+}
+
+export interface UpdateMealScheduleRequest {
+  tiffinServiceId: string;
+  customDaySchedules: DaySchedule[];
+}
