@@ -240,8 +240,8 @@ const CompletedRoute = ({ bookings, loading, onRefresh, refreshing }: any) => (
       </View>
     ) : bookings.length > 0 ? (
       <>
-        <View style={styles.badgeGreen}>
-          <Text style={styles.badgeTextGreen}>Rejected</Text>
+        <View style={[styles.badgeGreen , {backgroundColor:'#FF7F7F' , borderColor:'red'}]}>
+          <Text style={[styles.badgeTextGreen,{color : 'red'}]}>Rejected</Text>
         </View>
         {bookings.map((booking: Booking) => (
           <BookingCard
@@ -360,7 +360,7 @@ export default function Order() {
     ? [
       { key: "requests", title: "Requests", status: "Pending" },
       { key: "accepted", title: "Accepted", status: "Confirmed" },
-      { key: "completed", title: "Completed", status: "Rejected" },
+      { key: "completed", title: "Rejected", status: "Rejected" },
       // { key: "subscriber", title: "Subscriber", status: null },
     ]
     : [
@@ -536,63 +536,32 @@ export default function Order() {
 
       {/* Tab Bar */}
       <View style={styles.tabBarContainer}>
-        {isTiffinProvider ? (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.tabBarScroll}
+  <View style={styles.tabRow}>
+    {routes.map((route, i) => {
+      const isActive = i === index;
+      return (
+        <TouchableOpacity
+          key={route.key}
+          onPress={() => setIndex(i)}
+          style={[
+            styles.tabItemEqual,
+            {
+              borderBottomWidth: isActive ? 2 : 0,
+              borderColor: isActive ? Colors.title : "transparent",
+            },
+          ]}
+        >
+          <Text
+            style={[styles.tabTitle, isActive && styles.activeTabTitle]}
           >
-            {routes.map((route, i) => {
-              const isActive = i === index;
-              return (
-                <TouchableOpacity
-                  key={route.key}
-                  onPress={() => setIndex(i)}
-                  style={[
-                    styles.tabItem,
-                    {
-                      borderBottomWidth: isActive ? 2 : 0,
-                      borderColor: isActive ? Colors.title : "transparent",
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[styles.tabTitle, isActive && styles.activeTabTitle]}
-                  >
-                    {route.title}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        ) : (
-          <View style={styles.tabRow}>
-            {routes.map((route, i) => {
-              const isActive = i === index;
-              return (
-                <TouchableOpacity
-                  key={route.key}
-                  onPress={() => setIndex(i)}
-                  style={[
-                    styles.tabItem,
-                    {
-                      flex: 1,
-                      borderBottomWidth: isActive ? 2 : 0,
-                      borderColor: isActive ? Colors.title : "transparent",
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[styles.tabTitle, isActive && styles.activeTabTitle]}
-                  >
-                    {route.title}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        )}
-      </View>
+            {route.title}
+          </Text>
+        </TouchableOpacity>
+      );
+    })}
+  </View>
+</View>
+
 
       {/* Tab Content */}
       {renderScene()}
@@ -617,15 +586,12 @@ const styles = StyleSheet.create({
   tabBarScroll: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent:'space-between',
     gap: 24,
-  },
-  tabRow: {
-    flexDirection: "row",
-    alignItems: "center",
   },
   tabItem: {
     paddingVertical: 12,
-    // justifyContent: "center",
+    justifyContent: "center",
     alignItems: "center",
   },
   tabTitle: {
@@ -732,4 +698,16 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.green,
   },
+  tabRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  tabItemEqual: {
+    flex: 1,
+    paddingVertical: 12,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  
 });
