@@ -22,5 +22,5 @@ export const Colors = {
   lightGreen :'#F1FFE0',
   filterBg:'#FAFBFC',
   buttonBg:'#004AAD',
-  label:'#0A051F'
+  label:'#0A051F',
 };

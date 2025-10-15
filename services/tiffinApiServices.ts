@@ -14,7 +14,7 @@ class TiffinApiService {
       },
     });
 
-    // Request interceptor to add auth tokenv
+    // Request interceptor to add auth token
     this.api.interceptors.request.use(
       async (config) => {
         const token = useAuthStore.getState().token;
@@ -33,7 +33,6 @@ class TiffinApiService {
     // Response interceptor for error handling
     this.api.interceptors.response.use(
       (response) => {
-        console.log("API Response:", response.status, response.config.url);
         return response;
       },
       async (error) => {
@@ -43,9 +42,12 @@ class TiffinApiService {
           error.response?.data
         );
 
-        // Handle 401 errors (unauthorized)
         if (error.response?.status === 401) {
-          useAuthStore.setState({ token: null, isAuthenticated: false, user: null });
+          useAuthStore.setState({
+            token: null,
+            isAuthenticated: false,
+            user: null,
+          });
         }
 
         return Promise.reject(error);
@@ -55,10 +57,7 @@ class TiffinApiService {
 
   // Authentication APIs
   async login(email: string, password: string) {
-    return this.api.post("/api/tiffinOwner/loginOwner", {
-      email,
-      password,
-    });
+    return this.api.post("/api/tiffinOwner/loginOwner", { email, password });
   }
 
   async register(name: string, email: string, password: string) {
@@ -68,17 +67,25 @@ class TiffinApiService {
         email,
         password,
       });
-
-      return {
-        success: true,
-        data: response.data,
-      };
+      return { success: true, data: response.data };
     } catch (error: any) {
       return {
         success: false,
         error: error.response?.data?.message || "Registration failed. Please try again.",
       };
     }
+  }
+
+  async forgotPassword(email: string) {
+    return this.api.post("/api/tiffinOwner/forgotOwnerPassword", { email });
+  }
+
+  async verifyOtp(email: string, otp: string) {
+    return this.api.post("/api/tiffinOwner/verifyOwnerOtp", { email, otp });
+  }
+
+  async resetPassword(token: string, password: string) {
+    return this.api.post("/api/tiffinOwner/resetOwnerPassword", { token, password });
   }
 
   async changePassword(oldPassword: string, newPassword: string, confirmPassword: string) {
@@ -88,7 +95,6 @@ class TiffinApiService {
         newPassword,
         confirmPassword,
       });
-
       return {
         success: true,
         data: response.data,
@@ -102,91 +108,17 @@ class TiffinApiService {
     }
   }
 
-  async updateProfile(profileData: any) {
-    try {
-      const formData = new FormData();
-      
-      // Add basic fields
-      formData.append("name ", profileData.fullName);
-      formData.append("email", profileData.email);
-      formData.append("phoneNumber", profileData.phoneNumber);
-      
-      // Add bank details
-      formData.append("bankDetails[accountNumber]", profileData.bankDetails.accountNumber);
-      formData.append("bankDetails[ifscCode]", profileData.bankDetails.ifscCode);
-      formData.append("bankDetails[accountType]", profileData.bankDetails.accountType);
-      formData.append("bankDetails[accountHolderName]", profileData.bankDetails.accountHolderName);
-      // formData.append("bankDetails[bankName]", profileData.bankDetails.bankName);
-      
-      // Add profile image if provided
-      if (profileData.profileImage) {
-        formData.append("profileImage", {
-          uri: profileData.profileImage.uri,
-          type: profileData.profileImage.type || "image/jpeg",
-          name: profileData.profileImage.name || `profile_${Date.now()}.jpg`,
-        } as any);
-      }
-
-      const response = await this.api.put("/api/tiffinOwner/updateOwnerProfile", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-      console.log('_+_+_+_+_+_+', response)
-      this.getUserProfile()
-      return {
-        success: true,
-        data: response.data,
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.response?.data?.message || "Failed to update profile",
-      };
-    }
-  }
-
-  async getUserProfile() {
-    try {
-      const response = await this.api.get("/api/tiffinOwner/getOwnerProfile");
-      console.log('=======',response)
-      return {
-        success: true,
-        data: response.data,
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.response?.data?.message || "Failed to get user data",
-      };
-    }
-  }
-
-  async forgotPassword(email: string) { return this.api.put("/api/tiffinOwner/forgotOwnerPassword", { email }); }
-
-
   async logout() {
-    try { 
+    try {
       const response = await this.api.post("/api/tiffinOwner/logoutOwner");
       return { success: true, data: response.data };
     } catch (error: any) {
       return { success: false, error: "Logout failed" };
     }
   }
-// In tiffinApiServices.ts
-async getRequestedTiffinServicesCount() {
-  return this.api.get("/api/tiffinOwner/bookings/getTotalPendingBookingCount");
-}
-async getTotalTiffinServicesCount() {
-  return this.api.get("/api/tiffinOwner/bookings/getTotalBookingsCount");
-}
- async getAcceptedTiffinServicesCount() {
-   return this.api.get("/api/tiffinOwner/bookings/getTotalConfirmedBookingCount");
-}
-async getCancelledTiffinServicesCount() {
-  return this.api.get("/api/tiffinOwner/bookings/getTotalRejectedBookingCount");
-}
-  // Address Management APIs for Tiffin Provider
+
+  // Address Management APIs
+
   async addAddress(addressData: {
     address: string;
     street: string;
@@ -195,10 +127,7 @@ async getCancelledTiffinServicesCount() {
   }) {
     try {
       const response = await this.api.post("/api/tiffinOwner/address/addAddress", addressData);
-      return {
-        success: true,
-        data: response.data.data,
-      };
+      return { success: true, data: response.data.data };
     } catch (error: any) {
       return {
         success: false,
@@ -209,12 +138,8 @@ async getCancelledTiffinServicesCount() {
 
   async getAllAddresses() {
     try {
-      const response = await this.api.get("/api/tiffinOwner/address/getAddress");
-      console.log('-=-=-=-=',response)
-      return {
-        success: true,
-        data: response.data,
-      };
+      const response = await this.api.get("/api/tiffinOwner/address/getAllAddresses");
+      return { success: true, data: response.data.data };
     } catch (error: any) {
       return {
         success: false,
@@ -225,12 +150,8 @@ async getCancelledTiffinServicesCount() {
 
   async getAddressById(addressId: string) {
     try {
-      const response = await this.api.get(`/api/tiffinOwner/address/getAddress`);
-      console.log('@@@@@@@------',response)
-      return {
-        success: true,
-        data: response.data.data,
-      };
+      const response = await this.api.get(`/api/tiffinOwner/address/getAddress/${addressId}`);
+      return { success: true, data: response.data.data };
     } catch (error: any) {
       return {
         success: false,
@@ -246,11 +167,8 @@ async getCancelledTiffinServicesCount() {
     label: "homw" | "work";
   }) {
     try {
-      const response = await this.api.put(`/api/tiffinOwner/address/editAddress`, addressData);
-      return {
-        success: true,
-        data: response.data.data,
-      };
+      const response = await this.api.put(`/api/tiffinOwner/address/editAddress/${addressId}`, addressData);
+      return { success: true, data: response.data.data };
     } catch (error: any) {
       return {
         success: false,
@@ -261,11 +179,8 @@ async getCancelledTiffinServicesCount() {
 
   async deleteAddress(addressId: string) {
     try {
-      const response = await this.api.put(`/api/tiffinOwner/address/deleteAddress`);
-      return {
-        success: true,
-        data: response.data.data,
-      };
+      const response = await this.api.delete(`/api/tiffinOwner/address/deleteAddress/${addressId}`);
+      return { success: true, data: response.data.data };
     } catch (error: any) {
       return {
         success: false,
@@ -273,65 +188,696 @@ async getCancelledTiffinServicesCount() {
       };
     }
   }
-  // Add to your existing tiffinApiService class
 
-async sendMessageToAdmin(message: string) {
-  try {
-    const response = await this.api.post("/api/message/sendMessage", {
-      message,
-    });
-    return {
-      success: true,
-      data: response.data,
-    };
-  } catch (error: any) {
-    return {
-      success: false,
-      error: error.response?.data?.message || "Failed to send message",
-    };
-  }
-}
+  // Tiffin Service CRUD Operations
+  async createTiffinService(data: any) {
+    try {
+      const formData = new FormData();
 
-async getTiffinProviderPreviousChat() {
-  try {
-    const response = await this.api.get("/api/message/getTiffinProviderPreviousChat");
-    return {
-      success: true,
-      data: response.data,
-    };
-  } catch (error: any) {
-    return {
-      success: false,
-      error: error.response?.data?.message || "Failed to load messages",
-    };
-  }
-}
-  
-  async getAllTiffinSrvices(
-      page: number = 1,
-      limit: number = 10
-    ): Promise<any> {
-      try {
-        const response = await this.api.get(
-          `/api/tiffinService/getTiffinServicesByOwner`,
-          {
-            headers: {
-              "Content-Type": "application/json",
-            },
-          }
-        );
-        return {
-          success: true,
-          data: response.data,
-        };
-      } catch (error: any) {
-        console.error("Get All Hostel Services Error:", error);
-        return {
-          success: false,
-          error: error.response?.data?.message || "Failed to fetch hostel services.",
-        };
+      formData.append("tiffinName", data.tiffinName);
+      formData.append("tiffinType", data.tiffinType);
+      formData.append("description", data.description);
+      formData.append("securityDeposit", data.securityDeposit.toString());
+
+      if (data.offers) {
+        formData.append("offers", data.offers);
       }
+
+      formData.append("location", JSON.stringify(data.location));
+      formData.append("contactInfo", JSON.stringify(data.contactInfo));
+      formData.append("meals", JSON.stringify(data.meals));
+      formData.append("facilities", JSON.stringify(data.facilities));
+      formData.append("pricing", JSON.stringify(data.pricing));
+      formData.append("rulesAndPolicies", data.rulesAndPolicies);
+
+      if (data.tiffinPhotos && data.tiffinPhotos.length > 0) {
+        data.tiffinPhotos.forEach((photo: any, index: number) => {
+          if (photo.uri) {
+            formData.append("tiffinPhotos", {
+              uri: photo.uri,
+              type: photo.type || "image/jpeg",
+              name: photo.name || `tiffin_photo_${index}.jpg`,
+            } as any);
+          }
+        });
+      }
+
+      if (data.mealsWithPhotos && data.mealsWithPhotos.length > 0) {
+        data.mealsWithPhotos.forEach((meal: any, mealIndex: number) => {
+          if (meal.mealPhotos && meal.mealPhotos.length > 0) {
+            meal.mealPhotos.forEach((photo: any) => {
+              if (photo && photo.uri) {
+                const fieldName = `mealPhotos_${mealIndex}`;
+                formData.append(fieldName, {
+                  uri: photo.uri,
+                  type: photo.type || "image/jpeg",
+                  name: photo.name || `meal_${mealIndex}_photo_${Date.now()}.jpg`,
+                } as any);
+              }
+            });
+          }
+        });
+      }
+
+      const response = await this.api.post("/api/tiffinService/createTiffinService", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          "Accept": "application/json",
+        },
+      });
+
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      console.error("❌ Create Tiffin Service Error:", error.response?.data || error.message);
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to create tiffin service.",
+      };
     }
+  }
+
+  async updateTiffinService(tiffinServiceId: string, data: any) {
+    try {
+      const formData = new FormData();
+
+      formData.append("tiffinName", data.tiffinName);
+      formData.append("tiffinType", data.tiffinType);
+      formData.append("description", data.description);
+      formData.append("securityDeposit", data.securityDeposit.toString());
+
+      if (data.offers) {
+        formData.append("offers", data.offers);
+      }
+
+      formData.append("location", JSON.stringify(data.location));
+      formData.append("contactInfo", JSON.stringify(data.contactInfo));
+      formData.append("meals", JSON.stringify(data.meals));
+      formData.append("facilities", JSON.stringify(data.facilities));
+      formData.append("pricing", JSON.stringify(data.pricing));
+      formData.append("rulesAndPolicies", data.rulesAndPolicies);
+
+      // ✅ Only upload NEW tiffin photos
+      if (data.tiffinPhotos && data.tiffinPhotos.length > 0) {
+        data.tiffinPhotos.forEach((photo: any, index: number) => {
+          if (photo.uri && !photo.isExisting) {
+            formData.append("tiffinPhotos", {
+              uri: photo.uri,
+              type: photo.type || "image/jpeg",
+              name: photo.name || `tiffin_photo_${index}_${Date.now()}.jpg`,
+            } as any);
+          }
+        });
+      }
+
+      // ✅ Only upload NEW meal photos
+      if (data.mealsWithPhotos && data.mealsWithPhotos.length > 0) {
+        data.mealsWithPhotos.forEach((meal: any, mealIndex: number) => {
+          if (meal.mealPhotos && meal.mealPhotos.length > 0) {
+            meal.mealPhotos.forEach((photo: any) => {
+              if (photo && photo.uri && !photo.isExisting) {
+                const fieldName = `mealPhotos_${mealIndex}`;
+                formData.append(fieldName, {
+                  uri: photo.uri,
+                  type: photo.type || "image/jpeg",
+                  name: photo.name || `meal_${mealIndex}_photo_${Date.now()}.jpg`,
+                } as any);
+              }
+            });
+          }
+        });
+      }
+
+      const response = await this.api.put(
+        `/api/tiffinService/updateTiffinService/${tiffinServiceId}`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            "Accept": "application/json",
+          },
+        }
+      );
+
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      console.error("❌ Update Tiffin Service Error:", error.response?.data || error.message);
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to update tiffin service.",
+      };
+    }
+  }
+
+  async deleteMealPhotos(tiffinServiceId: string, mealId: string, photoUrls: string[]) {
+    try {
+      const response = await this.api.delete(
+        `/api/tiffinService/deleteMealPhotos/${tiffinServiceId}/${mealId}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+          data: {
+            photoUrls: photoUrls,
+          },
+        }
+      );
+
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      console.error("❌ Delete Meal Photos Error:", error.response?.data || error.message);
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to delete meal photos.",
+      };
+    }
+  }
+
+  async deleteTiffinPhotos(tiffinServiceId: string, photoUrls: string[]) {
+    try {
+      const response = await this.api.delete(
+        `/api/tiffinService/deleteTiffinPhotos/${tiffinServiceId}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+          data: {
+            photoUrls: photoUrls,
+          },
+        }
+      );
+
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      console.error("❌ Delete Tiffin Photos Error:", error.response?.data || error.message);
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to delete tiffin photos.",
+      };
+    }
+  }
+
+  async getAllTiffinServices(page: number = 1, limit: number = 10) {
+    try {
+      const response = await this.api.get(
+        `/api/tiffinService/getTiffinServicesByOwner?page=${page}&limit=${limit}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      console.error("Get All Tiffin Services Error:", error);
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to fetch tiffin services.",
+      };
+    }
+  }
+
+  async getTiffinServicesList(page: number = 1, limit: number = 100) {
+    try {
+      const response = await this.api.get(
+        `/api/tiffinService/getTiffinServicesList`,
+        {
+          params: { page, limit },
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      console.error("❌ Get Tiffin Services List Error:", error);
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to fetch tiffin services list.",
+      };
+    }
+  }
+
+  async getAllMealsByTiffinId(tiffinId: string) {
+    try {
+      const response = await this.api.get(`/api/tiffinService/getAllMeals/${tiffinId}`);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      console.error("❌ Get All Meals Error:", error);
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to fetch meals.",
+      };
+    }
+  }
+
+  async getTiffinServiceById(tiffinServiceId: string) {
+    try {
+      const response = await this.api.get(
+        `/api/tiffinService/getTiffinServiceById/${tiffinServiceId}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      console.error("Get Tiffin Service By ID Error:", error);
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to fetch tiffin service details.",
+      };
+    }
+  }
+
+  async deleteTiffinService(tiffinServiceId: string) {
+    try {
+      const response = await this.api.delete(
+        `/api/tiffinService/deleteTiffinService/${tiffinServiceId}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      console.error("Delete Tiffin Service Error:", error);
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to delete tiffin service.",
+      };
+    }
+  }
+
+  async getTotalTiffinServicesCount() {
+  return this.api.get("/api/tiffinOwner/bookings/getTotalBookingsCount");
+}
+
+async getRequestedTiffinServicesCount() {
+  return this.api.get("/api/tiffinOwner/bookings/getTotalPendingBookingCount");
+}
+
+async getAcceptedTiffinServicesCount() {
+  return this.api.get("/api/tiffinOwner/bookings/getTotalConfirmedBookingCount");
+}
+
+async getCancelledTiffinServicesCount() {
+  return this.api.get("/api/tiffinOwner/bookings/getTotalRejectedBookingCount");
+}
+
+
+  // Offline/Online Status Management
+  async updateTiffinServiceOfflineStatus(payload: {
+    tiffinServiceIds: string[];
+    offlineType: "immediate" | "scheduled";
+    reason: string;
+    comeBackOption: string;
+  }) {
+    try {
+      const response = await this.api.put(
+        "/api/tiffinService/updateTiffinServiceOfflineStatus",
+        payload,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      console.error("❌ Update Offline Status Error:", error.response?.data || error);
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to update offline status.",
+      };
+    }
+  }
+
+  async updateTiffinServiceOnlineStatus(serviceIds: string[]) {
+    try {
+      const response = await this.api.put(
+        "/api/tiffinService/updateTiffinServiceOnlineStatus",
+        { tiffinServiceIds: serviceIds },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      console.error("❌ Update Online Status Error:", error.response?.data || error);
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to update online status.",
+      };
+    }
+  }
+
+  async getOfflineReasons(offlineType: "immediate" | "scheduled") {
+    try {
+      const response = await this.api.get(
+        "/api/tiffinService/getOfflineReasons",
+        {
+          params: { offlineType },
+        }
+      );
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      console.error("❌ Get Offline Reasons Error:", error);
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to fetch offline reasons.",
+      };
+    }
+  }
+
+  async getComebackOptions() {
+    try {
+      const response = await this.api.get("/api/tiffinService/getComeBackOptions");
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      console.error("❌ Get Comeback Options Error:", error);
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to fetch comeback options.",
+      };
+    }
+  }
+
+  // Privacy Policy and Terms
+  async getPrivacyPolicy() {
+    try {
+      const response = await this.api.get("/api/tiffinOwner/staticPage/get-privacy-policy");
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to get privacy policy",
+      };
+    }
+  }
+
+  async getTermAndCondition() {
+    try {
+      const response = await this.api.get("/api/tiffinOwner/staticPage/get-terms-and-conditions");
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to get term and condition",
+      };
+    }
+  }
+
+  // Reviews
+  async getReviewsByTiffinId(tiffinId: string, page: number = 1, limit: number = 10, rating?: number) {
+    try {
+      let url = `/api/tiffinOwner/reviews/getReviewsByTiffinId/${tiffinId}?page=${page}&limit=${limit}`;
+      if (rating) {
+        url += `&rating=${rating}`;
+      }
+      const response = await this.api.get(url);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      console.error("Get Reviews By Tiffin ID Error:", error);
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to fetch tiffin reviews.",
+      };
+    }
+  }
+
+  async getReviewsSummary(page: number = 1, limit: number = 10, ratingType?: string) {
+    try {
+      const response = await this.api.get(`/api/tiffinService/getAllOwnerTiffinReviews?page=${page}&limit=${limit}&${ratingType ? `ratingType=${ratingType}` : ""}`);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      console.error("Get Reviews Summary Error:", error);
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to fetch reviews summary.",
+      };
+    }
+  }
+
+  // User Profile
+  async getCurrentUser() {
+    try {
+      const response = await this.api.get("/api/auth/me");
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to get user data",
+      };
+    }
+  }
+
+  async getUserProfile() {
+    try {
+      const response = await this.api.get("api/tiffinOwner/getOwnerProfile");
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to get user data",
+      };
+    }
+  }
+
+  async updateProfile(profileData: {
+    fullName: string;
+    email: string;
+    phoneNumber: string;
+    profileImage?: any;
+    bankDetails: {
+      accountNumber: string;
+      ifscCode: string;
+      accountType: string;
+      accountHolderName: string;
+      bankName: string;
+    };
+  }) {
+    try {
+      const formData = new FormData();
+
+      formData.append("fullName", profileData.fullName);
+      formData.append("email", profileData.email);
+      formData.append("phoneNumber", profileData.phoneNumber);
+
+      formData.append("bankDetails[accountNumber]", profileData.bankDetails.accountNumber);
+      formData.append("bankDetails[ifscCode]", profileData.bankDetails.ifscCode);
+      formData.append("bankDetails[accountType]", profileData.bankDetails.accountType);
+      formData.append("bankDetails[accountHolderName]", profileData.bankDetails.accountHolderName);
+      formData.append("bankDetails[bankName]", profileData.bankDetails.bankName);
+
+      if (profileData.profileImage) {
+        formData.append("profileImage", {
+          uri: profileData.profileImage.uri,
+          type: profileData.profileImage.type || "image/jpeg",
+          name: profileData.profileImage.name || `profile_${Date.now()}.jpg`,
+        } as any);
+      }
+
+      const response = await this.api.put("/api/tiffinOwner/updateOwnerProfile", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to update profile",
+      };
+    }
+  }
+
+  // Booking Management
+  async getBookingsByStatus(status: string) {
+    try {
+      const response = await this.api.get(
+        `/api/tiffinOwner/bookings/getBookingsByStatus`,
+        {
+          params: { status },
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to fetch bookings.",
+      };
+    }
+  }
+
+  async updateBookingStatus(bookingId: string, status: "Confirmed" | "Rejected") {
+    try {
+      const response = await this.api.put(
+        `/api/tiffinOwner/bookings/updateBookingStatus/${bookingId}`,
+        { status },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || `Failed to ${status.toLowerCase()} booking.`,
+      };
+    }
+  }
+
+  async acceptBooking(bookingId: string) {
+    return this.updateBookingStatus(bookingId, "Confirmed");
+  }
+
+  async rejectBooking(bookingId: string) {
+    return this.updateBookingStatus(bookingId, "Rejected");
+  }
+
+  // Customer Management
+  async getAllCustomerList(page: number = 1, limit: number = 10) {
+    try {
+      const response = await this.api.get(
+        `/api/tiffinOwner/customer/getAllCustomers`,
+        { params: { page, limit } }
+      );
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to fetch customers.",
+      };
+    }
+  }
+
+  async getCustomerInfo(customerId: string) {
+    try {
+      const response = await this.api.get(
+        `/api/tiffinOwner/customer/getCustomerById/${customerId}`
+      );
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to fetch customer info.",
+      };
+    }
+  }
+
+  // Chat API
+  async sendMessageToAdmin(message: string) {
+    try {
+      const response = await this.api.post("/api/message/sendMessage", { message });
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to send message",
+      };
+    }
+  }
+
+  async getTiffinOwnerPreviousChat() {
+    try {
+      const response = await this.api.get("/api/message/getTiffinOwnerPreviousChat");
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to load messages",
+      };
+    }
+  }
+
+  // Earnings
+  async getEarningsAnalytics() {
+    try {
+      const response = await this.api.get("/api/tiffinOwner/earnings/analytics");
+      return {
+        success: true,
+        data: response.data.data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to get earnings data",
+      };
+    }
+  }
+
+  async getEarningsOverview() {
+    try {
+      const response = await this.api.get("/api/tiffinOwner/earnings/overview");
+      return {
+        success: true,
+        data: response.data.data,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to get earnings data",
+      };
+    }
+  }
+
+  async getEarningsHistory() {
+    try {
+      const response = await this.api.get("/api/tiffinOwner/earnings/payoutHistory");
+      return {
+        success: true,
+        data: response.data.data.payouts,
+        pagination: response.data.data.pagination,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to get earnings history",
+      };
+    }
+  }
+   // Get Tiffin Service List
+  async getTiffinServiceList() {
+    const response = await this.api.get(
+      "/api/tiffinOwner/mealSchedule/getTiffinServiceList"
+    );
+    return response.data;
+  }
+
+  // Get Meal Schedule for a specific tiffin service
+  async getMealSchedule(tiffinServiceId: string) {
+    const response = await this.api.get(
+      `/api/tiffinOwner/mealSchedule/getMealSchedule/${tiffinServiceId}`
+    );
+    return response.data;
+  }
+
+  // Update Meal Schedule
+  async updateMealSchedule(
+    tiffinServiceId: string,
+    customDaySchedules: any[]
+  ) {
+    const response = await this.api.put(
+      "/api/tiffinOwner/mealSchedule/updateMealSchedule",
+      {
+        tiffinServiceId,
+        customDaySchedules,
+      }
+    );
+    return response.data;
+  }
 }
 
 export default new TiffinApiService();

@@ -56,8 +56,6 @@ export default function Register() {
         return;
       }
 
-      console.log("Registering with profile:", userServiceType);
-
       const response = await register(
         name.trim(),
         email.trim().toLowerCase(),

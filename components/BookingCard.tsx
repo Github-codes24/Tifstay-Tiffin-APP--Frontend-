@@ -1,7 +1,7 @@
  import { Colors } from "@/constants/Colors";
 import { fonts } from "@/constants/typography";
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import CommonButton from "./CommonButton";
 
 interface BookingCardProps {
@@ -16,8 +16,8 @@ interface BookingCardProps {
   orderType: string;
   onPressUpdate?: () => void;
   isReq?: boolean;
-  onReject?: ()=> void;
-  onAccept?: ()=>void;
+  onReject?: () => void;
+  onAccept?: () => void;
   statusText?: string;
 }
 
@@ -35,13 +35,22 @@ const BookingCard: React.FC<BookingCardProps> = ({
   isReq,
   onReject,
   onAccept,
-  statusText
+  statusText,
 }) => {
   return (
     <View style={styles.card}>
       <View style={styles.row}>
-      <Text style={styles.bookingId}>Booking {bookingId}</Text>
-      <Text  style={{textAlign:'right' , flex:1 , color:Colors.green , textDecorationLine:'underline'}}>{statusText}</Text>
+        <Text style={styles.bookingId}>Booking {bookingId}</Text>
+        <Text
+          style={{
+            textAlign: "right",
+            flex: 1,
+            color: Colors.green,
+            textDecorationLine: "underline",
+          }}
+        >
+          {statusText}
+        </Text>
       </View>
       <Text style={[styles.subText, { marginTop: 5 }]}>
         Ordered on {orderedDate}
@@ -97,12 +106,14 @@ const BookingCard: React.FC<BookingCardProps> = ({
             onPress={onReject}
           />
         </View>
-      ) : onPressUpdate &&  (
-        <CommonButton
-          title="Update Order Summary"
-          buttonStyle={{ marginTop: 20 }}
-          onPress={onPressUpdate}
-        />
+      ) : (
+        onPressUpdate && (
+          <CommonButton
+            title="Update Order Summary"
+            buttonStyle={{ marginTop: 20 }}
+            onPress={onPressUpdate}
+          />
+        )
       )}
     </View>
   );

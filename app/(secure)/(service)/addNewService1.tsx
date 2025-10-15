@@ -1,603 +1,676 @@
-// screens/BasicInfoForm.tsx
-import MealCheckbox from "@/components/CheckBox";
 import CommonButton from "@/components/CommonButton";
 import CommonHeader from "@/components/CommonHeader";
 import LabeledInput from "@/components/labeledInput";
 import { Colors } from "@/constants/Colors";
-import { Images } from "@/constants/Images";
 import { fonts } from "@/constants/typography";
-import { router, useLocalSearchParams } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
+import hostelApiService from "@/services/hostelApiService";
+import useServiceStore from "@/store/serviceStore";
+import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Image,
-  Alert,
   ActivityIndicator,
+  Alert,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import * as ImagePicker from "expo-image-picker";
-import { IS_ANDROID } from "@/constants/Platform";
-import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import useAuthStore from "@/store/authStore";
 
-const BasicInfoForm = () => {
-  const { token  , userServiceType} = useAuthStore();
-  const { formData , extraData , isEdit , id } = useLocalSearchParams();
-  // const parsedData = formData ? JSON.parse(formData as string) : null;
-  const parsedRxtra = extraData ? JSON.parse(extraData as string) : null
-  // ✅ Parse only once
-  const parsedData = useMemo(
-    () => (formData ? JSON.parse(formData as string) : null),
-    [formData]
-  );
+const AddNewHostelService1 = () => {
+  const params = useLocalSearchParams();
+  const mode = params.mode as "add" | "edit";
+  const hostelId = params.hostelId as string;
+  const isUpdatingHostel = mode === "edit";
+  const router = useRouter();
+  const {
+    setFormPage2Data,
+    formPage1Data,
+    createHostelService,
+    updateHostelService,
+    isLoading,
+    clearFormData,
+  } = useServiceStore();
 
-  const parsedExtra = useMemo(
-    () => (extraData ? JSON.parse(extraData as string) : null),
-    [extraData]
-  );
+  const [rulesText, setRulesText] = useState("");
+  const [area, setArea] = useState("");
+  const [nearbyLandmarks, setNearbyLandmarks] = useState("");
+  const [fullAddress, setFullAddress] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [whatsappNumber, setWhatsappNumber] = useState("");
+  const [photos, setPhotos] = useState<any[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(false);
 
   useEffect(() => {
-    if (!parsedExtra) return;
+    const loadPage2Data = async () => {
+      if (!isUpdatingHostel || !hostelId) return;
 
-    if (parsedExtra.location) {
-      setArea(parsedExtra.location.area || "");
-      setLandmark(parsedExtra.location.nearbyLandmarks || "");
-      setAddress(parsedExtra.location.fullAddress || "");
-      setRadius(String(parsedExtra.location.serviceRadius || ""));
-    }
+      setIsLoadingData(true);
+      try {
+        const response = await hostelApiService.getHostelServiceById(hostelId);
 
-    if (parsedExtra.contactInfo) {
-      setPhone(String(parsedExtra.contactInfo.phone || ""));
-      setWhatsapp(String(parsedExtra.contactInfo.whatsapp || ""));
-    }
+        if (response.success && response.data?.data) {
+          const hostelData = response.data.data;
 
-    if (parsedExtra.features) {
-      setFeatures((prev) => ({
-        ...prev,
-        ...parsedExtra.features,
-      }));
-    } else if (parsedExtra.serviceFeatures) {
-      setFeatures((prev) => {
-        const formatted = { ...prev };
-        Object.keys(formatted).forEach((key) => {
-          formatted[key as keyof typeof formatted] =
-            parsedExtra.serviceFeatures?.some(
-              (f: string) =>
-                f.toLowerCase().replace(/\s+/g, "") === key.toLowerCase()
-            ) || false;
-        });
-        return formatted;
-      });
-    }
+          setArea(hostelData.location?.area || "");
+          setNearbyLandmarks(hostelData.location?.nearbyLandmarks || "");
+          setFullAddress(hostelData.location?.fullAddress || "");
 
-    // 🖼️ Photos
-    if (parsedExtra.photos?.length > 0) {
-      setPhotos(parsedExtra.photos);
-    } else if (parsedExtra.vegPhotos?.length > 0) {
-      setPhotos(parsedExtra.vegPhotos);
-    } else if (parsedExtra.nonVegPhotos?.length > 0) {
-      setPhotos(parsedExtra.nonVegPhotos);
-    }
-  }, []);
+          setPhoneNumber(
+            hostelData.contactInfo?.phone
+              ? hostelData.contactInfo.phone.toString()
+              : ""
+          );
+          setWhatsappNumber(
+            hostelData.contactInfo?.whatsapp
+              ? hostelData.contactInfo.whatsapp.toString()
+              : ""
+          );
 
-  const [area, setArea] = useState("");
-  const [landmark, setLandmark] = useState("");
-  const [address, setAddress] = useState("");
-  const [radius, setRadius] = useState("");
-  const [phone, setPhone] = useState("");
-  const [whatsapp, setWhatsapp] = useState("");
+          setRulesText(hostelData.rulesAndPolicies || "");
 
-  // Feature toggles
-  const [features, setFeatures] = useState({
-    freshIngredients: false,
-    hygienicPreparation: false,
-    monthlySubscription: false,
-    oilFree: false,
-    homeStyle: false,
-    onTimeDelivery: false,
-    spiceLevel: false,
-    organicVeggies: false,
-  });
-
-  const toggleFeature = (key: keyof typeof features) => {
-    setFeatures((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
-
-  // Photos state
-  const [photos, setPhotos] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [formDataToSendState, setFormDataToSendState] = useState<FormData | null>(null);
-  const [modifyDataState, setModifyDataState] = useState<any>(null);
-
-  // Preview logic
-  const handlePreview = () => {
-    if (!parsedData) return;
-
-    const formDataToSend = new FormData();
-
-    // Text fields
-    formDataToSend.append("tiffinName", parsedData.tiffinName || "");
-    formDataToSend.append("description", parsedData.description || "");
-    formDataToSend.append("foodType", parsedData.foodType || "");
-
-    // Meal Timings
-    const mealTimings = (parsedData.mealTimings || [])
-      .filter((m: any) => m.checked)
-      .map(({ mealType, startTime, endTime }:any) => ({ mealType, startTime, endTime }));
-    formDataToSend.append("mealTimings", JSON.stringify(mealTimings));
-
-    // Order Types
-    const orderTypes = parsedData?.orderTypes
-      ? Object.entries(parsedData.orderTypes)
-        .filter(([_, v]) => v)
-        .map(([k]) => k.charAt(0).toUpperCase() + k.slice(1))
-      : [];
-    formDataToSend.append("orderTypes", JSON.stringify(orderTypes));
-
-    // Pricing
-    formDataToSend.append("pricing", JSON.stringify(parsedData?.pricing || []));
-
-    // Service Features
-    const serviceFeatures = parsedData?.features
-      ? Object.entries(parsedData.features)
-        .filter(([_, v]) => v)
-        .map(([k]) => k.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase()))
-      : [];
-    formDataToSend.append("serviceFeatures", JSON.stringify(serviceFeatures));
-
-    // Location
-    const location = {
-      area: area || parsedData?.location?.area || "",
-      nearbyLandmarks: landmark || parsedData?.location?.nearbyLandmarks || "",
-      fullAddress: address || parsedData?.location?.fullAddress || "",
-      serviceRadius: Number(radius || parsedData?.location?.serviceRadius || 5),
-    };
-    formDataToSend.append("location", JSON.stringify(location));
-
-    // Contact Info
-    const contactInfo = {
-      phone: Number(phone || parsedData?.contactInfo?.phone || 0),
-      whatsapp: Number(whatsapp || parsedData?.contactInfo?.whatsapp || 0),
-    };
-    formDataToSend.append("contactInfo", JSON.stringify(contactInfo));
-
-    // Photos
-    const photoKey = (parsedData?.foodType || "").toLowerCase() === "veg" ? "vegPhotos" : "nonVegPhotos";
-    (photos || []).forEach((uri: string, index: number) => {
-      formDataToSend.append(photoKey, {
-        uri,
-        name: `${photoKey}_${index}.jpg`,
-        type: "image/jpeg",
-      } as any);
-    });
-
-    // Whats included
-    formDataToSend.append("whatsIncludes", JSON.stringify(parsedData?.includedDescription));
-
-    // Modify Data built same as FormData for preview
-    const modifyData = {
-      tiffinName: parsedData.tiffinName || "",
-      description: parsedData.description || "",
-      foodType: parsedData.foodType || "",
-      mealTimings,
-      orderTypes,
-      pricing: parsedData?.pricing || [],
-      serviceFeatures,
-      location,
-      contactInfo,
-      photos: photos.length > 0 ? photos : parsedData.photos || [],
-      whatsIncludes: parsedData?.includedDescription || "",
-      ownerId: parsedData.ownerId || "",
-      _id: parsedData._id || "",
-      status: parsedData.status || "",
-      isAvailable: parsedData.isAvailable ?? true,
-      totalOrders: parsedData.totalOrders || 0,
-      averageRating: parsedData.averageRating || 0,
-      isDisabled: parsedData.isDisabled ?? false,
-      totalReviews: parsedData.totalReviews || 0,
-      createdAt: parsedData.createdAt || "",
-      updatedAt: parsedData.updatedAt || "",
-      visibilityStatus: parsedData.visibilityStatus || "",
-      nonVegPhotos: parsedData.nonVegPhotos || [],
-      vegPhotos: parsedData.vegPhotos || [],
-      offlineDetails: { isOffline: false, offlineType: null, isPermanent: false },
-    };
-    setModifyDataState(modifyData);
-    // Prepare a raw object to pass
-    const rawDataToSend = {
-      tiffinName: parsedData?.tiffinName || "",
-      description: parsedData?.description || "",
-      foodType: parsedData?.foodType || "",
-      mealTimings: (parsedData?.mealTimings || []).filter((m: any) => m.checked),
-      orderTypes: parsedData?.orderTypes
-        ? Object.entries(parsedData.orderTypes)
-          .filter(([_, v]) => v)
-          .map(([k]) => k.charAt(0).toUpperCase() + k.slice(1))
-        : [],
-      pricing: parsedData?.pricing || [],
-      serviceFeatures: parsedData?.features
-        ? Object.entries(parsedData.features)
-          .filter(([_, v]) => v)
-          .map(([k]) => k.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase()))
-        : [],
-      location: {
-        area: area || parsedData?.location?.area || "",
-        nearbyLandmarks: landmark || parsedData?.location?.nearbyLandmarks || "",
-        fullAddress: address || parsedData?.location?.fullAddress || "",
-        serviceRadius: Number(radius || parsedData?.location?.serviceRadius || 5),
-      },
-      contactInfo: {
-        phone: Number(phone || parsedData?.contactInfo?.phone || 0),
-        whatsapp: Number(whatsapp || parsedData?.contactInfo?.whatsapp || 0),
-      },
-      photos: photos.length > 0 ? photos : parsedData?.photos || [],
-      whatsIncludes: parsedData?.includedDescription || "",
-    };
-    router.push({
-      pathname: "/(service)/previewService",
-      params: {
-        formData: JSON.stringify(rawDataToSend),
-        tiffin: JSON.stringify(modifyData),
-        isPreview: "true",
-      },
-    });
-  };
-
-  // Pick image from gallery
-  const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      quality: 0.7,
-    });
-
-    if (!result.canceled) {
-      setPhotos((prev) => [...prev, result.assets[0].uri]);
-    }
-  };
-
-  // Create listing
-  const handleCreateListing = async () => {
-    try {
-      setLoading(true);
-
-      const formDataToSend = new FormData();
-
-      // Text fields
-      formDataToSend.append("tiffinName", parsedData?.tiffinName || "");
-      formDataToSend.append("description", parsedData?.description || "");
-      formDataToSend.append("foodType", parsedData?.foodType || "");
-
-      // Meal Timings
-      const mealTimings = (parsedData?.mealTimings || [])
-        .filter((m: any) => m.checked)
-        .map(({ mealType, startTime, endTime }) => ({ mealType, startTime, endTime }));
-      formDataToSend.append("mealTimings", JSON.stringify(mealTimings));
-
-      // Order Types
-      const orderTypes = parsedData?.orderTypes
-        ? Object.entries(parsedData.orderTypes)
-          .filter(([_, v]) => v)
-          .map(([k]) => k.charAt(0).toUpperCase() + k.slice(1))
-        : [];
-      formDataToSend.append("orderTypes", JSON.stringify(orderTypes));
-
-      // Pricing
-      formDataToSend.append("pricing", JSON.stringify(parsedData?.pricing || []));
-
-      // Service Features
-      const serviceFeatures = parsedData?.features
-        ? Object.entries(parsedData.features)
-          .filter(([_, v]) => v)
-          .map(([k]) => k.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase()))
-        : [];
-      formDataToSend.append("serviceFeatures", JSON.stringify(serviceFeatures));
-
-      // Location
-      const location = {
-        area: area || parsedData?.area || "",
-        nearbyLandmarks: landmark || parsedData?.landmark || "",
-        fullAddress: address || parsedData?.address || "",
-        serviceRadius: Number(radius || parsedData?.radius || 5),
-      };
-      formDataToSend.append("location", JSON.stringify(location));
-
-      // Contact info
-      const contactInfo = {
-        phone: Number(phone || parsedData?.phone || 0),
-        whatsapp: Number(whatsapp || parsedData?.whatsapp || 0),
-      };
-      formDataToSend.append("contactInfo", JSON.stringify(contactInfo));
-
-      // Images
-      const photoKey = (parsedData?.foodType || "").toLowerCase() === "veg" ? "vegPhotos" : "nonVegPhotos";
-      (photos || []).forEach((uri: string, index: number) => {
-        formDataToSend.append(photoKey, {
-          uri,
-          name: `${photoKey}_${index}.jpg`,
-          type: "image/jpeg",
-        } as any);
-      });
-
-      // Whats included
-      formDataToSend.append("whatsIncludes", parsedData?.includedDescription);
-      console.log(formDataToSend)
-      const response = await fetch(
-       isEdit === 'true' ? `https://tifstay-project-be.onrender.com/api/tiffinService/updateTiffinService/${id}` : "https://tifstay-project-be.onrender.com/api/tiffinService/createTiffinService",
-        {
-          method: isEdit === 'true'  ? 'PUT' : "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          },
-          body: formDataToSend,
+          if (hostelData.hostelPhotos && hostelData.hostelPhotos.length > 0) {
+            const existingPhotos = hostelData.hostelPhotos.map(
+              (url: string, index: number) => ({
+                uri: url,
+                type: "image/jpeg",
+                name: `hostel_photo_${index}.jpg`,
+                isExisting: true,
+              })
+            );
+            setPhotos(existingPhotos);
+          }
+        } else {
+          Alert.alert("Error", "Failed to load hostel data");
         }
-      );
+      } catch (error) {
+        Alert.alert("Error", "Failed to load hostel data");
+      } finally {
+        setIsLoadingData(false);
+      }
+    };
 
-      const data = await response.json();
-      if (response.ok) {
-        Alert.alert("Success", "Tiffin service created successfully!");
-        router.push("/(service)/confirmService");
+    loadPage2Data();
+  }, [isUpdatingHostel, hostelId]);
+
+  const handleSubmit = async () => {
+    try {
+      if (!phoneNumber || !whatsappNumber || !fullAddress) {
+        Alert.alert("Error", "Please fill all required fields");
+        return;
+      }
+
+      if (!formPage1Data) {
+        Alert.alert(
+          "Error",
+          "Missing form data. Please go back and fill all required fields."
+        );
+        return;
+      }
+
+      setIsSubmitting(true);
+
+      setFormPage2Data({
+        rulesText,
+        area: area || null,
+        nearbyLandmarks,
+        fullAddress,
+        phoneNumber,
+        whatsappNumber,
+        photos,
+      });
+
+      const roomsData = formPage1Data.rooms.map((room) => {
+        const totalBeds = [];
+        for (let i = 1; i <= room.noOfBeds; i++) {
+          totalBeds.push({ bedNumber: i });
+        }
+
+        const roomPayload: any = {
+          roomNumber: parseInt(room.roomNo) || 101,
+          totalBeds: totalBeds,
+          roomDescription: room.roomDetails || "This is a hostel room",
+        };
+
+        if (room._id && !room.isNewRoom) {
+          roomPayload._id = room._id;
+        }
+
+        if (room.isNewRoom) {
+          roomPayload.isNewRoom = true;
+        }
+
+        return roomPayload;
+      });
+
+      const apiData = {
+        hostelName: formPage1Data.hostelName,
+        hostelType:
+          formPage1Data.hostelType === "boys"
+            ? "Boys Hostel"
+            : formPage1Data.hostelType === "girls"
+            ? "Girls Hostel"
+            : "Co-ed Hostel",
+        description: formPage1Data.description,
+        pricing: {
+          perDay: formPage1Data.pricePerDay || 0,
+          weekly: formPage1Data.weeklyPrice || 0,
+          monthly: formPage1Data.monthlyPrice || 0,
+        },
+        securityDeposit: formPage1Data.securityDeposit || 0,
+        offers: formPage1Data.offers || "",
+        rooms: roomsData,
+        facilities: Object.entries(formPage1Data.amenities)
+          .filter(([_, value]) => value)
+          .map(([key]) => {
+            const facilityMap: { [key: string]: string } = {
+              wifi: "WiFi",
+              meals: "Mess",
+              security: "Security",
+              studyHall: "Study Hall",
+              commonTV: "Common TV",
+              cctv: "CCTV",
+              acRooms: "AC Rooms",
+              laundry: "Laundry",
+            };
+            return facilityMap[key] || key;
+          }),
+        location: {
+          area: area || "Didwana",
+          nearbyLandmarks: nearbyLandmarks || "Jaipur",
+          fullAddress: fullAddress || "Rajasthan",
+        },
+        contactInfo: {
+          phone: parseInt(phoneNumber),
+          whatsapp: parseInt(whatsappNumber),
+        },
+        rulesAndPolicies: rulesText || "No smoking inside premises",
+        hostelPhotos: photos.filter((p: any) => !p.isExisting),
+        roomsWithPhotos: formPage1Data.rooms.map((room) => ({
+          ...room,
+          roomPhotos: room.roomPhotos.filter((p: any) => !p.isExisting),
+        })),
+      };
+
+      const response = isUpdatingHostel
+        ? await updateHostelService(hostelId, apiData)
+        : await createHostelService(apiData);
+
+      if (response.success) {
+        Alert.alert(
+          "Success",
+          isUpdatingHostel
+            ? "Hostel service updated successfully!"
+            : "Hostel service created successfully!",
+          [
+            {
+              text: "OK",
+              onPress: () => {
+                clearFormData();
+                router.replace("/(secure)/(hostelService)/successful");
+              },
+            },
+          ]
+        );
       } else {
-        Alert.alert("Error", data?.message || "Failed to create listing.");
+        Alert.alert("Error", response.error || "Failed to submit listing");
       }
     } catch (error) {
-      console.error(error);
-      Alert.alert("Network Error", "Something went wrong.");
+      console.error("❌ Submit error:", error);
+      Alert.alert("Error", "An unexpected error occurred");
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
+
+  const resetForm = () => {
+    Alert.alert("Reset Form", "Are you sure you want to reset all fields?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Reset",
+        style: "destructive",
+        onPress: () => {
+          setRulesText("");
+          setArea("");
+          setNearbyLandmarks("");
+          setFullAddress("");
+          setPhoneNumber("");
+          setWhatsappNumber("");
+          setPhotos([]);
+          clearFormData();
+          router.back();
+        },
+      },
+    ]);
+  };
+
+  const handlePreview = () => {
+    setFormPage2Data({
+      rulesText,
+      area: area || null,
+      nearbyLandmarks,
+      fullAddress,
+      phoneNumber,
+      whatsappNumber,
+      photos,
+    });
+    router.push("/(secure)/(hostelService)/previewServiceHostel");
+  };
+
+  const pickImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+        allowsMultipleSelection: false,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const newPhoto = {
+          uri: result.assets[0].uri,
+          type: "image/jpeg",
+          name: `photo_${Date.now()}.jpg`,
+          isExisting: false,
+        };
+        setPhotos([...photos, newPhoto]);
+      }
+    } catch (error) {
+      console.error("Image picker error:", error);
+      Alert.alert("Error", "Failed to pick image");
+    }
+  };
+
+  const removePhoto = async (index: number) => {
+    const photo = photos[index];
+
+    if (photo.isExisting && isUpdatingHostel) {
+      Alert.alert(
+        "Delete Photo",
+        "Do you want to delete this photo from the server?",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Delete",
+            style: "destructive",
+            onPress: async () => {
+              try {
+                const response = await hostelApiService.deleteHostelPhotos(
+                  hostelId,
+                  [photo.uri]
+                );
+
+                if (response.success) {
+                  setPhotos(photos.filter((_, i) => i !== index));
+                  Alert.alert("Success", "Photo deleted successfully");
+                } else {
+                  Alert.alert(
+                    "Error",
+                    response.error || "Failed to delete photo"
+                  );
+                }
+              } catch (error) {
+                console.error("Error deleting hostel photo:", error);
+                Alert.alert("Error", "Failed to delete photo");
+              }
+            },
+          },
+        ]
+      );
+    } else {
+      setPhotos(photos.filter((_, i) => i !== index));
+    }
+  };
+
+  if (isLoadingData) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#FF6B35" />
+        <Text style={styles.loadingText}>Loading hostel data...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.flex}>
       <SafeAreaView edges={["top"]} style={{ backgroundColor: Colors.white }}>
-        <CommonHeader title="Add New Tiffen Service" actionText="Reset" />
+        <View style={{ backgroundColor: Colors.white }}>
+          <CommonHeader
+            title={
+              isUpdatingHostel
+                ? "Edit Hostel Service"
+                : "Add New Hostel Service"
+            }
+            actionText="Reset"
+            onActionPress={resetForm}
+          />
+        </View>
       </SafeAreaView>
-
-      <KeyboardAwareScrollView
+      <ScrollView
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
-        enableOnAndroid
-        extraScrollHeight={80}
         keyboardShouldPersistTaps="handled"
       >
-        {/* === Service Features === */}
         <View style={styles.card}>
-          <View style={{ flexDirection: "row", gap: 5, alignItems: "center" }}>
-            <Image source={Images.emptyStar} style={{ height: 16, width: 16 }} />
-            <Text style={styles.heading}>Service Features</Text>
+          <View style={styles.sectionHeaderContainer}>
+            <Ionicons name="document-text-outline" size={20} color="#374151" />
+            <View>
+              <Text style={styles.sectionHeader}>Rules & Policies</Text>
+            </View>
           </View>
-          <Text style={styles.subText}>Select features that apply to your service</Text>
-
-          {Object.keys(features).map((key) => (
-            <MealCheckbox
-              key={key}
-              label={key.replace(/([A-Z])/g, " $1")}
-              checked={features[key as keyof typeof features]}
-              onToggle={() => toggleFeature(key as keyof typeof features)}
-              containerStyle={{ marginBottom: 16 }}
-              labelStyle={{
-                color: features[key as keyof typeof features] ? Colors.orange : Colors.grey,
+          <View>
+            <LabeledInput
+              label="Hostel Rules & Policies"
+              placeholder="Mention important rules like visiting hours, noise policy, etc."
+              value={rulesText}
+              onChangeText={setRulesText}
+              multiline
+              textAlignVertical="top"
+              labelStyle={styles.inputLabel}
+              inputContainerStyle={{
+                height: 100,
+                backgroundColor: "#fff",
+                paddingTop: 12,
               }}
+              containerStyle={{ paddingHorizontal: 0 }}
             />
-          ))}
-        </View>
-
-        {/* === Photos Section === */}
-        <View style={[styles.card, { padding: 0 }]}>
-          <View style={styles.photoHeader}>
-            <Image source={Images.camera} style={{ height: 16, width: 16 }} />
-            <Text style={styles.heading}>Photos</Text>
-          </View>
-          <View style={{ paddingHorizontal: 16 }}>
-            {photos.length === 0 ? (
-              <TouchableOpacity style={styles.uploadBox} onPress={pickImage} activeOpacity={0.7}>
-                <Text style={{ fontFamily: fonts.interSemibold, fontSize: 15 }}>Upload photos</Text>
-                <Text style={styles.uploadHint}>Upload clear photos of your tiffin meals</Text>
-              </TouchableOpacity>
-            ) : (
-              <View style={styles.previewContainer}>
-                {photos.map((uri, index) => (
-                  <Image key={index} source={{ uri }} style={styles.image} />
-                ))}
-              </View>
-            )}
-            <TouchableOpacity onPress={pickImage}>
-              <Text style={styles.addMore}>+ Add More Photo</Text>
-            </TouchableOpacity>
           </View>
         </View>
 
-        {/* === Location Section === */}
         <View style={styles.card}>
-          <View style={{ flexDirection: "row", gap: 5, alignItems: "center" }}>
-            <Image source={Images.loc} style={{ height: 16, width: 16 }} />
-            <Text style={styles.heading}>Location Details</Text>
+          <View style={styles.sectionHeaderContainer}>
+            <Ionicons name="camera-outline" size={20} color="#374151" />
+            <Text style={styles.sectionHeader}>Hostel Photos</Text>
           </View>
 
+          {photos.length > 0 && (
+            <View style={styles.photosGrid}>
+              {photos.map((photo, index) => (
+                <View key={index} style={styles.photoContainer}>
+                  <Image
+                    source={{ uri: photo.uri }}
+                    style={styles.photoPreview}
+                  />
+                  <TouchableOpacity
+                    style={styles.removePhotoButton}
+                    onPress={() => removePhoto(index)}
+                  >
+                    <Ionicons name="close-circle" size={24} color="#FF0000" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {photos.length < 5 && (
+            <>
+              <TouchableOpacity style={styles.uploadButton} onPress={pickImage}>
+                <Text style={styles.uploadText}>Upload photo</Text>
+                <Text style={styles.uploadSubtext}>
+                  Upload clear photo of your Hostel
+                </Text>
+              </TouchableOpacity>
+
+              {photos.length > 0 && photos.length < 5 && (
+                <TouchableOpacity
+                  style={styles.addMorePhotos}
+                  onPress={pickImage}
+                >
+                  <Text style={styles.addMorePhotosText}>
+                    + Add More Photo ({5 - photos.length} remaining)
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </>
+          )}
+        </View>
+
+        <View style={styles.card}>
+          <View style={styles.sectionHeaderContainer}>
+            <Ionicons name="location-outline" size={20} color="#374151" />
+            <Text style={styles.sectionHeader}>Location Details</Text>
+          </View>
           <LabeledInput
             label="Area/Locality *"
-            placeholder="Enter your area or locality"
+            placeholder="Enter area"
             value={area}
             onChangeText={setArea}
-            labelStyle={styles.label}
-            containerStyle={styles.inputContainer}
-            inputContainerStyle={styles.inputBox}
-            inputStyle={{ marginTop: 0 }}
+            labelStyle={styles.inputLabel}
+            inputContainerStyle={{ height: 37, backgroundColor: "#fff" }}
+            containerStyle={{ paddingHorizontal: 0, marginBottom: 20 }}
           />
 
           <LabeledInput
             label="Nearby Landmarks"
             placeholder="e.g., Near VNIT, Medical College..."
-            value={landmark}
-            onChangeText={setLandmark}
-            labelStyle={styles.label}
-            containerStyle={styles.inputContainer}
-            inputStyle={{ marginTop: 0 }}
-            inputContainerStyle={styles.inputBox}
+            value={nearbyLandmarks}
+            onChangeText={setNearbyLandmarks}
+            labelStyle={styles.inputLabel}
+            inputContainerStyle={{ height: 37, backgroundColor: "#fff" }}
+            containerStyle={{ paddingHorizontal: 0, marginBottom: 20 }}
           />
 
           <LabeledInput
-            label="Full Address"
+            label="Full Address *"
             placeholder="Enter complete address with pincode"
-            value={address}
-            onChangeText={setAddress}
+            value={fullAddress}
+            onChangeText={setFullAddress}
             multiline
-            textAlignVertical="auto"
-            labelStyle={styles.label}
-            inputContainerStyle={[styles.inputBox, styles.textArea]}
-            containerStyle={styles.descContainer}
-            inputStyle={styles.textAreaInput}
-          />
-
-          <LabeledInput
-            label="Service Radius (sq km) *"
-            placeholder="5"
-            value={radius}
-            onChangeText={setRadius}
-            labelStyle={styles.label}
-            containerStyle={styles.inputContainer}
-            inputContainerStyle={styles.inputBox}
-            keyboardType="numeric"
-            inputStyle={{ marginTop: 0 }}
+            textAlignVertical="top"
+            labelStyle={styles.inputLabel}
+            inputContainerStyle={{
+              height: 64,
+              backgroundColor: "#fff",
+              paddingTop: 12,
+            }}
+            containerStyle={{ paddingHorizontal: 0 }}
           />
         </View>
 
-        {/* === Contact Info === */}
         <View style={styles.card}>
-          <View style={{ flexDirection: "row", gap: 5, alignItems: "center" }}>
-            <Image source={Images.profile} style={{ height: 16, width: 16, tintColor: Colors.title }} />
-            <Text style={styles.heading}>Contact Information</Text>
+          <View style={styles.sectionHeaderContainer}>
+            <Ionicons name="person-outline" size={20} color="#374151" />
+            <Text style={styles.sectionHeader}>Contact Information</Text>
           </View>
 
           <LabeledInput
             label="Phone Number *"
-            placeholder="Enter phone number"
-            value={phone}
-            onChangeText={setPhone}
-            labelStyle={styles.label}
-            containerStyle={styles.inputContainer}
+            placeholder="09893464946"
+            value={phoneNumber}
+            onChangeText={setPhoneNumber}
+            keyboardType="phone-pad"
+            maxLength={10}
+            labelStyle={styles.inputLabel}
             inputContainerStyle={styles.inputBox}
-            keyboardType="numeric"
-            inputStyle={{ marginTop: 0 }}
+            containerStyle={styles.inputContainer}
           />
 
           <LabeledInput
             label="WhatsApp Number *"
-            placeholder="Enter WhatsApp number"
-            value={whatsapp}
-            onChangeText={setWhatsapp}
-            labelStyle={styles.label}
-            containerStyle={styles.inputContainer}
+            placeholder="09893464946"
+            value={whatsappNumber}
+            onChangeText={setWhatsappNumber}
+            keyboardType="phone-pad"
+            maxLength={10}
+            labelStyle={styles.inputLabel}
             inputContainerStyle={styles.inputBox}
-            keyboardType="numeric"
-            inputStyle={{ marginTop: 0 }}
+            containerStyle={styles.inputContainer}
           />
         </View>
 
-        {/* === Buttons === */}
         <CommonButton
-          title={isEdit==="true" ? "Edit tiffin listing" : "+ Create Tiffin Listing"}
-          onPress={handleCreateListing}
-          disabled={loading}
+          title={
+            isSubmitting || isLoading
+              ? isUpdatingHostel
+                ? "Updating..."
+                : "Submitting..."
+              : isUpdatingHostel
+              ? "Update Listing"
+              : "Submit Listing"
+          }
+          onPress={handleSubmit}
+          buttonStyle={
+            isSubmitting || isLoading
+              ? [styles.submitButton, { opacity: 0.7 }]
+              : styles.submitButton
+          }
+          disabled={isSubmitting || isLoading}
         />
 
-        <CommonButton
-          title="Preview"
-          buttonStyle={{
-            backgroundColor: Colors.white,
-            borderWidth: 1,
-            borderColor: Colors.primary,
-            marginTop: 16,
-            marginBottom: IS_ANDROID ? 50 : 5,
-          }}
-          textStyle={{ color: Colors.primary }}
+        <TouchableOpacity
+          style={styles.previewButton}
           onPress={handlePreview}
-        />
-      </KeyboardAwareScrollView>
+          disabled={isSubmitting || isLoading}
+        >
+          <Text style={styles.previewText}>Preview</Text>
+        </TouchableOpacity>
 
-      {loading && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-        </View>
-      )}
+        <Text style={styles.footerText}>
+          Your listing will be reviewed and approved within 24 hours
+        </Text>
+      </ScrollView>
     </View>
   );
 };
 
-export default BasicInfoForm;
-
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  container: { padding: 16, backgroundColor: Colors.white },
+  flex: { flex: 1, backgroundColor: Colors.white },
+  container: { padding: 16, paddingBottom: 30 },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: Colors.white,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: "#6B7280",
+    fontFamily: fonts.interMedium,
+  },
   card: {
-    borderWidth: 0.5,
-    borderColor: Colors.lightGrey,
-    padding: 15,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    padding: 20,
     borderRadius: 12,
     marginBottom: 20,
+    backgroundColor: Colors.white,
   },
-  heading: { fontSize: 16, fontFamily: fonts.interSemibold },
-  subText: {
-    fontFamily: fonts.interRegular,
-    color: Colors.grey,
-    fontSize: 14,
-    marginTop: 10,
-    marginBottom: 18,
+  sectionHeaderContainer: {
+    flexDirection: "row",
+    marginBottom: 16,
+    gap: 8,
   },
-  label: { color: Colors.title, fontSize: 14, fontFamily: fonts.interRegular },
-  inputContainer: { marginTop: 20, paddingHorizontal: 0 },
-  inputBox: { backgroundColor: Colors.white, borderColor: Colors.lightGrey },
-  textArea: { minHeight: 100 },
-  descContainer: { marginBottom: 4, marginTop: 20, paddingHorizontal: 0 },
-  textAreaInput: { minHeight: 80 },
-  addMore: {
-    textAlign: "center",
-    color: Colors.orange,
+  sectionHeader: {
+    fontSize: 18,
     fontFamily: fonts.interBold,
-    fontSize: 14,
-    paddingVertical: 10,
+    color: "#111827",
+    marginLeft: 8,
   },
-  uploadBox: {
-    height: 108,
+  inputLabel: {
+    color: Colors.title,
+    fontSize: 14,
+    fontFamily: fonts.interMedium,
+    marginBottom: 8,
+  },
+  inputContainer: {
+    marginTop: 12,
+    paddingHorizontal: 0,
+  },
+  inputBox: {
+    backgroundColor: "#F9FAFB",
+    borderColor: "#E5E7EB",
     borderWidth: 1,
-    borderStyle: "dashed",
-    borderColor: Colors.lightGrey,
-    borderRadius: 12,
+    borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 15,
   },
-  uploadHint: {
+  uploadButton: {
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderStyle: "dashed",
+    borderRadius: 8,
+    padding: 20,
+    marginBottom: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F9FAFB",
+  },
+  uploadText: {
+    color: "#374151",
+    fontFamily: fonts.interMedium,
+    fontSize: 14,
+  },
+  uploadSubtext: {
+    color: "#9CA3AF",
     fontFamily: fonts.interRegular,
-    fontSize: 13,
-    color: Colors.grey,
+    fontSize: 12,
+    marginTop: 4,
   },
-  previewContainer: {
+  addMorePhotos: {
+    alignSelf: "center",
+  },
+  addMorePhotosText: {
+    color: "#FF6B35",
+    fontFamily: fonts.interMedium,
+    fontSize: 14,
+  },
+  photosGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 10,
-    marginBottom: 10,
+    marginBottom: 16,
   },
-  photoHeader: {
-    flexDirection: "row",
-    gap: 5,
-    alignItems: "center",
-    padding: 15,
+  photoContainer: {
+    position: "relative",
+    width: 100,
+    height: 100,
   },
-  image: {
+  photoPreview: {
     width: "100%",
-    height: 120,
-    borderRadius: 10,
+    height: "100%",
+    borderRadius: 8,
   },
-  loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.25)",
-    justifyContent: "center",
+  removePhotoButton: {
+    position: "absolute",
+    top: -8,
+    right: -8,
+    backgroundColor: "white",
+    borderRadius: 12,
+  },
+  submitButton: {
+    borderRadius: 8,
+    marginBottom: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+  },
+  previewButton: {
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 8,
+    padding: 16,
     alignItems: "center",
+    marginBottom: 20,
+    backgroundColor: Colors.white,
+  },
+  previewText: {
+    color: "#374151",
+    fontFamily: fonts.interMedium,
+    fontSize: 16,
+  },
+  footerText: {
+    textAlign: "center",
+    color: "#6B7280",
+    fontSize: 12,
+    fontFamily: fonts.interRegular,
+    marginBottom: 20,
   },
 });
+
+export default AddNewHostelService1;

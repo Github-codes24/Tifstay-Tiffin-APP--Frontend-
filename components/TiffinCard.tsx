@@ -1,21 +1,20 @@
-import React from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Image,
-  TouchableOpacity,
-  Dimensions,
-} from "react-native";
-import { Images } from "@/constants/Images";
 import { Colors } from "@/constants/Colors";
+import { Images } from "@/constants/Images";
 import { fonts } from "@/constants/typography";
 import { router } from "expo-router";
+import {
+  Dimensions,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 const { width } = Dimensions.get("window");
 
 const TiffinCard = ({ tiffin }: any) => {
-  console.log(tiffin)
+  console.log(tiffin);
   return (
     <View style={styles.container}>
       <View style={styles.card}>
@@ -25,11 +24,12 @@ const TiffinCard = ({ tiffin }: any) => {
             tiffin?.photos?.[0]
               ? { uri: tiffin.photos[0] }
               : tiffin?.vegPhotos?.[0]
-                ? { uri: tiffin.vegPhotos[0] }
-                : tiffin?.nonVegPhotos?.[0]
-                  ? { uri: tiffin.nonVegPhotos[0] }
-                : require('../assets/images/tiffin.png')
-          }          style={styles.image}
+              ? { uri: tiffin.vegPhotos[0] }
+              : tiffin?.nonVegPhotos?.[0]
+              ? { uri: tiffin.nonVegPhotos[0] }
+              : require("../assets/images/tiffin.png")
+          }
+          style={styles.image}
           resizeMode="cover"
         />
         {/* Info Section */}
@@ -39,7 +39,9 @@ const TiffinCard = ({ tiffin }: any) => {
               {tiffin?.tiffinName}
             </Text>
             <View style={styles.activeBadge}>
-              <Text style={styles.activeText}>{tiffin?.isAvailable && 'Active'}</Text>
+              <Text style={styles.activeText}>
+                {tiffin?.isAvailable && "Active"}
+              </Text>
             </View>
           </View>
 
@@ -47,11 +49,15 @@ const TiffinCard = ({ tiffin }: any) => {
 
           <View style={[styles.row, styles.mt16]}>
             <View>
-              <Text style={styles.price}>{tiffin?.pricing[0]?.perMealDining}/meal</Text>
+              <Text style={styles.price}>
+                {tiffin?.pricing[0]?.perMealDining}/meal
+              </Text>
               <Text style={styles.label}>Price</Text>
             </View>
             <View style={styles.discount}>
-              <Text style={styles.discountText}>{tiffin?.pricing[0]?.offers || '10% Discount'}</Text>
+              <Text style={styles.discountText}>
+                {tiffin?.pricing[0]?.offers || "10% Discount"}
+              </Text>
             </View>
           </View>
 
@@ -67,7 +73,10 @@ const TiffinCard = ({ tiffin }: any) => {
                 <View style={styles.ratingRow}>
                   <Image source={Images.star} style={styles.starIcon} />
                   <Text style={styles.rating}>
-                    {tiffin?.averageRating} <Text style={styles.review}>({tiffin?.totalReviews}) reviews</Text>
+                    {tiffin?.averageRating}{" "}
+                    <Text style={styles.review}>
+                      ({tiffin?.totalReviews}) reviews
+                    </Text>
                   </Text>
                 </View>
                 <Text style={styles.label}>Rating</Text>
@@ -75,35 +84,45 @@ const TiffinCard = ({ tiffin }: any) => {
             </View>
 
             <View style={styles.gap6}>
-              <Text style={styles.type}>{tiffin?.foodType === 'Both Veg & Non-Veg' ? 'Veg/non-Veg' : tiffin?.foodType }</Text>
+              <Text style={styles.type}>
+                {tiffin?.foodType === "Both Veg & Non-Veg"
+                  ? "Veg/non-Veg"
+                  : tiffin?.foodType}
+              </Text>
               <Text style={styles.label}>Type</Text>
             </View>
           </View>
 
           {/* Action Buttons */}
           <View style={styles.actions}>
-            <TouchableOpacity style={styles.button} onPress={() => {
-              router.push({
-                pathname: '/(secure)/(service)/previewService',
-                params: {
-                  tiffin: JSON.stringify(tiffin),
-                  isPreview: "false",
-                },
-              });
-            }}>
+            <TouchableOpacity
+              style={styles.button}
+              onPress={() => {
+                router.push({
+                  pathname: "/(secure)/(service)/previewService",
+                  params: {
+                    tiffin: JSON.stringify(tiffin),
+                    isPreview: "false",
+                  },
+                });
+              }}
+            >
               <Image source={Images.view} style={styles.btnIcon} />
               <Text style={styles.btnText}>View</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.button} onPress={() => {
-              router.push({
-                pathname: '/(secure)/(service)/addNewService',
-                params: {
-                  formData: JSON.stringify(tiffin),
-                  isEdit: "true",
-                  id: tiffin?._id
-                },
-              });
-}}>
+            <TouchableOpacity
+              style={styles.button}
+              onPress={() => {
+                router.push({
+                  pathname: "/(secure)/(service)/addNewService",
+                  params: {
+                    formData: JSON.stringify(tiffin),
+                    isEdit: "true",
+                    id: tiffin?._id,
+                  },
+                });
+              }}
+            >
               <Image source={Images.edit} style={styles.btnIcon} />
               <Text style={styles.btnText}>Edit</Text>
             </TouchableOpacity>
@@ -219,7 +238,7 @@ const styles = StyleSheet.create({
     color: Colors.title,
     textAlign: "center",
     fontFamily: fonts.interSemibold,
-    maxWidth:50
+    maxWidth: 50,
   },
   actions: {
     flexDirection: "row",
@@ -237,7 +256,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     flex: 1,
-    justifyContent:'center'
+    justifyContent: "center",
   },
   btnIcon: {
     height: 16,

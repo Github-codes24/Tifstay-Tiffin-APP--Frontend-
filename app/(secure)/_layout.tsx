@@ -213,7 +213,7 @@ export default function SecureLayout() {
           ),
         }}
       />
-<Stack.Screen
+      <Stack.Screen
         name="(service)/addNewBooking"
         options={{ headerShown: false }}
       />
@@ -266,6 +266,12 @@ export default function SecureLayout() {
       />
       <Stack.Screen
         name="(accountScreens)/chatScreen"
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="edit"
         options={{
           headerShown: false,
         }}

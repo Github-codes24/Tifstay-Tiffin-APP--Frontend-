@@ -22,6 +22,8 @@ export interface PaginationData {
   totalCount: number;
   hasNext: boolean;
   hasPrev: boolean;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
 }
 
 export interface Pricing {
@@ -90,6 +92,8 @@ export interface HostelService {
     offlineType: null | string;
     reason: null | string;
   };
+  isAvailable: boolean;
+  placeholder:any;
 }
 
 export interface CreateHostelServiceRequest {
@@ -110,6 +114,7 @@ export interface CreateHostelServiceRequest {
       status?: string;
     }[];
     roomDescription: string;
+    isNewRoom?: boolean;
   }[];
   facilities: string[];
   location: {
@@ -129,11 +134,22 @@ export interface CreateHostelServiceRequest {
     noOfBeds: number;
     roomDetails: string;
     roomPhotos: any[];
+    _id?: string;
+    isNewRoom?: boolean;
   }[];
 }
 
 export interface UpdateHostelServiceRequest extends CreateHostelServiceRequest {
-  rooms: (Room & { isNewRoom?: boolean })[];
+  rooms: {
+    _id?: string;
+    roomNumber: number;
+    totalBeds: {
+      bedNumber: number;
+      status?: string;
+    }[];
+    roomDescription: string;
+    isNewRoom?: boolean;
+  }[];
 }
 
 export interface HostelServiceResponse {
@@ -209,6 +225,8 @@ export interface HostelServicesListResponse {
 }
 
 export interface FormPage1Data {
+  hostelId?: string; // ✅ Add this for updates
+  isUpdate?: boolean; // ✅ Add this flag
   hostelName: string;
   description: string;
   hostelType: string;
@@ -229,10 +247,16 @@ export interface FormPage1Data {
   };
   roomPhotos: any[];
   rooms: {
+    roomId?: string; // ✅ Add this for room updates
     roomNo: string;
     noOfBeds: number;
     roomDetails: string;
     roomPhotos: any[];
+    existingPhotos?: string[]; // ✅ Add this for existing photo URLs
+    newPhotos?: any[]; // ✅ Add this for new photos to upload
+    allPhotos?: any[]; // ✅ Add this for preview
+    _id?: string;
+    isNewRoom?: boolean;
   }[];
 }
 
@@ -397,4 +421,106 @@ export interface ContentData {
     heading: string;
     text: string;
   }[];
+}
+// types/booking.ts
+
+export interface BookingRoom {
+  roomNumber: string;
+  bedNumbers: number[];
+}
+
+export interface SelectPlan {
+  name: string;
+  price: number;
+  depositAmount: number;
+}
+
+export interface HostelBooking {
+  _id: string;
+  bookingNumber: string;
+  bookedDate: string;
+  hostelName: string;
+  hostelId: string;
+  customerName: string;
+  phoneNumber: string;
+  selectPlan: SelectPlan[];
+  checkInDate: string;
+  checkOutDate: string;
+  workType: string;
+  status: "Pending" | "Confirmed" | "Rejected";
+  userPhoto: string | null;
+  aadharCardPhoto: string | null;
+  rooms: BookingRoom[];
+  createdAt: string;
+}
+
+export interface BookingsResponse {
+  success: boolean;
+  message: string;
+  data: {
+    status: string;
+    totalCount: number;
+    bookings: HostelBooking[];
+  };
+}
+
+export interface UpdateBookingStatusRequest {
+  status: "Confirmed" | "Rejected";
+}
+
+export interface UpdateBookingStatusResponse {
+  success: boolean;
+  message: string;
+  data?: any;
+}
+
+export interface RoomDetail {
+  roomNumber: string;
+  bedNumbers: number[];
+}
+
+export interface Duration {
+  checkInDate: string;
+  checkOutDate: string;
+}
+
+export interface CustomerData {
+  _id: string;
+  name: string;
+  email: string;
+  profileImage: string;
+  phoneNumber: string;
+  planPurchased: string[];
+  roomDetails: RoomDetail[];
+  duration: Duration;
+}
+
+export interface MealTiming {
+  mealType: string;
+  startTime: string;
+  endTime: string;
+  isAvailable: boolean;
+  _id?: string;
+}
+
+export interface DaySchedule {
+  day: string;
+  mealTimings: MealTiming[];
+}
+
+export interface TiffinService {
+  id: string;
+  name: string;
+  currentDaySchedule: DaySchedule | null;
+}
+
+export interface MealSchedule {
+  tiffinServiceId: string;
+  weeklySchedule: DaySchedule[];
+  isAvailable: boolean;
+}
+
+export interface UpdateMealScheduleRequest {
+  tiffinServiceId: string;
+  customDaySchedules: DaySchedule[];
 }
