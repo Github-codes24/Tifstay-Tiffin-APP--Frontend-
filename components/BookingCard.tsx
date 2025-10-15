@@ -1,4 +1,4 @@
- import { Colors } from "@/constants/Colors";
+import { Colors } from "@/constants/Colors";
 import { fonts } from "@/constants/typography";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
@@ -19,6 +19,7 @@ interface BookingCardProps {
   onReject?: () => void;
   onAccept?: () => void;
   statusText?: string;
+  isProcessing?: boolean;
 }
 
 const BookingCard: React.FC<BookingCardProps> = ({
@@ -36,6 +37,7 @@ const BookingCard: React.FC<BookingCardProps> = ({
   onReject,
   onAccept,
   statusText,
+  isProcessing,
 }) => {
   return (
     <View style={styles.card}>

@@ -6,6 +6,7 @@ import {
   Image,
   ImageSourcePropType,
   ImageStyle,
+  StyleProp,
   StyleSheet,
   Text,
   TextInput,
@@ -18,16 +19,16 @@ import {
 
 type LabeledInputProps = TextInputProps & {
   label?: string;
-  containerStyle?: ViewStyle;
-  labelStyle?: TextStyle;
-  inputStyle?: TextStyle;
-  inputContainerStyle?: ViewStyle;
+  containerStyle?: StyleProp<ViewStyle>;
+  labelStyle?: StyleProp<TextStyle>;
+  inputStyle?: StyleProp<TextStyle>;
+  inputContainerStyle?: StyleProp<ViewStyle>;
   leftAdornment?: React.ReactNode;
   leftIconSource?: ImageSourcePropType;
-  leftIconStyle?: ImageStyle;
+  leftIconStyle?: StyleProp<ImageStyle>;
   rightAdornment?: React.ReactNode;
   rightIconSource?: ImageSourcePropType;
-  rightIconStyle?: ImageStyle;
+  rightIconStyle?: StyleProp<ImageStyle>;
   onPress?: () => void;
 };
 

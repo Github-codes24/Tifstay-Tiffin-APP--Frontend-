@@ -109,7 +109,6 @@ const useServiceStore = create<ServiceState>()(
       overallRating: 0,
       totalReviews: 0,
       pagination: null,
-      tiffinServices: null,
       offlineReasons: [],
       comebackOptions: [],
       hostelServicesList: [],

@@ -102,10 +102,11 @@ export default function ServiceOfflineScreen() {
     overallRating,
     totalReviews,
     pagination,
-    tiffinServices,
-    getAllTiffinServices,
+    updateHostelServiceOnlineStatus,
+    getEarningsAnalytics,
+    earningsAnalyticsData,
   } = useServiceStore();
-  const [isOnline, setIsOnline] = useState(false);
+
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [showOfflineModal, setShowOfflineModal] = useState(false);
@@ -117,13 +118,10 @@ export default function ServiceOfflineScreen() {
   );
 
   const profileImage = useMemo(
-    () =>
-      isTiffinProvider
-        ? { uri: user?.profileImage }
-        : { uri: user?.profileImage },
+    () => (isTiffinProvider ? Images.user : { uri: user?.profileImage }),
     [isTiffinProvider, user?.profileImage]
   );
-  console.log(user);
+
   const headerTitle = useMemo(
     () => (isTiffinProvider ? user?.name : user?.fullName || ""),
     [isTiffinProvider, user?.fullName, user?.name]
@@ -205,7 +203,7 @@ export default function ServiceOfflineScreen() {
   const displayReviewCount = useMemo(() => {
     return `(${totalReviews})`;
   }, [totalReviews]);
-  // Optimized data loading with Promise.all
+
   const loadData = useCallback(
     async (page: number) => {
       setLoading(true);
@@ -218,7 +216,8 @@ export default function ServiceOfflineScreen() {
             getRequestedServicesCount(),
             getAcceptedServicesCount(),
             getCancelledServicesCount(),
-            // getReviewsSummary(),
+            getReviewsSummary(),
+            getEarningsAnalytics(userServiceType),
           ]);
         } else {
           await Promise.all([
@@ -433,8 +432,21 @@ export default function ServiceOfflineScreen() {
     }
 
     if (isTiffinProvider) {
-      return tiffinServices?.map((tiffin: any) => (
-        <TiffinCard tiffin={tiffin} />
+      // ✅ Render tiffin cards
+      return filteredOnlineServices.map((tiffin: any) => (
+        <TiffinCard
+          key={tiffin._id}
+          tiffin={tiffin}
+          onEditPress={() => {
+            router.push({
+              pathname: "/(secure)/(service)/addNewService",
+              params: {
+                mode: "edit",
+                tiffinId: tiffin._id,
+              },
+            });
+          }}
+        />
       ));
     }
 

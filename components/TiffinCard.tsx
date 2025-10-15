@@ -2,6 +2,7 @@ import { Colors } from "@/constants/Colors";
 import { Images } from "@/constants/Images";
 import { fonts } from "@/constants/typography";
 import { router } from "expo-router";
+import React from "react";
 import {
   Dimensions,
   Image,

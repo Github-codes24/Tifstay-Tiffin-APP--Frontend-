@@ -697,55 +697,213 @@ async getCancelledTiffinServicesCount() {
   }
 
   // Booking Management
-  async getBookingsByStatus(status: string) {
-    try {
-      const response = await this.api.get(
-        `/api/tiffinOwner/bookings/getBookingsByStatus`,
-        {
-          params: { status },
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      return { success: true, data: response.data };
-    } catch (error: any) {
+// Booking Management - UPDATED SECTION
+async getBookingsByStatus(status: string) {
+  try {
+    // ✅ Validate status parameter
+    if (!status) {
       return {
         success: false,
-        error: error.response?.data?.message || "Failed to fetch bookings.",
+        error: "Status parameter is required",
+      };
+    }
+
+    const response = await this.api.get(
+      `/api/tiffinOwner/bookings/getBookingsByStatus`,
+      {
+        params: { status },
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    // ✅ Normalize response structure to match hostel service pattern
+    if (response.data.success && response.data.data) {
+      return {
+        success: true,
+        data: {
+          bookings: response.data.data.bookings || [],
+          pagination: response.data.data.pagination || null,
+        },
+      };
+    }
+
+    return {
+      success: false,
+      error: response.data.message || "Failed to fetch bookings.",
+    };
+  } catch (error: any) {
+    console.error("❌ Get Bookings By Status Error:", error);
+    
+    // ✅ Better error handling
+    if (error.response) {
+      // Server responded with error
+      return {
+        success: false,
+        error: error.response.data?.message || "Failed to fetch bookings.",
+      };
+    } else if (error.request) {
+      // Request made but no response
+      return {
+        success: false,
+        error: "No response from server. Please check your connection.",
+      };
+    } else {
+      // Something else happened
+      return {
+        success: false,
+        error: error.message || "Failed to fetch bookings.",
       };
     }
   }
+}
 
-  async updateBookingStatus(bookingId: string, status: "Confirmed" | "Rejected") {
-    try {
-      const response = await this.api.put(
-        `/api/tiffinOwner/bookings/updateBookingStatus/${bookingId}`,
-        { status },
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      return { success: true, data: response.data };
-    } catch (error: any) {
+async updateBookingStatus(bookingId: string, status: "Confirmed" | "Rejected") {
+  try {
+    // ✅ Validate parameters
+    if (!bookingId) {
       return {
         success: false,
-        error: error.response?.data?.message || `Failed to ${status.toLowerCase()} booking.`,
+        error: "Booking ID is required",
+      };
+    }
+
+    if (!status || !["Confirmed", "Rejected"].includes(status)) {
+      return {
+        success: false,
+        error: "Valid status is required (Confirmed or Rejected)",
+      };
+    }
+
+    const response = await this.api.put(
+      `/api/tiffinOwner/bookings/updateBookingStatus/${bookingId}`,
+      { status },
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    // ✅ Check response structure
+    if (response.data.success) {
+      return {
+        success: true,
+        data: response.data.data,
+        message: response.data.message || `Booking ${status.toLowerCase()} successfully`,
+      };
+    }
+
+    return {
+      success: false,
+      error: response.data.message || `Failed to ${status.toLowerCase()} booking.`,
+    };
+  } catch (error: any) {
+    console.error("❌ Update Booking Status Error:", error);
+    
+    // ✅ Better error handling
+    if (error.response) {
+      return {
+        success: false,
+        error: error.response.data?.message || `Failed to ${status.toLowerCase()} booking.`,
+      };
+    } else if (error.request) {
+      return {
+        success: false,
+        error: "No response from server. Please check your connection.",
+      };
+    } else {
+      return {
+        success: false,
+        error: error.message || `Failed to ${status.toLowerCase()} booking.`,
       };
     }
   }
+}
 
-  async acceptBooking(bookingId: string) {
-    return this.updateBookingStatus(bookingId, "Confirmed");
-  }
+async acceptBooking(bookingId: string) {
+  return this.updateBookingStatus(bookingId, "Confirmed");
+}
 
-  async rejectBooking(bookingId: string) {
-    return this.updateBookingStatus(bookingId, "Rejected");
+async rejectBooking(bookingId: string) {
+  return this.updateBookingStatus(bookingId, "Rejected");
+}
+
+// ✅ Add method to get booking by ID (if needed)
+async getBookingById(bookingId: string) {
+  try {
+    if (!bookingId) {
+      return {
+        success: false,
+        error: "Booking ID is required",
+      };
+    }
+
+    const response = await this.api.get(
+      `/api/tiffinOwner/bookings/getBookingById/${bookingId}`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (response.data.success) {
+      return {
+        success: true,
+        data: response.data.data,
+      };
+    }
+
+    return {
+      success: false,
+      error: response.data.message || "Failed to fetch booking details.",
+    };
+  } catch (error: any) {
+    console.error("❌ Get Booking By ID Error:", error);
+    return {
+      success: false,
+      error: error.response?.data?.message || "Failed to fetch booking details.",
+    };
   }
+}
+
+// ✅ Add method to get all bookings (optional)
+async getAllBookings(page: number = 1, limit: number = 10) {
+  try {
+    const response = await this.api.get(
+      `/api/tiffinOwner/bookings/getAllBookings`,
+      {
+        params: { page, limit },
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (response.data.success && response.data.data) {
+      return {
+        success: true,
+        data: {
+          bookings: response.data.data.bookings || [],
+          pagination: response.data.data.pagination || null,
+        },
+      };
+    }
+
+    return {
+      success: false,
+      error: response.data.message || "Failed to fetch bookings.",
+    };
+  } catch (error: any) {
+    console.error("❌ Get All Bookings Error:", error);
+    return {
+      success: false,
+      error: error.response?.data?.message || "Failed to fetch bookings.",
+    };
+  }
+}
 
   // Customer Management
   async getAllCustomerList(page: number = 1, limit: number = 10) {
