@@ -24,19 +24,15 @@ const SocialIcons = {
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState("kuldeepsaini5514@gmail.com");
-  const [password, setPassword] = useState("kuldeep saini");
+  const [email, setEmail] = useState("kuldeepsaini551@gmail.com");
+  const [password, setPassword] = useState("kuldeep@saini");
   const { login, isLoading, error, clearError, userServiceType } =
     useAuthStore();
 
   const handleLogin = async () => {
     try {
-      console.log("Login button pressed");
-
-      // Clear any previous errors
       clearError();
 
-      // Basic validation
       if (!email.trim()) {
         Alert.alert("Error", "Please enter your email");
         return;
@@ -47,23 +43,15 @@ export default function Login() {
         return;
       }
 
-      // Email validation
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
         Alert.alert("Error", "Please enter a valid email address");
         return;
       }
 
-      console.log("Attempting login...");
-
-      // Call login function from store
       const response = await login(email.trim(), password, userServiceType);
 
-      console.log("Login response:", response);
-
       if (response.success) {
-        console.log("Login successful, navigating to dashboard");
-        // Navigation will happen automatically through the useEffect
       } else {
         Alert.alert(
           "Login Failed",
@@ -71,7 +59,6 @@ export default function Login() {
         );
       }
     } catch (error: any) {
-      console.error("Login error:", error);
       Alert.alert(
         "Login Failed",
         error.message || "An unexpected error occurred. Please try again."
@@ -80,14 +67,10 @@ export default function Login() {
   };
 
   const handleGoogleLogin = () => {
-    // Implement Google login logic
-    console.log("Google login pressed");
     Alert.alert("Coming Soon", "Google login will be available soon");
   };
 
   const handleAppleLogin = () => {
-    // Implement Apple login logic
-    console.log("Apple login pressed");
     Alert.alert("Coming Soon", "Apple login will be available soon");
   };
 

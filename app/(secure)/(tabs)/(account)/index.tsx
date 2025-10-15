@@ -49,7 +49,7 @@ const AccountScreen = () => {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ["images"], // ✅ FIXED
+        mediaTypes: ["images"],
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.7,
@@ -57,10 +57,10 @@ const AccountScreen = () => {
 
       if (!result.canceled) {
         const uri = result.assets[0].uri;
-        setProfileImage(uri); // ✅ only state update
+        setProfileImage(uri);
       }
     } catch (error) {
-      console.log("Error picking image:", error);
+      Alert.alert("Error", "Failed to pick image");
     }
   };
 

@@ -1,13 +1,16 @@
 import { Colors } from "@/constants/Colors";
 import { Images } from "@/constants/Images";
 import { fonts } from "@/constants/typography";
-import ApiService from "@/services/hostelApiService";
+import hostelApiService from "@/services/hostelApiService";
+import tiffinApiService from "@/services/tiffinApiServices";
+import useAuthStore from "@/store/authStore";
 import { router } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
   Image,
+  RefreshControl,
   SafeAreaView,
   StyleSheet,
   Text,
@@ -30,52 +33,63 @@ interface Customer {
   endDate: string;
 }
 
-interface ApiResponse {
-  success: boolean;
-  message: string;
-  data: {
-    customers: Customer[];
-    totalCount: number;
-    pagination: {
-      currentPage: number;
-      totalPages: number;
-      limit: number;
-      hasNextPage: boolean;
-      hasPrevPage: boolean;
-      nextPage: number | null;
-      prevPage: number | null;
-    };
-  };
-}
-
 export default function MyCustomersScreen() {
+  const { userServiceType } = useAuthStore();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [hasNextPage, setHasNextPage] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCustomers();
-  }, []);
+  }, [userServiceType]);
 
-  const fetchCustomers = async (page = 1) => {
+  const fetchCustomers = async (page = 1, isRefreshing = false) => {
     try {
-      setLoading(true);
-      // Replace with your actual API endpoint
-      const response = await ApiService.getAllCustomerList(page);
-      const result: ApiResponse = await response.data;
+      if (isRefreshing) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+      setError(null);
 
-      if (result.success) {
+      let response;
+
+      // Call appropriate API based on service type
+      if (userServiceType === "hostel_owner") {
+        response = await hostelApiService.getAllCustomerList(page, 10);
+      } else {
+        response = await tiffinApiService.getAllCustomerList(page, 10);
+      }
+
+      if (response.success) {
+        const result = response.data;
         setCustomers(result.data.customers);
         setHasNextPage(result.data.pagination.hasNextPage);
         setCurrentPage(result.data.pagination.currentPage);
+      } else {
+        setError(response.error || "Failed to fetch customers");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching customers:", error);
+      setError(error.message || "Failed to fetch customers");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
+
+  const handleRefresh = useCallback(() => {
+    fetchCustomers(1, true);
+  }, [userServiceType]);
+
+  const handleLoadMore = useCallback(() => {
+    if (hasNextPage && !loading) {
+      fetchCustomers(currentPage + 1);
+    }
+  }, [hasNextPage, loading, currentPage]);
 
   const handleCustomerPress = (customer: Customer) => {
     router.push({
@@ -88,6 +102,10 @@ export default function MyCustomersScreen() {
     return name.charAt(0).toUpperCase() + name.slice(1);
   };
 
+  const getServiceLabel = () => {
+    return userServiceType === "hostel_owner" ? "Hostel" : "Tiffin";
+  };
+
   const renderCustomerItem = ({ item }: { item: Customer }) => {
     const subscriptionName =
       item.subscriptionType && item.subscriptionType.length > 0
@@ -98,6 +116,7 @@ export default function MyCustomersScreen() {
       <TouchableOpacity
         onPress={() => handleCustomerPress(item)}
         style={styles.customerRow}
+        activeOpacity={0.7}
       >
         <Image
           source={item.profileImage ? { uri: item.profileImage } : Images.user}
@@ -105,19 +124,57 @@ export default function MyCustomersScreen() {
         />
         <View style={styles.info}>
           <Text style={styles.name}>{item.name}</Text>
-          <Text style={styles.startDate}>Tiffin Start {item.startDate}</Text>
+          <Text style={styles.startDate}>
+            {getServiceLabel()} Start {item.startDate}
+          </Text>
         </View>
-        <Text style={styles.subscription}>{subscriptionName}</Text>
+        <View style={styles.rightSection}>
+          <Text style={styles.subscription}>{subscriptionName}</Text>
+          <Text style={styles.endDate}>Until {item.endDate}</Text>
+        </View>
       </TouchableOpacity>
     );
   };
 
-  if (loading && customers.length === 0) {
+  const renderEmptyComponent = () => (
+    <View style={styles.emptyContainer}>
+      <Image source={Images.user} style={styles.emptyIcon} />
+      <Text style={styles.emptyText}>
+        No {getServiceLabel().toLowerCase()} customers found
+      </Text>
+      <Text style={styles.emptySubText}>
+        Customers will appear here once they subscribe to your service
+      </Text>
+    </View>
+  );
+
+  const renderErrorComponent = () => (
+    <View style={styles.errorContainer}>
+      <Text style={styles.errorText}>{error}</Text>
+      <TouchableOpacity
+        style={styles.retryButton}
+        onPress={() => fetchCustomers(1)}
+      >
+        <Text style={styles.retryText}>Retry</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  if (loading && customers.length === 0 && !error) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={styles.loadingText}>Loading customers...</Text>
         </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error && customers.length === 0) {
+    return (
+      <SafeAreaView style={styles.container}>
+        {renderErrorComponent()}
       </SafeAreaView>
     );
   }
@@ -129,16 +186,16 @@ export default function MyCustomersScreen() {
         keyExtractor={(item) => item.customerId}
         renderItem={renderCustomerItem}
         contentContainerStyle={customers.length === 0 && styles.emptyContainer}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No customers found</Text>
-          </View>
+        ListEmptyComponent={renderEmptyComponent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={[Colors.primary]}
+            tintColor={Colors.primary}
+          />
         }
-        onEndReached={() => {
-          if (hasNextPage && !loading) {
-            fetchCustomers(currentPage + 1);
-          }
-        }}
+        onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
         ListFooterComponent={
           loading && customers.length > 0 ? (
@@ -149,6 +206,7 @@ export default function MyCustomersScreen() {
             />
           ) : null
         }
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
       />
     </SafeAreaView>
   );
@@ -164,27 +222,73 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    fontFamily: fonts.interMedium,
+    color: Colors.grey,
+  },
   emptyContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingVertical: 40,
+    paddingVertical: 60,
+    paddingHorizontal: 40,
+  },
+  emptyIcon: {
+    width: 80,
+    height: 80,
+    opacity: 0.5,
+    marginBottom: 16,
   },
   emptyText: {
     fontSize: 16,
+    fontFamily: fonts.interSemibold,
+    color: Colors.title,
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  emptySubText: {
+    fontSize: 14,
     fontFamily: fonts.interRegular,
     color: Colors.grey,
+    textAlign: "center",
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 40,
+  },
+  errorText: {
+    fontSize: 16,
+    fontFamily: fonts.interMedium,
+    color: Colors.red,
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryText: {
+    color: Colors.white,
+    fontSize: 14,
+    fontFamily: fonts.interSemibold,
   },
   customerRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 14,
+    paddingVertical: 16,
     paddingHorizontal: 16,
+    backgroundColor: Colors.white,
   },
   profileImage: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     marginRight: 14,
     backgroundColor: Colors.lightGrey,
   },
@@ -192,20 +296,34 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   name: {
-    fontSize: 14,
-    fontFamily: fonts.interMedium,
-    color: Colors.grey,
+    fontSize: 15,
+    fontFamily: fonts.interSemibold,
+    color: Colors.title,
+    marginBottom: 4,
   },
   startDate: {
     fontSize: 12,
-    color: Colors.lightGrey,
+    color: Colors.grey,
     fontFamily: fonts.interRegular,
-    marginTop: 2,
+  },
+  rightSection: {
+    alignItems: "flex-end",
   },
   subscription: {
     fontSize: 14,
-    fontFamily: fonts.interMedium,
+    fontFamily: fonts.interSemibold,
+    color: Colors.primary,
+    marginBottom: 4,
+  },
+  endDate: {
+    fontSize: 11,
+    fontFamily: fonts.interRegular,
     color: Colors.grey,
+  },
+  separator: {
+    height: 1,
+    backgroundColor: Colors.lightGrey,
+    marginHorizontal: 16,
   },
   footerLoader: {
     paddingVertical: 20,

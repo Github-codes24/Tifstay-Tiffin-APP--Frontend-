@@ -52,12 +52,10 @@ const AddNewHostelService1 = () => {
 
       setIsLoadingData(true);
       try {
-        console.log("📥 Loading page 2 data for ID:", hostelId);
         const response = await hostelApiService.getHostelServiceById(hostelId);
 
         if (response.success && response.data?.data) {
           const hostelData = response.data.data;
-          console.log("✅ Loaded page 2 data:", hostelData);
 
           setArea(hostelData.location?.area || "");
           setNearbyLandmarks(hostelData.location?.nearbyLandmarks || "");
@@ -87,13 +85,10 @@ const AddNewHostelService1 = () => {
             );
             setPhotos(existingPhotos);
           }
-
-          console.log("✅ Page 2 form populated successfully");
         } else {
           Alert.alert("Error", "Failed to load hostel data");
         }
       } catch (error) {
-        console.error("❌ Error loading page 2 data:", error);
         Alert.alert("Error", "Failed to load hostel data");
       } finally {
         setIsLoadingData(false);
@@ -202,16 +197,9 @@ const AddNewHostelService1 = () => {
         })),
       };
 
-      console.log("=== SUBMITTING DATA ===");
-      console.log("Mode:", isUpdatingHostel ? "UPDATE" : "CREATE");
-      console.log("Hostel ID:", hostelId);
-      console.log("Rooms Data:", JSON.stringify(roomsData, null, 2));
-
       const response = isUpdatingHostel
         ? await updateHostelService(hostelId, apiData)
         : await createHostelService(apiData);
-
-      console.log("✅ API Response:", response);
 
       if (response.success) {
         Alert.alert(
@@ -299,11 +287,9 @@ const AddNewHostelService1 = () => {
     }
   };
 
-  // ✅ ENHANCED: Remove hostel photo with server deletion
   const removePhoto = async (index: number) => {
     const photo = photos[index];
 
-    // If it's an existing photo and we're in edit mode
     if (photo.isExisting && isUpdatingHostel) {
       Alert.alert(
         "Delete Photo",
@@ -315,7 +301,6 @@ const AddNewHostelService1 = () => {
             style: "destructive",
             onPress: async () => {
               try {
-                // ✅ Call API to delete hostel photo
                 const response = await hostelApiService.deleteHostelPhotos(
                   hostelId,
                   [photo.uri]
@@ -339,7 +324,6 @@ const AddNewHostelService1 = () => {
         ]
       );
     } else {
-      // Just remove locally (new photo not yet uploaded)
       setPhotos(photos.filter((_, i) => i !== index));
     }
   };

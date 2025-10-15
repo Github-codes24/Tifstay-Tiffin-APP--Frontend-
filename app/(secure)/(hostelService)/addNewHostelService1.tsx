@@ -132,8 +132,6 @@ const AddNewHostelService1 = () => {
       };
       setFormPage2Data(page2Data);
 
-      console.log("Mode:", isUpdatingHostel ? "UPDATE" : "CREATE");
-
       // ✅ Prepare rooms data differently for CREATE vs UPDATE
       let roomsData;
       let roomPhotosForUpload: any = {};

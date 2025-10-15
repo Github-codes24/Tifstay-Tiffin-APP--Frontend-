@@ -1,9 +1,9 @@
 import { Colors } from "@/constants/Colors";
-import { IS_IOS } from "@/constants/Platform";
 import { fonts } from "@/constants/typography";
+import useAuthStore from "@/store/authStore";
 import useServiceStore from "@/store/serviceStore";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -17,139 +17,328 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import SelectionPopup from "./SelectionPopup";
 
-interface OfflineReason {
-  value: string;
-  label: string;
-}
-
-const OFFLINE_REASONS: OfflineReason[] = [
-  { value: "Emergency maintenance", label: "Emergency maintenance" },
-  { value: "Scheduled maintenance", label: "Scheduled maintenance" },
-  { value: "Vacation/Holiday", label: "Vacation/Holiday" },
-  { value: "Temporary closure", label: "Temporary closure" },
-  { value: "Inventory/Supply issues", label: "Inventory/Supply issues" },
-  { value: "Staff shortage", label: "Staff shortage" },
-  { value: "Other reason", label: "Other reason" },
-];
-
-const COMEBACK_OPTIONS = [
-  "30 minutes",
-  "2 hours",
-  "Tomorrow opening time",
-  "Until I turn myself on",
+const HOSTEL_TYPES = [
+  "All Types",
+  "Boys",
+  "Girls",
+  "Co-living",
+  "PG",
+  "Hostel",
 ];
 
 interface OfflineModalProps {
   visible: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  isTiffinProvider: boolean;
 }
 
 const OfflineModal: React.FC<OfflineModalProps> = ({
   visible,
   onClose,
   onSuccess,
-  isTiffinProvider,
 }) => {
+  const { userServiceType } = useAuthStore();
   const {
-    hostelServices,
+    hostelServicesList,
+    tiffinServices,
+    getHostelServicesList,
+    getAllTiffinServices,
     updateHostelServiceOfflineStatus,
     updateHostelServiceOnlineStatus,
+    getOfflineReasons,
+    getComebackOptions,
   } = useServiceStore();
 
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedFilter, setSelectedFilter] = useState<string>("All Types");
+  const [loading, setLoading] = useState(false);
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+
+  // API fetched data
+  const [offlineReasons, setOfflineReasons] = useState<any[]>([]);
+  const [comebackOptions, setComebackOptions] = useState<any[]>([]);
+
+  // Popup states
+  const [showReasonPopup, setShowReasonPopup] = useState(false);
+  const [showComebackPopup, setShowComebackPopup] = useState(false);
+  const [selectedServiceId, setSelectedServiceId] = useState<string>("");
+  const [selectedServiceName, setSelectedServiceName] = useState<string>("");
   const [selectedReason, setSelectedReason] = useState<string>("");
-  const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [selectedComebackOption, setSelectedComebackOption] =
     useState<string>("");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [loading, setLoading] = useState(false);
+
+  const insets = useSafeAreaInsets();
+
+  // Determine if tiffin provider
+  const isTiffinProvider = userServiceType === "tiffin_provider";
+
+  // Get the correct services list based on user type
+  const servicesList = isTiffinProvider ? tiffinServices : hostelServicesList;
+
+  useEffect(() => {
+    if (visible) {
+      fetchInitialData();
+    }
+  }, [visible, userServiceType]);
+
+  const fetchInitialData = async () => {
+    setLoading(true);
+    try {
+      if (isTiffinProvider) {
+        await Promise.all([
+          getAllTiffinServices(1, 100),
+          fetchOfflineReasons(),
+          fetchComebackOptions(),
+        ]);
+      } else {
+        await Promise.all([
+          getHostelServicesList(1, 100),
+          fetchOfflineReasons(),
+          fetchComebackOptions(),
+        ]);
+      }
+    } catch (error) {
+      console.error("Error fetching initial data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchOfflineReasons = async () => {
+    try {
+      const response = await getOfflineReasons("immediate");
+
+      if (response.success && response.data?.data?.reasons) {
+        const reasons = response.data.data.reasons;
+
+        const formattedReasons = reasons.map((reason: string) => ({
+          value: reason,
+          label: reason,
+          icon: getReasonIcon(reason),
+        }));
+
+        setOfflineReasons(formattedReasons);
+      } else {
+        console.warn("⚠️ Using fallback offline reasons");
+        setOfflineReasons([
+          {
+            value: "Emergency maintenance",
+            label: "Emergency maintenance",
+            icon: "warning",
+          },
+          {
+            value: "Scheduled maintenance",
+            label: "Scheduled maintenance",
+            icon: "calendar",
+          },
+          {
+            value: "Vacation/Holiday",
+            label: "Vacation/Holiday",
+            icon: "sunny",
+          },
+          {
+            value: "Temporary closure",
+            label: "Temporary closure",
+            icon: "close-circle",
+          },
+          { value: "Staff shortage", label: "Staff shortage", icon: "people" },
+          { value: "Other", label: "Other", icon: "ellipsis-horizontal" },
+        ]);
+      }
+    } catch (error) {
+      console.error("❌ Error fetching offline reasons:", error);
+      setOfflineReasons([
+        {
+          value: "Emergency maintenance",
+          label: "Emergency maintenance",
+          icon: "warning",
+        },
+        { value: "Vacation/Holiday", label: "Vacation/Holiday", icon: "sunny" },
+        { value: "Staff shortage", label: "Staff shortage", icon: "people" },
+        { value: "Other", label: "Other", icon: "ellipsis-horizontal" },
+      ]);
+    }
+  };
+
+  const fetchComebackOptions = async () => {
+    try {
+      const response = await getComebackOptions();
+
+      if (response.success && response.data?.data?.comebackOptions) {
+        const options = response.data.data.comebackOptions;
+
+        const formattedOptions = options.map((option: string) => ({
+          value: option,
+          label: option,
+          icon: getComebackIcon(option),
+        }));
+
+        setComebackOptions(formattedOptions);
+      } else {
+        console.warn("⚠️ Using fallback comeback options");
+        setComebackOptions([
+          { value: "30 minutes", label: "30 minutes", icon: "time-outline" },
+          { value: "2 hours", label: "2 hours", icon: "time-outline" },
+          {
+            value: "Until I turn myself on",
+            label: "Until I turn myself on",
+            icon: "power-outline",
+          },
+          {
+            value: "Tomorrow opening time",
+            label: "Tomorrow opening time",
+            icon: "sunny-outline",
+          },
+        ]);
+      }
+    } catch (error) {
+      console.error("❌ Error fetching comeback options:", error);
+      setComebackOptions([
+        { value: "30 minutes", label: "30 minutes", icon: "time-outline" },
+        { value: "2 hours", label: "2 hours", icon: "time-outline" },
+        {
+          value: "Until I turn myself on",
+          label: "Until I turn myself on",
+          icon: "power-outline",
+        },
+      ]);
+    }
+  };
+
+  const getReasonIcon = (reason: string): string => {
+    const iconMap: { [key: string]: string } = {
+      "Emergency maintenance": "warning",
+      "Scheduled maintenance": "calendar",
+      "Vacation/Holiday": "sunny",
+      "Festival / Holiday": "sunny",
+      "Temporary closure": "close-circle",
+      "Inventory/Supply issues": "cube",
+      "Staff shortage": "people",
+      "Kitchen closed today": "restaurant",
+      "Delivery staff not available": "bicycle",
+      "Near closing time": "time",
+      "Renovation/Relocation": "construct",
+      "permanently shut": "ban",
+      "Going out of station": "airplane",
+      Other: "ellipsis-horizontal",
+    };
+    return iconMap[reason] || "information-circle";
+  };
+
+  const getComebackIcon = (option: string): string => {
+    const iconMap: { [key: string]: string } = {
+      "30 minutes": "time-outline",
+      "2 hours": "time-outline",
+      "Tomorrow opening time": "sunny-outline",
+      "Until I turn myself on": "power-outline",
+    };
+    return iconMap[option] || "time-outline";
+  };
+
+  // Get service name based on type
+  const getServiceName = (service: any) => {
+    return isTiffinProvider ? service.tiffinName : service.hostelName;
+  };
+
+  // Get service type (only for hostel)
+  const getServiceType = (service: any) => {
+    return isTiffinProvider
+      ? "Tiffin Service"
+      : service.hostelType || "Not specified";
+  };
 
   // Separate online and offline services
   const onlineServices =
-    hostelServices?.filter((service) => service.isAvailable === true) || [];
+    servicesList?.filter((service: any) => !service.isOffline) || [];
   const offlineServices =
-    hostelServices?.filter((service) => service.isAvailable === false) || [];
+    servicesList?.filter((service: any) => service.isOffline === true) || [];
 
-  // Filter online services
-  const filteredOnlineServices = onlineServices.filter((service) =>
-    service.hostelName?.toLowerCase().includes(searchQuery.toLowerCase())
+  // Apply search filter
+  const searchFilteredOnlineServices = onlineServices.filter((service: any) =>
+    getServiceName(service)?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Filter offline services
-  const filteredOfflineServices = offlineServices.filter((service) =>
-    service.hostelName?.toLowerCase().includes(searchQuery.toLowerCase())
+  const searchFilteredOfflineServices = offlineServices.filter((service: any) =>
+    getServiceName(service)?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleServiceToggle = useCallback((serviceId: string) => {
-    setSelectedServices((prev) =>
-      prev.includes(serviceId)
-        ? prev.filter((id) => id !== serviceId)
-        : [...prev, serviceId]
-    );
-  }, []);
+  // Apply type filter (only for hostel services)
+  const filteredOnlineServices = isTiffinProvider
+    ? searchFilteredOnlineServices
+    : selectedFilter === "All Types"
+    ? searchFilteredOnlineServices
+    : searchFilteredOnlineServices.filter(
+        (service: any) => service.hostelType === selectedFilter
+      );
 
-  const handleSelectAll = useCallback(() => {
-    if (selectedServices.length === filteredOnlineServices.length) {
-      setSelectedServices([]);
-    } else {
-      setSelectedServices(filteredOnlineServices.map((s) => s._id));
-    }
-  }, [selectedServices, filteredOnlineServices]);
+  const filteredOfflineServices = isTiffinProvider
+    ? searchFilteredOfflineServices
+    : selectedFilter === "All Types"
+    ? searchFilteredOfflineServices
+    : searchFilteredOfflineServices.filter(
+        (service: any) => service.hostelType === selectedFilter
+      );
 
-  const mapOfflineType = (option: string): "immediate" | "scheduled" => {
-    return option === "Until I turn myself on" ? "scheduled" : "immediate";
-  };
+  // Handle service click - open reason popup
+  const handleServiceClick = useCallback(
+    (serviceId: string, serviceName: string) => {
+      setSelectedServiceId(serviceId);
+      setSelectedServiceName(serviceName);
+      setSelectedReason("");
+      setSelectedComebackOption("");
+      setShowReasonPopup(true);
+    },
+    []
+  );
 
-  const handleContinue = async () => {
-    // Validation
+  // Handle reason continue
+  const handleReasonContinue = useCallback(() => {
     if (!selectedReason) {
-      Alert.alert("Error", "Please select a reason for going offline");
+      Alert.alert("Error", "Please select a reason");
       return;
     }
+    setShowReasonPopup(false);
+    setShowComebackPopup(true);
+  }, [selectedReason]);
 
-    if (selectedServices.length === 0) {
-      Alert.alert("Error", "Please select at least one service");
-      return;
-    }
-
+  // Handle comeback selection and API call
+  const handleComebackContinue = useCallback(async () => {
     if (!selectedComebackOption) {
       Alert.alert("Error", "Please select when you'll be back");
       return;
     }
 
+    setShowComebackPopup(false);
     setLoading(true);
 
     try {
-      const offlineType = mapOfflineType(selectedComebackOption);
+      const offlineType: "immediate" | "scheduled" =
+        selectedComebackOption === "Until I turn myself on"
+          ? "scheduled"
+          : "immediate";
 
       const payload = {
-        hostelServiceIds: selectedServices,
+        hostelServiceIds: [selectedServiceId], // Store handles the naming internally
         offlineType,
         reason: selectedReason,
         comeBackOption: selectedComebackOption,
       };
 
-      console.log("📤 Sending offline request:", payload);
-
       const response = await updateHostelServiceOfflineStatus(payload);
 
       if (response.success) {
-        Alert.alert(
-          "Success",
-          `${selectedServices.length} service(s) updated to offline status`,
-          [
-            {
-              text: "OK",
-              onPress: () => {
-                resetModal();
-                onSuccess();
-              },
+        Alert.alert("Success", `"${selectedServiceName}" is now offline`, [
+          {
+            text: "OK",
+            onPress: () => {
+              fetchInitialData();
+              onSuccess();
             },
-          ]
-        );
+          },
+        ]);
       } else {
         throw new Error(response.error || "Failed to update offline status");
       }
@@ -161,8 +350,14 @@ const OfflineModal: React.FC<OfflineModalProps> = ({
       );
     } finally {
       setLoading(false);
+      resetSelection();
     }
-  };
+  }, [
+    selectedServiceId,
+    selectedServiceName,
+    selectedReason,
+    selectedComebackOption,
+  ]);
 
   const handleBringOnline = async (serviceId: string, serviceName: string) => {
     Alert.alert(
@@ -188,6 +383,7 @@ const OfflineModal: React.FC<OfflineModalProps> = ({
                   {
                     text: "OK",
                     onPress: () => {
+                      fetchInitialData();
                       onSuccess();
                     },
                   },
@@ -213,11 +409,17 @@ const OfflineModal: React.FC<OfflineModalProps> = ({
     );
   };
 
-  const resetModal = () => {
+  const resetSelection = () => {
+    setSelectedServiceId("");
+    setSelectedServiceName("");
     setSelectedReason("");
-    setSelectedServices([]);
     setSelectedComebackOption("");
+  };
+
+  const resetModal = () => {
     setSearchQuery("");
+    setSelectedFilter("All Types");
+    resetSelection();
   };
 
   const handleClose = () => {
@@ -227,104 +429,89 @@ const OfflineModal: React.FC<OfflineModalProps> = ({
     }
   };
 
-  const formatDate = (dateString: string) => {
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    } catch {
-      return "N/A";
-    }
-  };
-
   const renderOnlineServiceItem = ({ item }: { item: any }) => {
-    const isSelected = selectedServices.includes(item._id);
+    const serviceName = getServiceName(item);
+    const serviceType = getServiceType(item);
 
     return (
       <TouchableOpacity
-        style={[styles.serviceItem, isSelected && styles.serviceItemSelected]}
-        onPress={() => handleServiceToggle(item._id)}
+        style={styles.serviceCard}
+        onPress={() => handleServiceClick(item._id, serviceName)}
         disabled={loading}
         activeOpacity={0.7}
       >
-        <View style={styles.serviceInfo}>
-          <Text style={styles.serviceName}>{item.hostelName}</Text>
-          <Text style={styles.serviceType}>{item.hostelType}</Text>
+        <View style={styles.serviceCardHeader}>
+          <View style={styles.onlineIndicator} />
+          <Text style={styles.serviceCardName} numberOfLines={1}>
+            {serviceName}
+          </Text>
         </View>
-        <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
-          {isSelected && (
-            <Ionicons name="checkmark" size={16} color={Colors.white} />
-          )}
+        <Text style={styles.serviceCardType}>{serviceType}</Text>
+        <View style={styles.serviceCardFooter}>
+          <View style={styles.statusBadge}>
+            <Ionicons name="checkmark-circle" size={14} color={Colors.green} />
+            <Text style={styles.statusBadgeText}>Online</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
         </View>
       </TouchableOpacity>
     );
   };
 
   const renderOfflineServiceItem = ({ item }: { item: any }) => {
+    const serviceName = getServiceName(item);
+    const serviceType = getServiceType(item);
+
     return (
-      <View style={styles.offlineServiceItem}>
-        <View style={styles.offlineServiceHeader}>
-          <View style={styles.serviceInfo}>
-            <View style={styles.offlineServiceNameRow}>
-              <Text style={styles.serviceName}>{item.hostelName}</Text>
-              <View style={styles.offlineBadge}>
-                <Text style={styles.offlineBadgeText}>Offline</Text>
-              </View>
-            </View>
-            <Text style={styles.serviceType}>{item.hostelType}</Text>
+      <View style={styles.offlineServiceCard}>
+        <View style={styles.serviceCardHeader}>
+          <View style={styles.offlineIndicator} />
+          <Text style={styles.serviceCardName} numberOfLines={1}>
+            {serviceName}
+          </Text>
+          <View style={styles.offlineBadge}>
+            <Text style={styles.offlineBadgeText}>Offline</Text>
           </View>
         </View>
+        <Text style={styles.serviceCardType}>{serviceType}</Text>
 
         {/* Offline Details */}
-        {item.offlineDetails && (
-          <View style={styles.offlineDetails}>
-            {item.offlineDetails.reason && (
-              <View style={styles.offlineDetailRow}>
-                <Ionicons
-                  name="information-circle-outline"
-                  size={14}
-                  color={Colors.orange}
-                />
-                <Text style={styles.offlineDetailText}>
-                  {item.offlineDetails.reason}
-                </Text>
-              </View>
-            )}
-            {item.offlineDetails.comeBackOption && (
-              <View style={styles.offlineDetailRow}>
-                <Ionicons name="time-outline" size={14} color={Colors.grey} />
-                <Text style={styles.offlineDetailText}>
-                  Back in: {item.offlineDetails.comeBackOption}
-                </Text>
-              </View>
-            )}
-            {item.offlineDetails.offlineAt && (
-              <View style={styles.offlineDetailRow}>
-                <Ionicons
-                  name="calendar-outline"
-                  size={14}
-                  color={Colors.grey}
-                />
-                <Text style={styles.offlineDetailText}>
-                  Since: {formatDate(item.offlineDetails.offlineAt)}
-                </Text>
-              </View>
-            )}
-          </View>
-        )}
+        <View style={styles.offlineDetailsCard}>
+          {item.reason && (
+            <View style={styles.offlineDetailRow}>
+              <Ionicons
+                name="information-circle"
+                size={16}
+                color={Colors.orange}
+              />
+              <Text style={styles.offlineDetailLabel}>Reason:</Text>
+              <Text style={styles.offlineDetailValue}>{item.reason}</Text>
+            </View>
+          )}
+          {item.offlineAt && (
+            <View style={styles.offlineDetailRow}>
+              <Ionicons name="calendar" size={16} color={Colors.grey} />
+              <Text style={styles.offlineDetailLabel}>Since:</Text>
+              <Text style={styles.offlineDetailValue}>{item.offlineAt}</Text>
+            </View>
+          )}
+          {item.comeBackAt && (
+            <View style={styles.offlineDetailRow}>
+              <Ionicons name="time" size={16} color={Colors.primary} />
+              <Text style={styles.offlineDetailLabel}>Back at:</Text>
+              <Text style={styles.offlineDetailValue}>{item.comeBackAt}</Text>
+            </View>
+          )}
+        </View>
 
         {/* Bring Online Button */}
         <TouchableOpacity
           style={styles.bringOnlineButton}
-          onPress={() => handleBringOnline(item._id, item.hostelName)}
+          onPress={() => handleBringOnline(item._id, serviceName)}
           disabled={loading}
           activeOpacity={0.7}
         >
-          <Ionicons name="play-circle" size={18} color={Colors.green} />
+          <Ionicons name="play-circle" size={20} color={Colors.white} />
           <Text style={styles.bringOnlineButtonText}>Bring Online</Text>
         </TouchableOpacity>
       </View>
@@ -339,10 +526,7 @@ const OfflineModal: React.FC<OfflineModalProps> = ({
       onRequestClose={handleClose}
       statusBarTranslucent={false}
     >
-      <SafeAreaView
-        style={styles.fullScreenContainer}
-        edges={["top", "left", "right"]}
-      >
+      <View style={[styles.fullScreenContainer, { paddingTop: insets.top }]}>
         <StatusBar barStyle="dark-content" />
 
         {/* Header */}
@@ -352,257 +536,279 @@ const OfflineModal: React.FC<OfflineModalProps> = ({
             disabled={loading}
             style={styles.closeButton}
             activeOpacity={0.7}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Ionicons name="close" size={28} color={Colors.title} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Manage Services</Text>
+          <Text style={styles.headerTitle}>
+            {isTiffinProvider
+              ? "Manage Tiffin Services"
+              : "Manage Hostel Services"}
+          </Text>
           <View style={{ width: 28 }} />
         </View>
 
-        {/* Scrollable Content */}
-        <FlatList
-          data={[{ key: "content" }]}
-          renderItem={() => (
-            <View style={styles.content}>
-              {/* Subtitle */}
-              <Text style={styles.subtitle}>
-                Select online services to take offline or bring offline services
-                back online
-              </Text>
+        {/* Main Content */}
+        <View style={styles.mainContent}>
+          {/* Search Bar */}
+          <View style={styles.searchSection}>
+            <View style={styles.searchContainer}>
+              <Ionicons name="search-outline" size={20} color={Colors.grey} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search by service name..."
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholderTextColor={Colors.grey}
+                editable={!loading}
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity
+                  onPress={() => setSearchQuery("")}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="close-circle" size={20} color={Colors.grey} />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
 
-              {/* Search Bar */}
-              <View style={styles.section}>
-                <Text style={styles.sectionLabel}>Search Services</Text>
-                <View style={styles.searchContainer}>
-                  <Ionicons
-                    name="search-outline"
-                    size={20}
-                    color={Colors.grey}
-                    style={styles.searchIcon}
-                  />
-                  <TextInput
-                    style={styles.searchInput}
-                    placeholder="Search by service name..."
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
-                    placeholderTextColor={Colors.grey}
-                    editable={!loading}
-                  />
-                  {searchQuery.length > 0 && (
+          {/* Filter Dropdown - Only show for hostel services */}
+          {!isTiffinProvider && (
+            <View style={styles.filterSection}>
+              <TouchableOpacity
+                style={styles.filterButton}
+                onPress={() => setShowFilterDropdown(!showFilterDropdown)}
+                disabled={loading}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="filter" size={20} color={Colors.primary} />
+                <Text style={styles.filterButtonText}>{selectedFilter}</Text>
+                <Ionicons
+                  name={showFilterDropdown ? "chevron-up" : "chevron-down"}
+                  size={20}
+                  color={Colors.grey}
+                />
+              </TouchableOpacity>
+
+              {showFilterDropdown && (
+                <View style={styles.filterDropdown}>
+                  {HOSTEL_TYPES.map((type) => (
                     <TouchableOpacity
-                      onPress={() => setSearchQuery("")}
+                      key={type}
+                      style={[
+                        styles.filterOption,
+                        selectedFilter === type && styles.filterOptionSelected,
+                      ]}
+                      onPress={() => {
+                        setSelectedFilter(type);
+                        setShowFilterDropdown(false);
+                      }}
                       activeOpacity={0.7}
                     >
-                      <Ionicons
-                        name="close-circle"
-                        size={20}
-                        color={Colors.grey}
-                      />
-                    </TouchableOpacity>
-                  )}
-                </View>
-              </View>
-
-              {/* Online Services Section */}
-              {filteredOnlineServices.length > 0 && (
-                <>
-                  {/* Reason Selection */}
-                  <View style={styles.section}>
-                    <Text style={styles.sectionLabel}>
-                      Why are you going offline?{" "}
-                      <Text style={styles.required}>*</Text>
-                    </Text>
-                    <View style={styles.reasonContainer}>
-                      {OFFLINE_REASONS.map((reason) => (
-                        <TouchableOpacity
-                          key={reason.value}
-                          style={[
-                            styles.reasonChip,
-                            selectedReason === reason.value &&
-                              styles.reasonChipSelected,
-                          ]}
-                          onPress={() => setSelectedReason(reason.value)}
-                          disabled={loading}
-                          activeOpacity={0.7}
-                        >
-                          <Text
-                            style={[
-                              styles.reasonChipText,
-                              selectedReason === reason.value &&
-                                styles.reasonChipTextSelected,
-                            ]}
-                          >
-                            {reason.label}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </View>
-
-                  {/* Online Service Selection */}
-                  <View style={styles.section}>
-                    <View style={styles.selectAllContainer}>
-                      <Text style={styles.sectionLabel}>
-                        Select Online Services{" "}
-                        <Text style={styles.required}>*</Text>
-                      </Text>
-                      <TouchableOpacity
-                        onPress={handleSelectAll}
-                        disabled={loading}
-                        activeOpacity={0.7}
+                      <Text
+                        style={[
+                          styles.filterOptionText,
+                          selectedFilter === type &&
+                            styles.filterOptionTextSelected,
+                        ]}
                       >
-                        <Text style={styles.selectAllText}>
-                          {selectedServices.length ===
-                          filteredOnlineServices.length
-                            ? "Deselect All"
-                            : "Select All"}
+                        {type}
+                      </Text>
+                      {selectedFilter === type && (
+                        <Ionicons
+                          name="checkmark"
+                          size={20}
+                          color={Colors.primary}
+                        />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
+          )}
+
+          {/* Services List */}
+          <FlatList
+            data={[{ key: "content" }]}
+            renderItem={() => (
+              <View style={styles.contentContainer}>
+                {/* Online Services */}
+                {filteredOnlineServices.length > 0 && (
+                  <View style={styles.servicesSection}>
+                    <View style={styles.sectionHeader}>
+                      <View style={styles.sectionHeaderLeft}>
+                        <View style={styles.sectionIconCircle}>
+                          <Ionicons
+                            name="power"
+                            size={18}
+                            color={Colors.green}
+                          />
+                        </View>
+                        <Text style={styles.sectionTitle}>Online Services</Text>
+                      </View>
+                      <View style={styles.countBadge}>
+                        <Text style={styles.countBadgeText}>
+                          {filteredOnlineServices.length}
                         </Text>
-                      </TouchableOpacity>
+                      </View>
                     </View>
 
-                    <View style={styles.serviceListContainer}>
-                      {filteredOnlineServices.map((service) => (
+                    <View style={styles.servicesGrid}>
+                      {filteredOnlineServices.map((service: any) => (
                         <View key={service._id}>
                           {renderOnlineServiceItem({ item: service })}
                         </View>
                       ))}
                     </View>
-
-                    {selectedServices.length > 0 && (
-                      <View style={styles.selectedCount}>
-                        <Text style={styles.selectedCountText}>
-                          {selectedServices.length} service
-                          {selectedServices.length !== 1 ? "s" : ""} selected
-                        </Text>
-                      </View>
-                    )}
                   </View>
+                )}
 
-                  {/* Comeback Options */}
-                  <View style={styles.section}>
-                    <Text style={styles.sectionLabel}>
-                      When will you be back?{" "}
-                      <Text style={styles.required}>*</Text>
-                    </Text>
-                    <View style={styles.comebackContainer}>
-                      {COMEBACK_OPTIONS.map((option) => (
-                        <TouchableOpacity
-                          key={option}
+                {/* Offline Services */}
+                {filteredOfflineServices.length > 0 && (
+                  <View style={styles.servicesSection}>
+                    <View style={styles.sectionHeader}>
+                      <View style={styles.sectionHeaderLeft}>
+                        <View
                           style={[
-                            styles.comebackChip,
-                            selectedComebackOption === option &&
-                              styles.comebackChipSelected,
+                            styles.sectionIconCircle,
+                            styles.sectionIconCircleRed,
                           ]}
-                          onPress={() => setSelectedComebackOption(option)}
-                          disabled={loading}
-                          activeOpacity={0.7}
                         >
                           <Ionicons
-                            name={
-                              option === "30 minutes" || option === "2 hours"
-                                ? "time-outline"
-                                : option === "Tomorrow opening time"
-                                ? "sunny-outline"
-                                : "power-outline"
-                            }
-                            size={20}
-                            color={
-                              selectedComebackOption === option
-                                ? Colors.white
-                                : Colors.primary
-                            }
+                            name="pause-circle"
+                            size={18}
+                            color={Colors.red}
                           />
-                          <Text
-                            style={[
-                              styles.comebackChipText,
-                              selectedComebackOption === option &&
-                                styles.comebackChipTextSelected,
-                            ]}
-                          >
-                            {option}
-                          </Text>
-                        </TouchableOpacity>
+                        </View>
+                        <Text
+                          style={[styles.sectionTitle, styles.sectionTitleRed]}
+                        >
+                          Offline Services
+                        </Text>
+                      </View>
+                      <View style={[styles.countBadge, styles.countBadgeRed]}>
+                        <Text
+                          style={[
+                            styles.countBadgeText,
+                            styles.countBadgeTextRed,
+                          ]}
+                        >
+                          {filteredOfflineServices.length}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.servicesGrid}>
+                      {filteredOfflineServices.map((service: any) => (
+                        <View key={service._id}>
+                          {renderOfflineServiceItem({ item: service })}
+                        </View>
                       ))}
                     </View>
                   </View>
-                </>
-              )}
+                )}
 
-              {/* Offline Services Section */}
-              {filteredOfflineServices.length > 0 && (
-                <View style={styles.section}>
-                  <View style={styles.offlineServicesHeader}>
-                    <Ionicons
-                      name="pause-circle"
-                      size={20}
-                      color={Colors.red}
-                    />
-                    <Text style={styles.offlineServicesTitle}>
-                      Currently Offline Services
-                    </Text>
-                    <View style={styles.offlineCountBadge}>
-                      <Text style={styles.offlineCountText}>
-                        {filteredOfflineServices.length}
+                {/* Empty State */}
+                {filteredOnlineServices.length === 0 &&
+                  filteredOfflineServices.length === 0 && (
+                    <View style={styles.emptyContainer}>
+                      <View style={styles.emptyIconCircle}>
+                        <Ionicons
+                          name="search-outline"
+                          size={48}
+                          color={Colors.grey}
+                        />
+                      </View>
+                      <Text style={styles.emptyTitle}>No services found</Text>
+                      <Text style={styles.emptySubtitle}>
+                        Try adjusting your search or filter criteria
                       </Text>
                     </View>
-                  </View>
+                  )}
+              </View>
+            )}
+            keyExtractor={(item) => item.key}
+            showsVerticalScrollIndicator={false}
+          />
+        </View>
 
-                  <View style={styles.offlineServiceListContainer}>
-                    {filteredOfflineServices.map((service) => (
-                      <View key={service._id}>
-                        {renderOfflineServiceItem({ item: service })}
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              )}
-
-              {/* Empty State */}
-              {filteredOnlineServices.length === 0 &&
-                filteredOfflineServices.length === 0 && (
-                  <View style={styles.emptyContainer}>
-                    <Ionicons
-                      name="information-circle-outline"
-                      size={48}
-                      color={Colors.grey}
-                    />
-                    <Text style={styles.emptyText}>No services found</Text>
-                  </View>
-                )}
+        {/* Loading Overlay */}
+        {loading && (
+          <View style={styles.loadingOverlay}>
+            <View style={styles.loadingCard}>
+              <ActivityIndicator size="large" color={Colors.primary} />
+              <Text style={styles.loadingText}>Processing...</Text>
             </View>
-          )}
-          keyExtractor={(item) => item.key}
-          showsVerticalScrollIndicator={false}
-        />
-
-        {/* Fixed Footer - Only show if there are online services */}
-        {filteredOnlineServices.length > 0 && (
-          <View style={styles.footer}>
-            <TouchableOpacity
-              style={[styles.continueButton, loading && styles.buttonDisabled]}
-              onPress={handleContinue}
-              disabled={loading}
-              activeOpacity={0.8}
-            >
-              {loading ? (
-                <ActivityIndicator color={Colors.white} />
-              ) : (
-                <>
-                  <Text style={styles.continueButtonText}>
-                    Continue & Go Offline
-                  </Text>
-                  <Ionicons
-                    name="arrow-forward"
-                    size={20}
-                    color={Colors.white}
-                  />
-                </>
-              )}
-            </TouchableOpacity>
           </View>
         )}
-      </SafeAreaView>
+      </View>
+
+      {/* Reason Selection Popup */}
+      <SelectionPopup
+        visible={showReasonPopup}
+        title="Reason for going offline"
+        subtitle={`Why is "${selectedServiceName}" going offline?`}
+        options={
+          offlineReasons.length > 0
+            ? offlineReasons
+            : [
+                {
+                  value: "Emergency maintenance",
+                  label: "Emergency maintenance",
+                  icon: "warning",
+                },
+                {
+                  value: "Vacation/Holiday",
+                  label: "Vacation/Holiday",
+                  icon: "sunny",
+                },
+                {
+                  value: "Staff shortage",
+                  label: "Staff shortage",
+                  icon: "people",
+                },
+                { value: "Other", label: "Other", icon: "ellipsis-horizontal" },
+              ]
+        }
+        selectedValue={selectedReason}
+        onSelect={setSelectedReason}
+        onBack={() => setShowReasonPopup(false)}
+        onContinue={handleReasonContinue}
+        continueText="Continue"
+      />
+
+      {/* Comeback Time Selection Popup */}
+      <SelectionPopup
+        visible={showComebackPopup}
+        title="When would you come back?"
+        subtitle={`Select when "${selectedServiceName}" will be back online`}
+        options={
+          comebackOptions.length > 0
+            ? comebackOptions
+            : [
+                {
+                  value: "30 minutes",
+                  label: "30 minutes",
+                  icon: "time-outline",
+                },
+                { value: "2 hours", label: "2 hours", icon: "time-outline" },
+                {
+                  value: "Until I turn myself on",
+                  label: "Until I turn myself on",
+                  icon: "power-outline",
+                },
+              ]
+        }
+        selectedValue={selectedComebackOption}
+        onSelect={setSelectedComebackOption}
+        onBack={() => {
+          setShowComebackPopup(false);
+          setShowReasonPopup(true);
+        }}
+        onContinue={handleComebackContinue}
+        continueText="Go Offline"
+      />
     </Modal>
   );
 };
@@ -610,87 +816,54 @@ const OfflineModal: React.FC<OfflineModalProps> = ({
 const styles = StyleSheet.create({
   fullScreenContainer: {
     flex: 1,
-    backgroundColor: Colors.white,
-    paddingBottom: IS_IOS ? 120 : 20,
-    paddingTop: 2,
+    backgroundColor: "#F8F9FA",
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
+    paddingVertical: 16,
     backgroundColor: Colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   closeButton: {
-    paddingTop: 20,
+    padding: 4,
   },
   headerTitle: {
     fontSize: 20,
     fontFamily: fonts.interSemibold,
     color: Colors.title,
   },
-  content: {
+  mainContent: {
     flex: 1,
+  },
+  searchSection: {
     paddingHorizontal: 20,
     paddingTop: 20,
-    paddingBottom: 100,
-  },
-  subtitle: {
-    fontSize: 14,
-    fontFamily: fonts.interRegular,
-    color: Colors.grey,
-    marginBottom: 24,
-    lineHeight: 20,
-  },
-  section: {
-    marginBottom: 28,
-  },
-  sectionLabel: {
-    fontSize: 15,
-    fontFamily: fonts.interSemibold,
-    color: Colors.title,
-    marginBottom: 12,
-  },
-  required: {
-    color: Colors.red,
-  },
-  reasonContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-  },
-  reasonChip: {
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    borderRadius: 24,
+    paddingBottom: 12,
     backgroundColor: Colors.white,
-    borderWidth: 1.5,
-    borderColor: Colors.lightGrey,
-  },
-  reasonChipSelected: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  reasonChipText: {
-    fontSize: 14,
-    fontFamily: fonts.interMedium,
-    color: Colors.title,
-  },
-  reasonChipTextSelected: {
-    color: Colors.white,
   },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F5F5F5",
+    backgroundColor: "#F3F4F6",
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.lightGrey,
     paddingHorizontal: 16,
     paddingVertical: 12,
-  },
-  searchIcon: {
-    marginRight: 12,
+    gap: 12,
   },
   searchInput: {
     flex: 1,
@@ -698,238 +871,312 @@ const styles = StyleSheet.create({
     fontFamily: fonts.interRegular,
     color: Colors.title,
   },
-  selectAllContainer: {
+  filterSection: {
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    backgroundColor: Colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+  },
+  filterButton: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
-  },
-  selectAllText: {
-    fontSize: 14,
-    fontFamily: fonts.interSemibold,
-    color: Colors.primary,
-  },
-  serviceListContainer: {
+    justifyContent: "space-between",
+    backgroundColor: Colors.white,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: "#E5E7EB",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     gap: 10,
   },
-  serviceItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: Colors.lightGrey,
-    backgroundColor: Colors.white,
+  filterButtonText: {
+    flex: 1,
+    fontSize: 15,
+    fontFamily: fonts.interMedium,
+    color: Colors.title,
   },
-  serviceItemSelected: {
-    borderColor: Colors.primary,
+  filterDropdown: {
+    marginTop: 8,
+    backgroundColor: Colors.white,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    overflow: "hidden",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  filterOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+  },
+  filterOptionSelected: {
     backgroundColor: "#F0F7FF",
   },
-  serviceInfo: {
-    flex: 1,
-  },
-  serviceName: {
+  filterOptionText: {
     fontSize: 15,
+    fontFamily: fonts.interMedium,
+    color: Colors.title,
+  },
+  filterOptionTextSelected: {
+    color: Colors.primary,
     fontFamily: fonts.interSemibold,
-    color: Colors.title,
-    marginBottom: 4,
   },
-  serviceType: {
-    fontSize: 13,
-    fontFamily: fonts.interRegular,
-    color: Colors.grey,
-  },
-  checkbox: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: Colors.lightGrey,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  checkboxSelected: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  selectedCount: {
-    marginTop: 12,
-    padding: 12,
-    backgroundColor: "#E8F5E9",
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  selectedCountText: {
-    fontSize: 14,
-    fontFamily: fonts.interMedium,
-    color: Colors.green,
-  },
-  emptyContainer: {
-    paddingVertical: 60,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  emptyText: {
-    fontSize: 15,
-    fontFamily: fonts.interRegular,
-    color: Colors.grey,
-    marginTop: 12,
-  },
-  comebackContainer: {
-    gap: 12,
-  },
-  comebackChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
+  contentContainer: {
+    flex: 1,
     paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderRadius: 12,
-    backgroundColor: Colors.white,
-    borderWidth: 1.5,
-    borderColor: Colors.lightGrey,
+    paddingTop: 20,
+    paddingBottom: 40,
   },
-  comebackChipSelected: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+  servicesSection: {
+    marginBottom: 32,
   },
-  comebackChipText: {
-    fontSize: 15,
-    fontFamily: fonts.interMedium,
-    color: Colors.title,
-  },
-  comebackChipTextSelected: {
-    color: Colors.white,
-  },
-
-  // Offline Services Styles
-  offlineServicesHeader: {
+  sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    justifyContent: "space-between",
     marginBottom: 16,
   },
-  offlineServicesTitle: {
-    fontSize: 15,
-    fontFamily: fonts.interSemibold,
-    color: Colors.red,
-    flex: 1,
+  sectionHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
   },
-  offlineCountBadge: {
+  sectionIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#E8F5E9",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sectionIconCircleRed: {
     backgroundColor: "#FFE5E5",
-    paddingHorizontal: 10,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontFamily: fonts.interSemibold,
+    color: Colors.green,
+  },
+  sectionTitleRed: {
+    color: Colors.red,
+  },
+  countBadge: {
+    backgroundColor: "#E8F5E9",
+    paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
   },
-  offlineCountText: {
-    fontSize: 12,
+  countBadgeRed: {
+    backgroundColor: "#FFE5E5",
+  },
+  countBadgeText: {
+    fontSize: 13,
     fontFamily: fonts.interSemibold,
+    color: Colors.green,
+  },
+  countBadgeTextRed: {
     color: Colors.red,
   },
-  offlineServiceListContainer: {
+  servicesGrid: {
     gap: 12,
   },
-  offlineServiceItem: {
+  serviceCard: {
+    backgroundColor: Colors.white,
+    borderRadius: 16,
     padding: 16,
-    borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: "#FFE5E5",
-    backgroundColor: "#FFF9F9",
+    borderColor: "#E5E7EB",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
-  offlineServiceHeader: {
-    marginBottom: 12,
-  },
-  offlineServiceNameRow: {
+  serviceCardHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    marginBottom: 4,
+    marginBottom: 8,
+    gap: 10,
+  },
+  onlineIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.green,
+  },
+  offlineIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.red,
+  },
+  serviceCardName: {
+    flex: 1,
+    fontSize: 16,
+    fontFamily: fonts.interSemibold,
+    color: Colors.title,
   },
   offlineBadge: {
     backgroundColor: Colors.red,
     paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 8,
+    borderRadius: 6,
   },
   offlineBadgeText: {
-    fontSize: 10,
+    fontSize: 11,
     fontFamily: fonts.interSemibold,
     color: Colors.white,
   },
-  offlineDetails: {
-    backgroundColor: Colors.white,
-    borderRadius: 8,
-    padding: 12,
-    gap: 8,
+  serviceCardType: {
+    fontSize: 14,
+    fontFamily: fonts.interRegular,
+    color: Colors.grey,
     marginBottom: 12,
+  },
+  serviceCardFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  statusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#E8F5E9",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  statusBadgeText: {
+    fontSize: 12,
+    fontFamily: fonts.interSemibold,
+    color: Colors.green,
+  },
+  offlineServiceCard: {
+    backgroundColor: "#FFF9F9",
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1.5,
+    borderColor: "#FFE5E5",
+  },
+  offlineDetailsCard: {
+    backgroundColor: Colors.white,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+    gap: 10,
   },
   offlineDetailRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 8,
   },
-  offlineDetailText: {
-    fontSize: 12,
+  offlineDetailLabel: {
+    fontSize: 13,
     fontFamily: fonts.interMedium,
     color: Colors.grey,
+    minWidth: 60,
+  },
+  offlineDetailValue: {
     flex: 1,
+    fontSize: 13,
+    fontFamily: fonts.interSemibold,
+    color: Colors.title,
   },
   bringOnlineButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: Colors.white,
-    borderWidth: 1.5,
-    borderColor: Colors.green,
-    borderRadius: 10,
-    paddingVertical: 12,
+    backgroundColor: Colors.green,
+    borderRadius: 12,
+    paddingVertical: 14,
   },
   bringOnlineButtonText: {
-    fontSize: 14,
+    fontSize: 15,
     fontFamily: fonts.interSemibold,
-    color: Colors.green,
+    color: Colors.white,
   },
-
-  footer: {
+  emptyContainer: {
+    paddingVertical: 80,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyIconCircle: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "#F3F4F6",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 20,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontFamily: fonts.interSemibold,
+    color: Colors.title,
+    marginBottom: 8,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    fontFamily: fonts.interRegular,
+    color: Colors.grey,
+    textAlign: "center",
+  },
+  loadingOverlay: {
     position: "absolute",
-    bottom: 0,
+    top: 0,
     left: 0,
     right: 0,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 999,
+  },
+  loadingCard: {
     backgroundColor: Colors.white,
-    borderTopWidth: 1,
-    borderTopColor: Colors.lightGrey,
+    borderRadius: 16,
+    padding: 32,
+    alignItems: "center",
+    gap: 16,
     ...Platform.select({
       ios: {
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
       },
       android: {
         elevation: 8,
       },
     }),
   },
-  continueButton: {
-    flexDirection: "row",
-    backgroundColor: Colors.primary,
-    borderRadius: 12,
-    paddingVertical: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  buttonDisabled: {
-    backgroundColor: Colors.grey,
-  },
-  continueButtonText: {
+  loadingText: {
     fontSize: 16,
-    fontFamily: fonts.interSemibold,
-    color: Colors.white,
+    fontFamily: fonts.interMedium,
+    color: Colors.title,
   },
 });
 

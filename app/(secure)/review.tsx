@@ -2,7 +2,9 @@ import { Colors } from "@/constants/Colors";
 import { Images } from "@/constants/Images";
 import { IS_IOS } from "@/constants/Platform";
 import { fonts } from "@/constants/typography";
-import apiService from "@/services/hostelApiService";
+import hostelApiService from "@/services/hostelApiService";
+import tiffinApiService from "@/services/tiffinApiServices";
+import useAuthStore from "@/store/authStore";
 import { RatingDistribution, ReviewData } from "@/types/hostel";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams } from "expo-router";
@@ -37,6 +39,7 @@ const filters: FilterType[] = [
 const ReviewsScreen = () => {
   const params = useLocalSearchParams();
   const hostelId = params.hostelId as string | undefined;
+  const { userServiceType } = useAuthStore();
 
   const [active, setActive] = useState<FilterType>("All");
   const [reviews, setReviews] = useState<ReviewData[]>([]);
@@ -59,6 +62,8 @@ const ReviewsScreen = () => {
     hasPrevPage: false,
   });
 
+  const isTiffinService = userServiceType === "tiffin_provider";
+
   // Calculate bar widths based on distribution - FIXED TYPE
   const getBarWidth = useCallback(
     (star: number): DimensionValue => {
@@ -76,29 +81,27 @@ const ReviewsScreen = () => {
     async (page: number, filter: FilterType) => {
       setLoading(true);
       try {
-        const ratingParam =
-          filter === "Positive"
-            ? undefined
-            : filter === "Negative"
-            ? undefined
-            : ["5", "4", "3", "2", "1"].includes(filter)
-            ? Number(filter)
-            : undefined;
-
+        const ratingParam = ["5", "4", "3", "2", "1"].includes(filter)
+          ? filter + "star"
+          : filter.toLowerCase();
         let response;
         if (hostelId) {
-          response = await apiService.getReviewsByHostelId(
+          response = await hostelApiService.getReviewsByHostelId(
             hostelId,
             page,
             ITEMS_PER_PAGE,
             ratingParam
           );
         } else {
-          response = await apiService.getAllReviews(
-            page,
-            ITEMS_PER_PAGE,
-            ratingParam
-          );
+          if (isTiffinService) {
+            response = await tiffinApiService.getReviewsSummary(
+              page,
+              ITEMS_PER_PAGE,
+              ratingParam
+            );
+          } else {
+            response = await hostelApiService.getReviewsSummary();
+          }
         }
 
         if (response.success && response.data) {
@@ -109,11 +112,19 @@ const ReviewsScreen = () => {
           } else if (filter === "Negative") {
             filteredReviews = filteredReviews.filter((r: any) => r.rating <= 2);
           }
-
-          setReviews(filteredReviews);
-          setOverallRating(response.data.data.overallRating);
-          setTotalReviews(response.data.data.totalReviews);
-          setRatingDistribution(response.data.data.ratingDistribution);
+          if (isTiffinService) {
+            setReviews(filteredReviews);
+            setOverallRating(response.data.data.summary.overallRating);
+            setTotalReviews(response.data.data.summary.totalReviews);
+            setRatingDistribution(
+              response.data.data.summary.ratingDistribution
+            );
+          } else {
+            setReviews(filteredReviews);
+            setOverallRating(response.data.data.overallRating);
+            setTotalReviews(response.data.data.totalReviews);
+            setRatingDistribution(response.data.data.ratingDistribution);
+          }
           setPagination({
             currentPage: response.data.data.pagination.currentPage,
             totalPages: response.data.data.pagination.totalPages,

@@ -1,40 +1,158 @@
-import React from "react";
-import { View, Text, StyleSheet, FlatList, Image } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { Colors } from "@/constants/Colors";
 import CommonHeader from "@/components/CommonHeader";
+import { Colors } from "@/constants/Colors";
 import { Images } from "@/constants/Images";
 import { fonts } from "@/constants/typography";
+import hostelApiService from "@/services/hostelApiService";
+import tiffinApiServices from "@/services/tiffinApiServices";
+import useAuthStore from "@/store/authStore";
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+interface PayoutItem {
+  id: string;
+  amount: number;
+  date: string;
+  status: string;
+  statusColor?: string;
+  method?: string;
+  accountNumber?: string;
+  upiId?: string;
+  transactionId?: string;
+  failureReason?: string;
+}
+
+interface EarningsData {
+  thisMonth?: number;
+  thisWeek?: number;
+  totalBalance?: number;
+}
 
 const EarningsScreen = () => {
-  const payoutHistory = [
-    { id: "1", amount: 15200, date: "2025-07-10", status: "Processing" },
-    { id: "2", amount: 5200, date: "2024-01-20", status: "Completed" },
-  ];
+  const { userServiceType } = useAuthStore();
+  const [earningsData, setEarningsData] = useState<EarningsData>({});
+  const [payoutHistory, setPayoutHistory] = useState<PayoutItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [historyLoading, setHistoryLoading] = useState(true);
 
-  const renderPayoutItem = ({ item }: any) => (
-    <View style={styles.payoutRow}>
-      <View>
-        <Text style={styles.amount}>₹{item.amount}</Text>
-        <Text style={styles.date}>{item.date}</Text>
-      </View>
+  const isTiffinProvider = useMemo(
+    () => userServiceType === "tiffin_provider",
+    [userServiceType]
+  );
+
+  useEffect(() => {
+    loadEarningsData();
+    loadPayoutHistory();
+  }, [isTiffinProvider]);
+
+  const loadEarningsData = async () => {
+    setLoading(true);
+    try {
+      let response;
+      if (isTiffinProvider) {
+        response = await tiffinApiServices.getEarningsOverview();
+      } else {
+        response = await hostelApiService.getEarningsOverview();
+      }
+
+      if (response.success) {
+        setEarningsData(response.data.data || response.data);
+      }
+    } catch (error) {
+      console.error("Error loading earnings:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadPayoutHistory = async () => {
+    setHistoryLoading(true);
+    try {
+      let response;
+      if (isTiffinProvider) {
+        response = await tiffinApiServices.getEarningsHistory();
+      } else {
+        response = await hostelApiService.getEarningsHistory();
+      }
+
+      if (response.success && response.data) {
+        setPayoutHistory(response.data);
+      }
+    } catch (error) {
+      console.error("Error loading payout history:", error);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const getStatusStyle = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "completed":
+        return {
+          badge: styles.completed,
+          text: styles.completedText,
+        };
+      case "processing":
+        return {
+          badge: styles.processing,
+          text: styles.processingText,
+        };
+      case "failed":
+        return {
+          badge: styles.failed,
+          text: styles.failedText,
+        };
+      default:
+        return {
+          badge: styles.processing,
+          text: styles.processingText,
+        };
+    }
+  };
+
+  const renderPayoutItem = (item: PayoutItem, index: number) => {
+    const statusStyle = getStatusStyle(item.status);
+
+    return (
       <View
+        key={item.id}
         style={[
-          styles.statusBadge,
-          item.status === "Completed" ? styles.completed : styles.processing,
+          styles.payoutRow,
+          index === payoutHistory.length - 1 && styles.payoutRowLast,
         ]}
       >
-        <Text
-          style={[
-            styles.statusText,
-            item.status === "Completed"
-              ? styles.completedText
-              : styles.processingText,
-          ]}
-        >
-          {item.status}
-        </Text>
+        <View style={styles.payoutLeft}>
+          <Text style={styles.amount}>
+            ₹{item.amount.toLocaleString("en-IN")}
+          </Text>
+          <Text style={styles.date}>{item.date}</Text>
+          {item.method && <Text style={styles.method}>{item.method}</Text>}
+          {item.transactionId && (
+            <Text style={styles.transactionId}>TXN: {item.transactionId}</Text>
+          )}
+          {item.failureReason && (
+            <Text style={styles.failureReason}>{item.failureReason}</Text>
+          )}
+        </View>
+        <View style={[styles.statusBadge, statusStyle.badge]}>
+          <Text style={[styles.statusText, statusStyle.text]}>
+            {item.status}
+          </Text>
+        </View>
       </View>
+    );
+  };
+
+  const renderEmptyHistory = () => (
+    <View style={styles.emptyContainer}>
+      <Text style={styles.emptyText}>No payout history available</Text>
     </View>
   );
 
@@ -45,56 +163,113 @@ const EarningsScreen = () => {
           <CommonHeader title="Earnings" />
         </View>
       </SafeAreaView>
-      <View style={styles.container}>
+
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Earnings Overview */}
         <View style={styles.card}>
           <View style={styles.headerRow}>
             <Image source={Images.total} style={{ height: 16, width: 16 }} />
             <Text style={styles.header}>Earnings Overview</Text>
           </View>
-          <View style={styles.overviewRow}>
-            <View style={[styles.overviewBox]}>
-              <Text style={[styles.overviewValue, { color: Colors.primary }]}>
-                ₹15420
-              </Text>
-              <Text style={[styles.overviewLabel, { color: Colors.primary }]}>
-                Total Balance
-              </Text>
+
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color={Colors.primary} />
             </View>
-            <View style={[styles.overviewBox]}>
-              <Text style={[styles.overviewValue, { color: Colors.orange }]}>
-                ₹3250
-              </Text>
-              <Text style={[styles.overviewLabel, { color: Colors.orange }]}>
-                This Week
-              </Text>
-            </View>
-          </View>
-          <View
-            style={[styles.overviewBox, { alignSelf: "center", marginTop: 12 }]}
-          >
-            <Text style={[styles.overviewValue, { color: Colors.green }]}>
-              ₹12450
-            </Text>
-            <Text style={[styles.overviewLabel, { color: Colors.green }]}>
-              This Month
-            </Text>
-          </View>
+          ) : (
+            <>
+              <View style={styles.overviewRow}>
+                <View style={[styles.overviewBox]}>
+                  <Text
+                    style={[styles.overviewValue, { color: Colors.primary }]}
+                  >
+                    ₹{earningsData?.totalBalance?.toLocaleString("en-IN") || 0}
+                  </Text>
+                  <Text
+                    style={[styles.overviewLabel, { color: Colors.primary }]}
+                  >
+                    Total Balance
+                  </Text>
+                </View>
+                <View style={[styles.overviewBox]}>
+                  <Text
+                    style={[styles.overviewValue, { color: Colors.orange }]}
+                  >
+                    ₹{earningsData?.thisWeek?.toLocaleString("en-IN") || 0}
+                  </Text>
+                  <Text
+                    style={[styles.overviewLabel, { color: Colors.orange }]}
+                  >
+                    This Week
+                  </Text>
+                </View>
+              </View>
+              <View
+                style={[
+                  styles.overviewBox,
+                  { alignSelf: "center", marginTop: 12 },
+                ]}
+              >
+                <Text style={[styles.overviewValue, { color: Colors.green }]}>
+                  ₹{earningsData?.thisMonth?.toLocaleString("en-IN") || 0}
+                </Text>
+                <Text style={[styles.overviewLabel, { color: Colors.green }]}>
+                  This Month
+                </Text>
+              </View>
+            </>
+          )}
         </View>
 
-        {/* Payout History */}
-        <View style={styles.card}>
-          <View style={styles.headerRow}>
-            <Image source={Images.calender} style={{ height: 16, width: 16 }} />
-            <Text style={styles.header}>Payout History</Text>
+        {/* Payout History - Only show if data is available */}
+        {!historyLoading && payoutHistory.length > 0 && (
+          <View style={styles.card}>
+            <View style={styles.headerRow}>
+              <Image
+                source={Images.calender}
+                style={{ height: 16, width: 16 }}
+              />
+              <Text style={styles.header}>Payout History</Text>
+            </View>
+
+            {payoutHistory.map((item, index) => renderPayoutItem(item, index))}
           </View>
-          <FlatList
-            data={payoutHistory}
-            keyExtractor={(item) => item.id}
-            renderItem={renderPayoutItem}
-          />
-        </View>
-      </View>
+        )}
+
+        {/* Loading state for payout history */}
+        {historyLoading && (
+          <View style={styles.card}>
+            <View style={styles.headerRow}>
+              <Image
+                source={Images.calender}
+                style={{ height: 16, width: 16 }}
+              />
+              <Text style={styles.header}>Payout History</Text>
+            </View>
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color={Colors.primary} />
+            </View>
+          </View>
+        )}
+
+        {/* Empty state - if not loading and no data */}
+        {!historyLoading && payoutHistory.length === 0 && (
+          <View style={styles.card}>
+            <View style={styles.headerRow}>
+              <Image
+                source={Images.calender}
+                style={{ height: 16, width: 16 }}
+              />
+              <Text style={styles.header}>Payout History</Text>
+            </View>
+            {renderEmptyHistory()}
+          </View>
+        )}
+      </ScrollView>
     </>
   );
 };
@@ -102,8 +277,11 @@ const EarningsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
     backgroundColor: Colors.white,
+  },
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 100, // Add extra padding at the bottom
   },
   card: {
     backgroundColor: Colors.white,
@@ -147,11 +325,24 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontFamily: fonts.interRegular,
   },
+  loadingContainer: {
+    paddingVertical: 30,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   payoutRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 10,
+    paddingVertical: 12,
+    borderBottomWidth: 0.5,
+    borderBottomColor: Colors.lightGrey,
+  },
+  payoutRowLast: {
+    borderBottomWidth: 0, // Remove border for last item
+  },
+  payoutLeft: {
+    flex: 1,
   },
   amount: {
     fontSize: 16,
@@ -162,6 +353,25 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontFamily: fonts.interRegular,
     color: Colors.tabicon,
+    marginTop: 2,
+  },
+  method: {
+    fontSize: 10,
+    fontFamily: fonts.interRegular,
+    color: Colors.grey,
+    marginTop: 2,
+  },
+  transactionId: {
+    fontSize: 9,
+    fontFamily: fonts.interRegular,
+    color: Colors.grey,
+    marginTop: 2,
+  },
+  failureReason: {
+    fontSize: 10,
+    fontFamily: fonts.interRegular,
+    color: Colors.red,
+    marginTop: 2,
   },
   statusBadge: {
     paddingVertical: 4,
@@ -177,6 +387,10 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.tabbg,
     borderColor: Colors.primary,
   },
+  failed: {
+    backgroundColor: "#FFE5E5",
+    borderColor: Colors.red,
+  },
   completedText: {
     color: Colors.green,
     fontSize: 11,
@@ -187,8 +401,23 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontFamily: fonts.interRegular,
   },
+  failedText: {
+    color: Colors.red,
+    fontSize: 11,
+    fontFamily: fonts.interRegular,
+  },
   statusText: {
-    fontSize: 13,
+    fontSize: 11,
+  },
+  emptyContainer: {
+    paddingVertical: 30,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyText: {
+    fontSize: 14,
+    fontFamily: fonts.interRegular,
+    color: Colors.grey,
   },
 });
 

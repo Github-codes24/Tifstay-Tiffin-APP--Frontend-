@@ -473,3 +473,54 @@ export interface UpdateBookingStatusResponse {
   message: string;
   data?: any;
 }
+
+export interface RoomDetail {
+  roomNumber: string;
+  bedNumbers: number[];
+}
+
+export interface Duration {
+  checkInDate: string;
+  checkOutDate: string;
+}
+
+export interface CustomerData {
+  _id: string;
+  name: string;
+  email: string;
+  profileImage: string;
+  phoneNumber: string;
+  planPurchased: string[];
+  roomDetails: RoomDetail[];
+  duration: Duration;
+}
+
+export interface MealTiming {
+  mealType: string;
+  startTime: string;
+  endTime: string;
+  isAvailable: boolean;
+  _id?: string;
+}
+
+export interface DaySchedule {
+  day: string;
+  mealTimings: MealTiming[];
+}
+
+export interface TiffinService {
+  id: string;
+  name: string;
+  currentDaySchedule: DaySchedule | null;
+}
+
+export interface MealSchedule {
+  tiffinServiceId: string;
+  weeklySchedule: DaySchedule[];
+  isAvailable: boolean;
+}
+
+export interface UpdateMealScheduleRequest {
+  tiffinServiceId: string;
+  customDaySchedules: DaySchedule[];
+}
