@@ -410,35 +410,35 @@ const useServiceStore = create<ServiceState>()(
       },
 
       // Get All Tiffin Services
-      getAllTiffinServices: async (page = 1, limit = 10) => {
-        set({ isLoading: true, error: null });
+    getAllTiffinServices: async (page = 1, limit = 10) => {
+  set({ isLoading: true, error: null });
 
-        try {
-          const response = await tiffinApiService.getAllTiffinServices(page, limit);
+  try {
+    const response = await tiffinApiService.getAllTiffinServices(page, limit);
 
-          if (response.success) {
-            set({
-              tiffinServices: response.data?.data?.tiffinServices || [],
-              pagination: response.data?.data?.pagination || null,
-              isLoading: false,
-              error: null,
-            });
-            return { success: true, data: response.data };
-          } else {
-            set({
-              isLoading: false,
-              error: response.error || "Failed to fetch tiffin services",
-            });
-            return { success: false, error: response.error };
-          }
-        } catch (error: any) {
-          set({
-            isLoading: false,
-            error: error.message || "Failed to fetch tiffin services",
-          });
-          return { success: false, error: error.message };
-        }
-      },
+    if (response.success) {
+      set({
+        tiffinServices: response.data?.data?.tiffinServices || [], // ✅ Make sure this is correct
+        pagination: response.data?.data?.pagination || null,
+        isLoading: false,
+        error: null,
+      });
+      return { success: true, data: response.data };
+    } else {
+      set({
+        isLoading: false,
+        error: response.error || "Failed to fetch tiffin services",
+      });
+      return { success: false, error: response.error };
+    }
+  } catch (error: any) {
+    set({
+      isLoading: false,
+      error: error.message || "Failed to fetch tiffin services",
+    });
+    return { success: false, error: error.message };
+  }
+},
 
       // Get Tiffin Service By ID
       getTiffinServiceById: async (tiffinId: string) => {
@@ -752,6 +752,7 @@ const useServiceStore = create<ServiceState>()(
           return { success: false, error: error.message };
         }
       },
+      
 
       // ==================== FORM MANAGEMENT ====================
 

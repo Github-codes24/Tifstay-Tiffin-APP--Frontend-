@@ -377,25 +377,23 @@ class TiffinApiService {
     }
   }
 
-  async getAllTiffinServices(page: number = 1, limit: number = 10) {
-    try {
-      const response = await this.api.get(
-        `/api/tiffinService/getTiffinServicesByOwner?page=${page}&limit=${limit}`,
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      return { success: true, data: response.data };
-    } catch (error: any) {
-      console.error("Get All Tiffin Services Error:", error);
-      return {
-        success: false,
-        error: error.response?.data?.message || "Failed to fetch tiffin services.",
-      };
-    }
+async getAllTiffinServices(page = 1, limit = 10) {
+  try {
+    const response = await this.api.get(
+      "/api/tiffinService/getTiffinServicesList", // ✅ Correct endpoint
+      {
+        params: { page, limit },
+      }
+    );
+    return { success: true, data: response.data };
+  } catch (error: any) {
+    console.error("❌ Get Tiffin Services Error:", error);
+    return {
+      success: false,
+      error: error.response?.data?.message || "Failed to fetch tiffin services.",
+    };
   }
+}
 
   async getTiffinServicesList(page: number = 1, limit: number = 100) {
     try {

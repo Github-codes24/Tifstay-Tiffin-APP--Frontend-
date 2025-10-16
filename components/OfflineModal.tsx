@@ -250,11 +250,24 @@ const OfflineModal: React.FC<OfflineModalProps> = ({
       : service.hostelType || "Not specified";
   };
 
-  // Separate online and offline services
+  // ✅ FIX: Properly filter online and offline services
   const onlineServices =
-    servicesList?.filter((service: any) => !service.isOffline) || [];
+    servicesList?.filter((service: any) => {
+      return service.isOffline === false || !service.isOffline;
+    }) || [];
+
   const offlineServices =
-    servicesList?.filter((service: any) => service.isOffline === true) || [];
+    servicesList?.filter((service: any) => {
+      return service.isOffline === true;
+    }) || [];
+
+  console.log("📊 Services Debug:", {
+    isTiffinProvider,
+    totalServices: servicesList?.length || 0,
+    onlineCount: onlineServices.length,
+    offlineCount: offlineServices.length,
+    sampleService: servicesList?.[0],
+  });
 
   // Apply search filter
   const searchFilteredOnlineServices = onlineServices.filter((service: any) =>
