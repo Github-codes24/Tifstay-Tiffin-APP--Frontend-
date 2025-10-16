@@ -20,11 +20,15 @@ import {
 
 const AddressScreen = () => {
   const { user, userServiceType } = useAuthStore();
-  const { addresses, getAllAddresses, deleteAddress, isLoading , tiffinAddress } =
-    useAddressStore();
+  const {
+    addresses,
+    getAllAddresses,
+    deleteAddress,
+    isLoading,
+    tiffinAddress,
+  } = useAddressStore();
   const [refreshing, setRefreshing] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  console.log('tiffinAddress', tiffinAddress)
   useEffect(() => {
     loadAddresses();
   }, []);
@@ -147,104 +151,44 @@ const AddressScreen = () => {
         <Text style={styles.locationLabel}>Location</Text>
       </View>
       <View>
-        {userServiceType !== "tiffin_provider" ? <FlatList
-          data={addresses}
-          renderItem={renderAddress}
-          keyExtractor={(item) => item._id}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={Colors.primary}
-            />
-          }
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No addresses added yet</Text>
-              <TouchableOpacity
-                style={styles.emptyAddButton}
-                onPress={handleAddNewAddress}
-              >
-                <Text style={styles.emptyAddButtonText}>
-                  Add Your First Address
-                </Text>
-              </TouchableOpacity>
-            </View>
-          }
-          ListFooterComponent={
-            <View>
-              <Text
-                style={{
-                  textAlign: "center",
-                  color: Colors.grey,
-                  marginVertical: 16,
-                }}
-              >
-                OR
-              </Text>
-              <TouchableOpacity onPress={handleAddNewAddress}>
-                <View style={styles.card}>
-                  <Image
-                    source={Images.add}
-                    style={styles.image}
-                    resizeMode="contain"
-                  />
-
-                  <View style={styles.textContainer}>
-                    <Text style={styles.addTitle}>Add New Address</Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            </View>
-          }
-        /> : <>
-            {tiffinAddress && Object.keys(tiffinAddress).length > 0 ? <View style={styles.card}>
-              <Image
-                source={tiffinAddress.label === "home" ? Images.home : Images.work}
-                style={styles.image}
-                resizeMode="contain"
+        {userServiceType !== "tiffin_provider" ? (
+          <FlatList
+            data={addresses}
+            renderItem={renderAddress}
+            keyExtractor={(item) => item._id}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={Colors.primary}
               />
-
-              <View style={styles.textContainer}>
-                <Text style={styles.title}>{tiffinAddress.label}</Text>
-                <Text style={styles.address}>
-                  {tiffinAddress.street}, {tiffinAddress.address},{"\n"}
-                  {tiffinAddress.postCode}
+            }
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>No addresses added yet</Text>
+                <TouchableOpacity
+                  style={styles.emptyAddButton}
+                  onPress={handleAddNewAddress}
+                >
+                  <Text style={styles.emptyAddButtonText}>
+                    Add Your First Address
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            }
+            ListFooterComponent={
+              <View>
+                <Text
+                  style={{
+                    textAlign: "center",
+                    color: Colors.grey,
+                    marginVertical: 16,
+                  }}
+                >
+                  OR
                 </Text>
-              </View>
-
-              <View style={styles.actionButtonsContainer}>
-                <TouchableOpacity
-                  onPress={() => handleEditAddress(tiffinAddress._id)}
-                  disabled={deletingId === tiffinAddress._id}
-                  style={styles.actionButton}
-                >
-                  <Image
-                    source={Images.editicon}
-                    style={styles.actionIcon}
-                    resizeMode="contain"
-                  />
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={() => handleDeleteAddress(tiffinAddress._id, tiffinAddress.label)}
-                  disabled={deletingId === tiffinAddress._id}
-                  style={styles.actionButton}
-                >
-                  {deletingId === tiffinAddress._id ? (
-                    <ActivityIndicator size="small" color={Colors.primary} />
-                  ) : (
-                    <Image
-                      source={Images.delete}
-                      style={styles.actionIcon}
-                      resizeMode="contain"
-                    />
-                  )}
-                </TouchableOpacity>
-              </View>
-            </View> : <>
                 <TouchableOpacity onPress={handleAddNewAddress}>
                   <View style={styles.card}>
                     <Image
@@ -258,8 +202,83 @@ const AddressScreen = () => {
                     </View>
                   </View>
                 </TouchableOpacity>
-            </>}
-        </>}
+              </View>
+            }
+          />
+        ) : (
+          <>
+            {tiffinAddress && Object.keys(tiffinAddress).length > 0 ? (
+              <View style={styles.card}>
+                <Image
+                  source={
+                    tiffinAddress.label === "home" ? Images.home : Images.work
+                  }
+                  style={styles.image}
+                  resizeMode="contain"
+                />
+
+                <View style={styles.textContainer}>
+                  <Text style={styles.title}>{tiffinAddress.label}</Text>
+                  <Text style={styles.address}>
+                    {tiffinAddress.street}, {tiffinAddress.address},{"\n"}
+                    {tiffinAddress.postCode}
+                  </Text>
+                </View>
+
+                <View style={styles.actionButtonsContainer}>
+                  <TouchableOpacity
+                    onPress={() => handleEditAddress(tiffinAddress._id)}
+                    disabled={deletingId === tiffinAddress._id}
+                    style={styles.actionButton}
+                  >
+                    <Image
+                      source={Images.editicon}
+                      style={styles.actionIcon}
+                      resizeMode="contain"
+                    />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() =>
+                      handleDeleteAddress(
+                        tiffinAddress._id,
+                        tiffinAddress.label
+                      )
+                    }
+                    disabled={deletingId === tiffinAddress._id}
+                    style={styles.actionButton}
+                  >
+                    {deletingId === tiffinAddress._id ? (
+                      <ActivityIndicator size="small" color={Colors.primary} />
+                    ) : (
+                      <Image
+                        source={Images.delete}
+                        style={styles.actionIcon}
+                        resizeMode="contain"
+                      />
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : (
+              <>
+                <TouchableOpacity onPress={handleAddNewAddress}>
+                  <View style={styles.card}>
+                    <Image
+                      source={Images.add}
+                      style={styles.image}
+                      resizeMode="contain"
+                    />
+
+                    <View style={styles.textContainer}>
+                      <Text style={styles.addTitle}>Add New Address</Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              </>
+            )}
+          </>
+        )}
       </View>
     </SafeAreaView>
   );

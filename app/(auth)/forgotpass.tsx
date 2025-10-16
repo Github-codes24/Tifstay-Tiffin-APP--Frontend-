@@ -23,7 +23,6 @@ export default function ForgotPass() {
   const [email, setEmail] = useState("");
   const { getUserProfile, user, userServiceType } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
-  console.log(userServiceType === "tiffin_provider")
   const handleSendRecoveryLink = async () => {
     if (!email.trim()) {
       Alert.alert("Error", "Please enter your email address");
@@ -40,7 +39,10 @@ export default function ForgotPass() {
     setIsLoading(true);
 
     try {
-      const response =  userServiceType === "tiffin_provider" ? await tiffinApiServices.forgotPassword(email)  : await hostelApiService.forgotPassword(email);
+      const response =
+        userServiceType === "tiffin_provider"
+          ? await tiffinApiServices.forgotPassword(email)
+          : await hostelApiService.forgotPassword(email);
 
       if (response.data?.success) {
         // Pass email to verify screen

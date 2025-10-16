@@ -10,6 +10,7 @@ import {
   FlatList,
   Modal,
   Platform,
+  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
@@ -20,14 +21,9 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import SelectionPopup from "./SelectionPopup";
 
-const HOSTEL_TYPES = [
-  "All Types",
-  "Boys",
-  "Girls",
-  "Co-living",
-  "PG",
-  "Hostel",
-];
+const HOSTEL_TYPES = ["Boys Hostel", "Girls Hostel", "Both"];
+const SERVICE_STATUS = ["Online Services", "Offline Services"];
+const ITEMS_PER_PAGE = 10;
 
 interface OfflineModalProps {
   visible: boolean;
@@ -50,12 +46,23 @@ const OfflineModal: React.FC<OfflineModalProps> = ({
     updateHostelServiceOnlineStatus,
     getOfflineReasons,
     getComebackOptions,
+    pagination,
   } = useServiceStore();
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedFilter, setSelectedFilter] = useState<string>("All Types");
+  const [selectedHostelType, setSelectedHostelType] = useState<string | null>(
+    null
+  );
+  const [selectedServiceStatus, setSelectedServiceStatus] =
+    useState<string>("Online Services");
+  const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const [showHostelTypeDropdown, setShowHostelTypeDropdown] = useState(false);
+  const [showServiceStatusDropdown, setShowServiceStatusDropdown] =
+    useState(false);
+
+  // Multi-select states
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
 
   // API fetched data
   const [offlineReasons, setOfflineReasons] = useState<any[]>([]);
@@ -64,8 +71,6 @@ const OfflineModal: React.FC<OfflineModalProps> = ({
   // Popup states
   const [showReasonPopup, setShowReasonPopup] = useState(false);
   const [showComebackPopup, setShowComebackPopup] = useState(false);
-  const [selectedServiceId, setSelectedServiceId] = useState<string>("");
-  const [selectedServiceName, setSelectedServiceName] = useState<string>("");
   const [selectedReason, setSelectedReason] = useState<string>("");
   const [selectedComebackOption, setSelectedComebackOption] =
     useState<string>("");
@@ -80,22 +85,23 @@ const OfflineModal: React.FC<OfflineModalProps> = ({
 
   useEffect(() => {
     if (visible) {
-      fetchInitialData();
+      fetchInitialData(1);
     }
   }, [visible, userServiceType]);
 
-  const fetchInitialData = async () => {
+  const fetchInitialData = async (page: number) => {
     setLoading(true);
+    setCurrentPage(page);
     try {
       if (isTiffinProvider) {
         await Promise.all([
-          getAllTiffinServices(1, 100),
+          getAllTiffinServices(page, ITEMS_PER_PAGE),
           fetchOfflineReasons(),
           fetchComebackOptions(),
         ]);
       } else {
         await Promise.all([
-          getHostelServicesList(1, 100),
+          getHostelServicesList(page, ITEMS_PER_PAGE),
           fetchOfflineReasons(),
           fetchComebackOptions(),
         ]);
@@ -250,62 +256,73 @@ const OfflineModal: React.FC<OfflineModalProps> = ({
       : service.hostelType || "Not specified";
   };
 
-  // ✅ FIX: Properly filter online and offline services
-  const onlineServices =
+  // Filter services based on status (Online/Offline)
+  const filteredByStatus =
     servicesList?.filter((service: any) => {
-      return service.isOffline === false || !service.isOffline;
+      const isOnline = service.isOffline === false || !service.isOffline;
+      if (selectedServiceStatus === "Online Services") {
+        return isOnline;
+      } else {
+        return service.isOffline === true;
+      }
     }) || [];
-
-  const offlineServices =
-    servicesList?.filter((service: any) => {
-      return service.isOffline === true;
-    }) || [];
-
-  console.log("📊 Services Debug:", {
-    isTiffinProvider,
-    totalServices: servicesList?.length || 0,
-    onlineCount: onlineServices.length,
-    offlineCount: offlineServices.length,
-    sampleService: servicesList?.[0],
-  });
 
   // Apply search filter
-  const searchFilteredOnlineServices = onlineServices.filter((service: any) =>
+  const searchFiltered = filteredByStatus.filter((service: any) =>
     getServiceName(service)?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const searchFilteredOfflineServices = offlineServices.filter((service: any) =>
-    getServiceName(service)?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Apply hostel type filter (only for hostels)
+  const filteredServices =
+    !isTiffinProvider && selectedHostelType
+      ? searchFiltered.filter(
+          (service: any) => service.hostelType === selectedHostelType
+        )
+      : searchFiltered;
 
-  // Apply type filter (only for hostel services)
-  const filteredOnlineServices = isTiffinProvider
-    ? searchFilteredOnlineServices
-    : selectedFilter === "All Types"
-    ? searchFilteredOnlineServices
-    : searchFilteredOnlineServices.filter(
-        (service: any) => service.hostelType === selectedFilter
+  // Pagination
+  const totalPages = pagination?.totalPages || 1;
+  const currentPageNumber = pagination?.currentPage || currentPage;
+  const hasNextPage = pagination?.hasNext || false;
+  const hasPrevPage = pagination?.hasPrev || false;
+
+  // Handle checkbox selection
+  const toggleServiceSelection = (serviceId: string) => {
+    if (selectedServiceIds.includes(serviceId)) {
+      setSelectedServiceIds(
+        selectedServiceIds.filter((id) => id !== serviceId)
       );
+    } else {
+      setSelectedServiceIds([...selectedServiceIds, serviceId]);
+    }
+  };
 
-  const filteredOfflineServices = isTiffinProvider
-    ? searchFilteredOfflineServices
-    : selectedFilter === "All Types"
-    ? searchFilteredOfflineServices
-    : searchFilteredOfflineServices.filter(
-        (service: any) => service.hostelType === selectedFilter
+  // Select all services on current page
+  const toggleSelectAll = () => {
+    if (selectedServiceIds.length === filteredServices.length) {
+      setSelectedServiceIds([]);
+    } else {
+      setSelectedServiceIds(
+        filteredServices.map((service: any) => service._id)
       );
+    }
+  };
 
-  // Handle service click - open reason popup
-  const handleServiceClick = useCallback(
-    (serviceId: string, serviceName: string) => {
-      setSelectedServiceId(serviceId);
-      setSelectedServiceName(serviceName);
-      setSelectedReason("");
-      setSelectedComebackOption("");
+  // Handle bulk action button
+  const handleBulkAction = () => {
+    if (selectedServiceIds.length === 0) {
+      Alert.alert("No Selection", "Please select at least one service");
+      return;
+    }
+
+    if (selectedServiceStatus === "Online Services") {
+      // Go offline
       setShowReasonPopup(true);
-    },
-    []
-  );
+    } else {
+      // Bring online
+      handleBulkBringOnline();
+    }
+  };
 
   // Handle reason continue
   const handleReasonContinue = useCallback(() => {
@@ -334,7 +351,7 @@ const OfflineModal: React.FC<OfflineModalProps> = ({
           : "immediate";
 
       const payload = {
-        hostelServiceIds: [selectedServiceId], // Store handles the naming internally
+        hostelServiceIds: selectedServiceIds,
         offlineType,
         reason: selectedReason,
         comeBackOption: selectedComebackOption,
@@ -343,15 +360,20 @@ const OfflineModal: React.FC<OfflineModalProps> = ({
       const response = await updateHostelServiceOfflineStatus(payload);
 
       if (response.success) {
-        Alert.alert("Success", `"${selectedServiceName}" is now offline`, [
-          {
-            text: "OK",
-            onPress: () => {
-              fetchInitialData();
-              onSuccess();
+        Alert.alert(
+          "Success",
+          `${selectedServiceIds.length} service(s) are now offline`,
+          [
+            {
+              text: "OK",
+              onPress: () => {
+                setSelectedServiceIds([]);
+                fetchInitialData(currentPage);
+                onSuccess();
+              },
             },
-          },
-        ]);
+          ]
+        );
       } else {
         throw new Error(response.error || "Failed to update offline status");
       }
@@ -365,17 +387,12 @@ const OfflineModal: React.FC<OfflineModalProps> = ({
       setLoading(false);
       resetSelection();
     }
-  }, [
-    selectedServiceId,
-    selectedServiceName,
-    selectedReason,
-    selectedComebackOption,
-  ]);
+  }, [selectedServiceIds, selectedReason, selectedComebackOption, currentPage]);
 
-  const handleBringOnline = async (serviceId: string, serviceName: string) => {
+  const handleBulkBringOnline = async () => {
     Alert.alert(
-      "Bring Service Online",
-      `Are you sure you want to bring "${serviceName}" back online?`,
+      "Bring Services Online",
+      `Are you sure you want to bring ${selectedServiceIds.length} service(s) back online?`,
       [
         {
           text: "Cancel",
@@ -387,31 +404,36 @@ const OfflineModal: React.FC<OfflineModalProps> = ({
           onPress: async () => {
             setLoading(true);
             try {
-              const response = await updateHostelServiceOnlineStatus([
-                serviceId,
-              ]);
+              const response = await updateHostelServiceOnlineStatus(
+                selectedServiceIds
+              );
 
               if (response.success) {
-                Alert.alert("Success", "Service is now online!", [
-                  {
-                    text: "OK",
-                    onPress: () => {
-                      fetchInitialData();
-                      onSuccess();
+                Alert.alert(
+                  "Success",
+                  `${selectedServiceIds.length} service(s) are now online!`,
+                  [
+                    {
+                      text: "OK",
+                      onPress: () => {
+                        setSelectedServiceIds([]);
+                        fetchInitialData(currentPage);
+                        onSuccess();
+                      },
                     },
-                  },
-                ]);
+                  ]
+                );
               } else {
                 throw new Error(
-                  response.error || "Failed to bring service online"
+                  response.error || "Failed to bring services online"
                 );
               }
             } catch (error: any) {
-              console.error("❌ Error bringing service online:", error);
+              console.error("❌ Error bringing services online:", error);
               Alert.alert(
                 "Error",
                 error?.message ||
-                  "Failed to bring service online. Please try again."
+                  "Failed to bring services online. Please try again."
               );
             } finally {
               setLoading(false);
@@ -423,15 +445,16 @@ const OfflineModal: React.FC<OfflineModalProps> = ({
   };
 
   const resetSelection = () => {
-    setSelectedServiceId("");
-    setSelectedServiceName("");
     setSelectedReason("");
     setSelectedComebackOption("");
   };
 
   const resetModal = () => {
     setSearchQuery("");
-    setSelectedFilter("All Types");
+    setSelectedHostelType(null);
+    setSelectedServiceStatus("Online Services");
+    setSelectedServiceIds([]);
+    setCurrentPage(1);
     resetSelection();
   };
 
@@ -442,95 +465,154 @@ const OfflineModal: React.FC<OfflineModalProps> = ({
     }
   };
 
-  const renderOnlineServiceItem = ({ item }: { item: any }) => {
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setSelectedServiceIds([]);
+      fetchInitialData(page);
+    }
+  };
+
+  const renderServiceItem = ({ item }: { item: any }) => {
     const serviceName = getServiceName(item);
     const serviceType = getServiceType(item);
+    const isSelected = selectedServiceIds.includes(item._id);
+    const isOffline = item.isOffline === true;
 
     return (
       <TouchableOpacity
-        style={styles.serviceCard}
-        onPress={() => handleServiceClick(item._id, serviceName)}
-        disabled={loading}
+        style={[
+          styles.serviceCard,
+          isSelected && styles.serviceCardSelected,
+          isOffline && styles.serviceCardOffline,
+        ]}
+        onPress={() => toggleServiceSelection(item._id)}
         activeOpacity={0.7}
+        disabled={loading}
       >
-        <View style={styles.serviceCardHeader}>
-          <View style={styles.onlineIndicator} />
-          <Text style={styles.serviceCardName} numberOfLines={1}>
-            {serviceName}
-          </Text>
-        </View>
-        <Text style={styles.serviceCardType}>{serviceType}</Text>
-        <View style={styles.serviceCardFooter}>
-          <View style={styles.statusBadge}>
-            <Ionicons name="checkmark-circle" size={14} color={Colors.green} />
-            <Text style={styles.statusBadgeText}>Online</Text>
+        <View style={styles.serviceCardContent}>
+          <View style={styles.serviceCardLeft}>
+            <View
+              style={[styles.checkbox, isSelected && styles.checkboxSelected]}
+            >
+              {isSelected && (
+                <Ionicons name="checkmark" size={16} color={Colors.white} />
+              )}
+            </View>
+            <View style={styles.serviceInfo}>
+              <Text style={styles.serviceName} numberOfLines={1}>
+                {serviceName}
+              </Text>
+              {!isTiffinProvider && (
+                <Text style={styles.serviceType}>{serviceType}</Text>
+              )}
+            </View>
           </View>
-          <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
+          <View
+            style={[
+              styles.statusIndicator,
+              isOffline && styles.statusIndicatorOffline,
+            ]}
+          />
         </View>
+
+        {isOffline && (
+          <View style={styles.offlineDetails}>
+            {item.reason && (
+              <Text style={styles.offlineDetailText}>
+                <Text style={styles.offlineDetailLabel}>Reason: </Text>
+                {item.reason}
+              </Text>
+            )}
+            {item.offlineAt && (
+              <Text style={styles.offlineDetailText}>
+                <Text style={styles.offlineDetailLabel}>Since: </Text>
+                {item.offlineAt}
+              </Text>
+            )}
+            {item.comeBackAt && (
+              <Text style={styles.offlineDetailText}>
+                <Text style={styles.offlineDetailLabel}>Back at: </Text>
+                {item.comeBackAt}
+              </Text>
+            )}
+          </View>
+        )}
       </TouchableOpacity>
     );
   };
 
-  const renderOfflineServiceItem = ({ item }: { item: any }) => {
-    const serviceName = getServiceName(item);
-    const serviceType = getServiceType(item);
+  const renderPagination = () => {
+    if (totalPages <= 1) return null;
+
+    const pages = [];
+    for (let i = 1; i <= totalPages; i++) {
+      pages.push(i);
+    }
 
     return (
-      <View style={styles.offlineServiceCard}>
-        <View style={styles.serviceCardHeader}>
-          <View style={styles.offlineIndicator} />
-          <Text style={styles.serviceCardName} numberOfLines={1}>
-            {serviceName}
-          </Text>
-          <View style={styles.offlineBadge}>
-            <Text style={styles.offlineBadgeText}>Offline</Text>
-          </View>
-        </View>
-        <Text style={styles.serviceCardType}>{serviceType}</Text>
-
-        {/* Offline Details */}
-        <View style={styles.offlineDetailsCard}>
-          {item.reason && (
-            <View style={styles.offlineDetailRow}>
-              <Ionicons
-                name="information-circle"
-                size={16}
-                color={Colors.orange}
-              />
-              <Text style={styles.offlineDetailLabel}>Reason:</Text>
-              <Text style={styles.offlineDetailValue}>{item.reason}</Text>
-            </View>
-          )}
-          {item.offlineAt && (
-            <View style={styles.offlineDetailRow}>
-              <Ionicons name="calendar" size={16} color={Colors.grey} />
-              <Text style={styles.offlineDetailLabel}>Since:</Text>
-              <Text style={styles.offlineDetailValue}>{item.offlineAt}</Text>
-            </View>
-          )}
-          {item.comeBackAt && (
-            <View style={styles.offlineDetailRow}>
-              <Ionicons name="time" size={16} color={Colors.primary} />
-              <Text style={styles.offlineDetailLabel}>Back at:</Text>
-              <Text style={styles.offlineDetailValue}>{item.comeBackAt}</Text>
-            </View>
-          )}
-        </View>
-
-        {/* Bring Online Button */}
+      <View style={styles.paginationContainer}>
         <TouchableOpacity
-          style={styles.bringOnlineButton}
-          onPress={() => handleBringOnline(item._id, serviceName)}
-          disabled={loading}
-          activeOpacity={0.7}
+          style={[
+            styles.paginationButton,
+            !hasPrevPage && styles.paginationButtonDisabled,
+          ]}
+          onPress={() => handlePageChange(currentPageNumber - 1)}
+          disabled={!hasPrevPage || loading}
         >
-          <Ionicons name="play-circle" size={20} color={Colors.white} />
-          <Text style={styles.bringOnlineButtonText}>Bring Online</Text>
+          <Ionicons
+            name="chevron-back"
+            size={20}
+            color={hasPrevPage ? Colors.primary : Colors.grey}
+          />
+        </TouchableOpacity>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.paginationNumbers}
+        >
+          {pages.map((page) => (
+            <TouchableOpacity
+              key={page}
+              style={[
+                styles.paginationNumber,
+                currentPageNumber === page && styles.paginationNumberActive,
+              ]}
+              onPress={() => handlePageChange(page)}
+              disabled={loading}
+            >
+              <Text
+                style={[
+                  styles.paginationNumberText,
+                  currentPageNumber === page &&
+                    styles.paginationNumberTextActive,
+                ]}
+              >
+                {page}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        <TouchableOpacity
+          style={[
+            styles.paginationButton,
+            !hasNextPage && styles.paginationButtonDisabled,
+          ]}
+          onPress={() => handlePageChange(currentPageNumber + 1)}
+          disabled={!hasNextPage || loading}
+        >
+          <Ionicons
+            name="chevron-forward"
+            size={20}
+            color={hasNextPage ? Colors.primary : Colors.grey}
+          />
         </TouchableOpacity>
       </View>
     );
   };
 
+  const isOfflineView = selectedServiceStatus === "Offline Services";
   return (
     <Modal
       visible={visible}
@@ -568,7 +650,7 @@ const OfflineModal: React.FC<OfflineModalProps> = ({
               <Ionicons name="search-outline" size={20} color={Colors.grey} />
               <TextInput
                 style={styles.searchInput}
-                placeholder="Search by service name..."
+                placeholder="Search by name"
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 placeholderTextColor={Colors.grey}
@@ -585,49 +667,113 @@ const OfflineModal: React.FC<OfflineModalProps> = ({
             </View>
           </View>
 
-          {/* Filter Dropdown - Only show for hostel services */}
-          {!isTiffinProvider && (
-            <View style={styles.filterSection}>
+          {/* Filters Section */}
+          <View style={styles.filtersRow}>
+            {/* Hostel Type Filter - Only for hostels */}
+            {!isTiffinProvider && (
+              <View style={styles.filterWrapper}>
+                <TouchableOpacity
+                  style={styles.filterButton}
+                  onPress={() => {
+                    setShowHostelTypeDropdown(!showHostelTypeDropdown);
+                    setShowServiceStatusDropdown(false);
+                  }}
+                  disabled={loading}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.filterButtonText}>
+                    {selectedHostelType || "Hostel Type"}
+                  </Text>
+                  <Ionicons
+                    name={
+                      showHostelTypeDropdown ? "chevron-up" : "chevron-down"
+                    }
+                    size={18}
+                    color={Colors.grey}
+                  />
+                </TouchableOpacity>
+
+                {showHostelTypeDropdown && (
+                  <View style={styles.filterDropdown}>
+                    <TouchableOpacity
+                      style={styles.filterOption}
+                      onPress={() => {
+                        setSelectedHostelType(null);
+                        setShowHostelTypeDropdown(false);
+                      }}
+                    >
+                      <Text style={styles.filterOptionText}>All Types</Text>
+                      {!selectedHostelType && (
+                        <Ionicons
+                          name="checkmark"
+                          size={20}
+                          color={Colors.primary}
+                        />
+                      )}
+                    </TouchableOpacity>
+                    {HOSTEL_TYPES.map((type) => (
+                      <TouchableOpacity
+                        key={type}
+                        style={styles.filterOption}
+                        onPress={() => {
+                          setSelectedHostelType(type);
+                          setShowHostelTypeDropdown(false);
+                        }}
+                      >
+                        <Text style={styles.filterOptionText}>{type}</Text>
+                        {selectedHostelType === type && (
+                          <Ionicons
+                            name="checkmark"
+                            size={20}
+                            color={Colors.primary}
+                          />
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+              </View>
+            )}
+
+            {/* Service Status Filter */}
+            <View
+              style={[styles.filterWrapper, isTiffinProvider && { flex: 1 }]}
+            >
               <TouchableOpacity
                 style={styles.filterButton}
-                onPress={() => setShowFilterDropdown(!showFilterDropdown)}
+                onPress={() => {
+                  setShowServiceStatusDropdown(!showServiceStatusDropdown);
+                  setShowHostelTypeDropdown(false);
+                }}
                 disabled={loading}
                 activeOpacity={0.7}
               >
-                <Ionicons name="filter" size={20} color={Colors.primary} />
-                <Text style={styles.filterButtonText}>{selectedFilter}</Text>
+                <Text style={styles.filterButtonText}>
+                  {selectedServiceStatus}
+                </Text>
                 <Ionicons
-                  name={showFilterDropdown ? "chevron-up" : "chevron-down"}
-                  size={20}
+                  name={
+                    showServiceStatusDropdown ? "chevron-up" : "chevron-down"
+                  }
+                  size={18}
                   color={Colors.grey}
                 />
               </TouchableOpacity>
 
-              {showFilterDropdown && (
+              {showServiceStatusDropdown && (
                 <View style={styles.filterDropdown}>
-                  {HOSTEL_TYPES.map((type) => (
+                  {SERVICE_STATUS.map((status) => (
                     <TouchableOpacity
-                      key={type}
-                      style={[
-                        styles.filterOption,
-                        selectedFilter === type && styles.filterOptionSelected,
-                      ]}
+                      key={status}
+                      style={styles.filterOption}
                       onPress={() => {
-                        setSelectedFilter(type);
-                        setShowFilterDropdown(false);
+                        setSelectedServiceStatus(status);
+                        setShowServiceStatusDropdown(false);
+                        setSelectedServiceIds([]);
                       }}
-                      activeOpacity={0.7}
                     >
-                      <Text
-                        style={[
-                          styles.filterOptionText,
-                          selectedFilter === type &&
-                            styles.filterOptionTextSelected,
-                        ]}
-                      >
-                        {type}
-                      </Text>
-                      {selectedFilter === type && (
+                      <Text style={styles.filterOptionText}>{status}</Text>
+                      {selectedServiceStatus === status && (
                         <Ionicons
                           name="checkmark"
                           size={20}
@@ -639,111 +785,91 @@ const OfflineModal: React.FC<OfflineModalProps> = ({
                 </View>
               )}
             </View>
-          )}
+          </View>
 
-          {/* Services List */}
-          <FlatList
-            data={[{ key: "content" }]}
-            renderItem={() => (
-              <View style={styles.contentContainer}>
-                {/* Online Services */}
-                {filteredOnlineServices.length > 0 && (
-                  <View style={styles.servicesSection}>
-                    <View style={styles.sectionHeader}>
-                      <View style={styles.sectionHeaderLeft}>
-                        <View style={styles.sectionIconCircle}>
-                          <Ionicons
-                            name="power"
-                            size={18}
-                            color={Colors.green}
-                          />
-                        </View>
-                        <Text style={styles.sectionTitle}>Online Services</Text>
-                      </View>
-                      <View style={styles.countBadge}>
-                        <Text style={styles.countBadgeText}>
-                          {filteredOnlineServices.length}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <View style={styles.servicesGrid}>
-                      {filteredOnlineServices.map((service: any) => (
-                        <View key={service._id}>
-                          {renderOnlineServiceItem({ item: service })}
-                        </View>
-                      ))}
-                    </View>
-                  </View>
-                )}
-
-                {/* Offline Services */}
-                {filteredOfflineServices.length > 0 && (
-                  <View style={styles.servicesSection}>
-                    <View style={styles.sectionHeader}>
-                      <View style={styles.sectionHeaderLeft}>
-                        <View
-                          style={[
-                            styles.sectionIconCircle,
-                            styles.sectionIconCircleRed,
-                          ]}
-                        >
-                          <Ionicons
-                            name="pause-circle"
-                            size={18}
-                            color={Colors.red}
-                          />
-                        </View>
-                        <Text
-                          style={[styles.sectionTitle, styles.sectionTitleRed]}
-                        >
-                          Offline Services
-                        </Text>
-                      </View>
-                      <View style={[styles.countBadge, styles.countBadgeRed]}>
-                        <Text
-                          style={[
-                            styles.countBadgeText,
-                            styles.countBadgeTextRed,
-                          ]}
-                        >
-                          {filteredOfflineServices.length}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <View style={styles.servicesGrid}>
-                      {filteredOfflineServices.map((service: any) => (
-                        <View key={service._id}>
-                          {renderOfflineServiceItem({ item: service })}
-                        </View>
-                      ))}
-                    </View>
-                  </View>
-                )}
-
-                {/* Empty State */}
-                {filteredOnlineServices.length === 0 &&
-                  filteredOfflineServices.length === 0 && (
-                    <View style={styles.emptyContainer}>
-                      <View style={styles.emptyIconCircle}>
-                        <Ionicons
-                          name="search-outline"
-                          size={48}
-                          color={Colors.grey}
-                        />
-                      </View>
-                      <Text style={styles.emptyTitle}>No services found</Text>
-                      <Text style={styles.emptySubtitle}>
-                        Try adjusting your search or filter criteria
-                      </Text>
-                    </View>
+          {/* Services List Header */}
+          <View style={styles.listHeader}>
+            <TouchableOpacity
+              style={styles.selectAllButton}
+              onPress={toggleSelectAll}
+              disabled={loading || filteredServices.length === 0}
+            >
+              <View
+                style={[
+                  styles.checkbox,
+                  selectedServiceIds.length === filteredServices.length &&
+                    filteredServices.length > 0 &&
+                    styles.checkboxSelected,
+                ]}
+              >
+                {selectedServiceIds.length === filteredServices.length &&
+                  filteredServices.length > 0 && (
+                    <Ionicons name="checkmark" size={16} color={Colors.white} />
                   )}
               </View>
-            )}
-            keyExtractor={(item) => item.key}
-            showsVerticalScrollIndicator={false}
-          />
+              <Text style={styles.selectAllText}>
+                Select All ({selectedServiceIds.length}/
+                {filteredServices.length})
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Services List */}
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={Colors.primary} />
+              <Text style={styles.loadingText}>Loading services...</Text>
+            </View>
+          ) : filteredServices.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <View style={styles.emptyIconCircle}>
+                <Ionicons name="search-outline" size={48} color={Colors.grey} />
+              </View>
+              <Text style={styles.emptyTitle}>No services found</Text>
+              <Text style={styles.emptySubtitle}>
+                Try adjusting your search or filter criteria
+              </Text>
+            </View>
+          ) : (
+            <FlatList
+              data={filteredServices}
+              renderItem={renderServiceItem}
+              keyExtractor={(item) => item._id}
+              contentContainerStyle={styles.listContainer}
+              showsVerticalScrollIndicator={false}
+            />
+          )}
+
+          {/* Pagination */}
+          {renderPagination()}
+
+          {/* Bulk Action Button */}
+          {selectedServiceIds.length > 0 && (
+            <View style={styles.bulkActionContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.bulkActionButton,
+                  isOfflineView
+                    ? styles.bulkActionButtonOnline
+                    : styles.bulkActionButtonOffline,
+                ]}
+                onPress={handleBulkAction}
+                disabled={loading}
+                activeOpacity={0.8}
+              >
+                <Ionicons
+                  name={isOfflineView ? "play-circle" : "pause-circle"}
+                  size={20}
+                  color={Colors.white}
+                />
+                <Text style={styles.bulkActionButtonText}>
+                  {isOfflineView
+                    ? `Bring Online (${selectedServiceIds.length})`
+                    : `Go Offline (${selectedServiceIds.length})`}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
         {/* Loading Overlay */}
@@ -761,7 +887,7 @@ const OfflineModal: React.FC<OfflineModalProps> = ({
       <SelectionPopup
         visible={showReasonPopup}
         title="Reason for going offline"
-        subtitle={`Why is "${selectedServiceName}" going offline?`}
+        subtitle={`Why are these ${selectedServiceIds.length} service(s) going offline?`}
         options={
           offlineReasons.length > 0
             ? offlineReasons
@@ -795,7 +921,7 @@ const OfflineModal: React.FC<OfflineModalProps> = ({
       <SelectionPopup
         visible={showComebackPopup}
         title="When would you come back?"
-        subtitle={`Select when "${selectedServiceName}" will be back online`}
+        subtitle={`Select when these ${selectedServiceIds.length} service(s) will be back online`}
         options={
           comebackOptions.length > 0
             ? comebackOptions
@@ -884,38 +1010,46 @@ const styles = StyleSheet.create({
     fontFamily: fonts.interRegular,
     color: Colors.title,
   },
-  filterSection: {
+  filtersRow: {
+    flexDirection: "row",
     paddingHorizontal: 20,
     paddingBottom: 16,
     backgroundColor: Colors.white,
     borderBottomWidth: 1,
     borderBottomColor: "#E5E7EB",
+    gap: 12,
+  },
+  filterWrapper: {
+    flex: 1,
+    position: "relative",
   },
   filterButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     backgroundColor: Colors.white,
-    borderRadius: 12,
+    borderRadius: 8,
     borderWidth: 1.5,
     borderColor: "#E5E7EB",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
   filterButtonText: {
-    flex: 1,
-    fontSize: 15,
+    fontSize: 14,
     fontFamily: fonts.interMedium,
     color: Colors.title,
+    flex: 1,
   },
   filterDropdown: {
-    marginTop: 8,
+    position: "absolute",
+    top: 45,
+    left: 0,
+    right: 0,
     backgroundColor: Colors.white,
-    borderRadius: 12,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: "#E5E7EB",
-    overflow: "hidden",
+    zIndex: 1000,
     ...Platform.select({
       ios: {
         shadowColor: "#000",
@@ -932,206 +1066,233 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#E5E7EB",
   },
-  filterOptionSelected: {
-    backgroundColor: "#F0F7FF",
-  },
   filterOptionText: {
-    fontSize: 15,
+    fontSize: 14,
     fontFamily: fonts.interMedium,
     color: Colors.title,
   },
-  filterOptionTextSelected: {
-    color: Colors.primary,
-    fontFamily: fonts.interSemibold,
-  },
-  contentContainer: {
-    flex: 1,
+  listHeader: {
     paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 40,
+    paddingVertical: 12,
+    backgroundColor: "#F8F9FA",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
   },
-  servicesSection: {
-    marginBottom: 32,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 16,
-  },
-  sectionHeaderLeft: {
+  selectAllButton: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
   },
-  sectionIconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#E8F5E9",
+  selectAllText: {
+    fontSize: 14,
+    fontFamily: fonts.interSemibold,
+    color: Colors.title,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: Colors.grey,
     alignItems: "center",
     justifyContent: "center",
   },
-  sectionIconCircleRed: {
-    backgroundColor: "#FFE5E5",
+  checkboxSelected: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontFamily: fonts.interSemibold,
-    color: Colors.green,
-  },
-  sectionTitleRed: {
-    color: Colors.red,
-  },
-  countBadge: {
-    backgroundColor: "#E8F5E9",
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  countBadgeRed: {
-    backgroundColor: "#FFE5E5",
-  },
-  countBadgeText: {
-    fontSize: 13,
-    fontFamily: fonts.interSemibold,
-    color: Colors.green,
-  },
-  countBadgeTextRed: {
-    color: Colors.red,
-  },
-  servicesGrid: {
-    gap: 12,
+  listContainer: {
+    padding: 20,
+    paddingBottom: 100,
   },
   serviceCard: {
     backgroundColor: Colors.white,
-    borderRadius: 16,
+    borderRadius: 12,
     padding: 16,
+    marginBottom: 12,
     borderWidth: 1.5,
     borderColor: "#E5E7EB",
     ...Platform.select({
       ios: {
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
+        shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.05,
-        shadowRadius: 4,
+        shadowRadius: 2,
       },
       android: {
-        elevation: 2,
+        elevation: 1,
       },
     }),
   },
-  serviceCardHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 8,
-    gap: 10,
+  serviceCardSelected: {
+    borderColor: Colors.primary,
+    backgroundColor: "#F0F7FF",
   },
-  onlineIndicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.green,
+  serviceCardOffline: {
+    backgroundColor: "#FFF9F9",
+    borderColor: "#FFE5E5",
   },
-  offlineIndicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.red,
-  },
-  serviceCardName: {
-    flex: 1,
-    fontSize: 16,
-    fontFamily: fonts.interSemibold,
-    color: Colors.title,
-  },
-  offlineBadge: {
-    backgroundColor: Colors.red,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  offlineBadgeText: {
-    fontSize: 11,
-    fontFamily: fonts.interSemibold,
-    color: Colors.white,
-  },
-  serviceCardType: {
-    fontSize: 14,
-    fontFamily: fonts.interRegular,
-    color: Colors.grey,
-    marginBottom: 12,
-  },
-  serviceCardFooter: {
+  serviceCardContent: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  statusBadge: {
+  serviceCardLeft: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    backgroundColor: "#E8F5E9",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  statusBadgeText: {
-    fontSize: 12,
-    fontFamily: fonts.interSemibold,
-    color: Colors.green,
-  },
-  offlineServiceCard: {
-    backgroundColor: "#FFF9F9",
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1.5,
-    borderColor: "#FFE5E5",
-  },
-  offlineDetailsCard: {
-    backgroundColor: Colors.white,
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
-    gap: 10,
-  },
-  offlineDetailRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  offlineDetailLabel: {
-    fontSize: 13,
-    fontFamily: fonts.interMedium,
-    color: Colors.grey,
-    minWidth: 60,
-  },
-  offlineDetailValue: {
+    gap: 12,
     flex: 1,
-    fontSize: 13,
+  },
+  serviceInfo: {
+    flex: 1,
+  },
+  serviceName: {
+    fontSize: 16,
     fontFamily: fonts.interSemibold,
     color: Colors.title,
+    marginBottom: 2,
   },
-  bringOnlineButton: {
+  serviceType: {
+    fontSize: 13,
+    fontFamily: fonts.interRegular,
+    color: Colors.grey,
+  },
+  statusIndicator: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: Colors.green,
+  },
+  statusIndicatorOffline: {
+    backgroundColor: Colors.red,
+  },
+  offlineDetails: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#FFE5E5",
+    gap: 4,
+  },
+  offlineDetailText: {
+    fontSize: 12,
+    fontFamily: fonts.interRegular,
+    color: Colors.grey,
+  },
+  offlineDetailLabel: {
+    fontFamily: fonts.interMedium,
+    color: Colors.title,
+  },
+  paginationContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    backgroundColor: Colors.white,
+    borderTopWidth: 1,
+    borderTopColor: "#E5E7EB",
+    gap: 12,
+  },
+  paginationButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.white,
+  },
+  paginationButtonDisabled: {
+    borderColor: Colors.lightGrey,
+    backgroundColor: "#F5F5F5",
+  },
+  paginationNumbers: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  paginationNumber: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.lightGrey,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.white,
+  },
+  paginationNumberActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  paginationNumberText: {
+    fontSize: 14,
+    fontFamily: fonts.interMedium,
+    color: Colors.title,
+  },
+  paginationNumberTextActive: {
+    color: Colors.white,
+    fontFamily: fonts.interSemibold,
+  },
+  bulkActionContainer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 20,
+    backgroundColor: Colors.white,
+    borderTopWidth: 1,
+    borderTopColor: "#E5E7EB",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
+  },
+  bulkActionButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: Colors.green,
     borderRadius: 12,
-    paddingVertical: 14,
+    paddingVertical: 16,
   },
-  bringOnlineButtonText: {
-    fontSize: 15,
+  bulkActionButtonOffline: {
+    backgroundColor: Colors.red,
+  },
+  bulkActionButtonOnline: {
+    backgroundColor: Colors.green,
+  },
+  bulkActionButtonText: {
+    fontSize: 16,
     fontFamily: fonts.interSemibold,
     color: Colors.white,
   },
+  loadingContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 60,
+  },
+  loadingText: {
+    fontSize: 14,
+    fontFamily: fonts.interRegular,
+    color: Colors.grey,
+    marginTop: 12,
+  },
   emptyContainer: {
+    flex: 1,
     paddingVertical: 80,
     alignItems: "center",
     justifyContent: "center",
@@ -1185,11 +1346,6 @@ const styles = StyleSheet.create({
         elevation: 8,
       },
     }),
-  },
-  loadingText: {
-    fontSize: 16,
-    fontFamily: fonts.interMedium,
-    color: Colors.title,
   },
 });
 

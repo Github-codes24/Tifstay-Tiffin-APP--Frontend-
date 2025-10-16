@@ -26,7 +26,7 @@ const MealDetails = () => {
   const parsedTiffin = tiffin ? JSON.parse(tiffin) : null;
   const parsedFormData = formData ? JSON.parse(formData as string) : null;
   const { token } = useAuthStore();
-  console.log(parsedTiffin);
+
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
 

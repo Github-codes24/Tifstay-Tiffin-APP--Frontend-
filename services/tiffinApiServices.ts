@@ -18,7 +18,6 @@ class TiffinApiService {
       async (config) => {
         const { default: useAuthStore } = await import("@/store/authStore");
         const token = useAuthStore.getState().token;
-        console.log('--',token)
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }

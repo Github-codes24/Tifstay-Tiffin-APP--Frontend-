@@ -5,29 +5,29 @@ import CommonHeader from "@/components/CommonHeader";
 import LabeledInput from "@/components/labeledInput";
 import { Colors } from "@/constants/Colors";
 import { Images } from "@/constants/Images";
+import { IS_ANDROID } from "@/constants/Platform";
 import { fonts } from "@/constants/typography";
+import useAuthStore from "@/store/authStore";
+import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Image,
-  Alert,
   ActivityIndicator,
+  Alert,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import * as ImagePicker from "expo-image-picker";
-import { IS_ANDROID } from "@/constants/Platform";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import useAuthStore from "@/store/authStore";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const BasicInfoForm = () => {
-  const { token  , userServiceType} = useAuthStore();
-  const { formData , extraData , isEdit , id } = useLocalSearchParams();
+  const { token, userServiceType } = useAuthStore();
+  const { formData, extraData, isEdit, id } = useLocalSearchParams();
   // const parsedData = formData ? JSON.parse(formData as string) : null;
-  const parsedRxtra = extraData ? JSON.parse(extraData as string) : null
+  const parsedRxtra = extraData ? JSON.parse(extraData as string) : null;
   // ✅ Parse only once
   const parsedData = useMemo(
     () => (formData ? JSON.parse(formData as string) : null),
@@ -92,14 +92,14 @@ const BasicInfoForm = () => {
 
   // Feature toggles
   const [features, setFeatures] = useState({
-    freshIngredients: false,
-    hygienicPreparation: false,
-    monthlySubscription: false,
-    oilFree: false,
-    homeStyle: false,
-    onTimeDelivery: false,
-    spiceLevel: false,
-    organicVeggies: false,
+    "Fresh ingredients daily": false,
+    "Hygienic preparation": false,
+    "Monthly subscription available": false,
+    "Oil-free cooking option": false,
+    "Home-style cooking": false,
+    "On-time delivery": false,
+    "Customizable spice level": false,
+    "Organic vegetables": false,
   });
 
   const toggleFeature = (key: keyof typeof features) => {
@@ -109,7 +109,8 @@ const BasicInfoForm = () => {
   // Photos state
   const [photos, setPhotos] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-  const [formDataToSendState, setFormDataToSendState] = useState<FormData | null>(null);
+  const [formDataToSendState, setFormDataToSendState] =
+    useState<FormData | null>(null);
   const [modifyDataState, setModifyDataState] = useState<any>(null);
 
   // Preview logic
@@ -126,14 +127,18 @@ const BasicInfoForm = () => {
     // Meal Timings
     const mealTimings = (parsedData.mealTimings || [])
       .filter((m: any) => m.checked)
-      .map(({ mealType, startTime, endTime }:any) => ({ mealType, startTime, endTime }));
+      .map(({ mealType, startTime, endTime }: any) => ({
+        mealType,
+        startTime,
+        endTime,
+      }));
     formDataToSend.append("mealTimings", JSON.stringify(mealTimings));
 
     // Order Types
     const orderTypes = parsedData?.orderTypes
       ? Object.entries(parsedData.orderTypes)
-        .filter(([_, v]) => v)
-        .map(([k]) => k.charAt(0).toUpperCase() + k.slice(1))
+          .filter(([_, v]) => v)
+          .map(([k]) => k.charAt(0).toUpperCase() + k.slice(1))
       : [];
     formDataToSend.append("orderTypes", JSON.stringify(orderTypes));
 
@@ -143,8 +148,12 @@ const BasicInfoForm = () => {
     // Service Features
     const serviceFeatures = parsedData?.features
       ? Object.entries(parsedData.features)
-        .filter(([_, v]) => v)
-        .map(([k]) => k.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase()))
+          .filter(([_, v]) => v)
+          .map(([k]) =>
+            k
+              .replace(/([A-Z])/g, " $1")
+              .replace(/^./, (str) => str.toUpperCase())
+          )
       : [];
     formDataToSend.append("serviceFeatures", JSON.stringify(serviceFeatures));
 
@@ -165,7 +174,10 @@ const BasicInfoForm = () => {
     formDataToSend.append("contactInfo", JSON.stringify(contactInfo));
 
     // Photos
-    const photoKey = (parsedData?.foodType || "").toLowerCase() === "veg" ? "vegPhotos" : "nonVegPhotos";
+    const photoKey =
+      (parsedData?.foodType || "").toLowerCase() === "veg"
+        ? "vegPhotos"
+        : "nonVegPhotos";
     (photos || []).forEach((uri: string, index: number) => {
       formDataToSend.append(photoKey, {
         uri,
@@ -175,7 +187,10 @@ const BasicInfoForm = () => {
     });
 
     // Whats included
-    formDataToSend.append("whatsIncludes", JSON.stringify(parsedData?.includedDescription));
+    formDataToSend.append(
+      "whatsIncludes",
+      JSON.stringify(parsedData?.includedDescription)
+    );
 
     // Modify Data built same as FormData for preview
     const modifyData = {
@@ -203,7 +218,11 @@ const BasicInfoForm = () => {
       visibilityStatus: parsedData.visibilityStatus || "",
       nonVegPhotos: parsedData.nonVegPhotos || [],
       vegPhotos: parsedData.vegPhotos || [],
-      offlineDetails: { isOffline: false, offlineType: null, isPermanent: false },
+      offlineDetails: {
+        isOffline: false,
+        offlineType: null,
+        isPermanent: false,
+      },
     };
     setModifyDataState(modifyData);
     // Prepare a raw object to pass
@@ -211,23 +230,32 @@ const BasicInfoForm = () => {
       tiffinName: parsedData?.tiffinName || "",
       description: parsedData?.description || "",
       foodType: parsedData?.foodType || "",
-      mealTimings: (parsedData?.mealTimings || []).filter((m: any) => m.checked),
+      mealTimings: (parsedData?.mealTimings || []).filter(
+        (m: any) => m.checked
+      ),
       orderTypes: parsedData?.orderTypes
         ? Object.entries(parsedData.orderTypes)
-          .filter(([_, v]) => v)
-          .map(([k]) => k.charAt(0).toUpperCase() + k.slice(1))
+            .filter(([_, v]) => v)
+            .map(([k]) => k.charAt(0).toUpperCase() + k.slice(1))
         : [],
       pricing: parsedData?.pricing || [],
       serviceFeatures: parsedData?.features
         ? Object.entries(parsedData.features)
-          .filter(([_, v]) => v)
-          .map(([k]) => k.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase()))
+            .filter(([_, v]) => v)
+            .map(([k]) =>
+              k
+                .replace(/([A-Z])/g, " $1")
+                .replace(/^./, (str) => str.toUpperCase())
+            )
         : [],
       location: {
         area: area || parsedData?.location?.area || "",
-        nearbyLandmarks: landmark || parsedData?.location?.nearbyLandmarks || "",
+        nearbyLandmarks:
+          landmark || parsedData?.location?.nearbyLandmarks || "",
         fullAddress: address || parsedData?.location?.fullAddress || "",
-        serviceRadius: Number(radius || parsedData?.location?.serviceRadius || 5),
+        serviceRadius: Number(
+          radius || parsedData?.location?.serviceRadius || 5
+        ),
       },
       contactInfo: {
         phone: Number(phone || parsedData?.contactInfo?.phone || 0),
@@ -237,7 +265,7 @@ const BasicInfoForm = () => {
       whatsIncludes: parsedData?.includedDescription || "",
     };
     router.push({
-      pathname: "/(service)/previewService",
+      pathname: "/(secure)/(service)/previewService",
       params: {
         formData: JSON.stringify(rawDataToSend),
         tiffin: JSON.stringify(modifyData),
@@ -274,27 +302,35 @@ const BasicInfoForm = () => {
       // Meal Timings
       const mealTimings = (parsedData?.mealTimings || [])
         .filter((m: any) => m.checked)
-        .map(({ mealType, startTime, endTime }) => ({ mealType, startTime, endTime }));
+        .map(({ mealType, startTime, endTime }: any) => ({
+          mealType,
+          startTime,
+          endTime,
+        }));
       formDataToSend.append("mealTimings", JSON.stringify(mealTimings));
 
       // Order Types
       const orderTypes = parsedData?.orderTypes
         ? Object.entries(parsedData.orderTypes)
-          .filter(([_, v]) => v)
-          .map(([k]) => k.charAt(0).toUpperCase() + k.slice(1))
+            .filter(([_, v]) => v)
+            .map(([k]) => k.charAt(0).toUpperCase() + k.slice(1))
         : [];
       formDataToSend.append("orderTypes", JSON.stringify(orderTypes));
 
       // Pricing
-      formDataToSend.append("pricing", JSON.stringify(parsedData?.pricing || []));
+      formDataToSend.append(
+        "pricing",
+        JSON.stringify(parsedData?.pricing || [])
+      );
 
       // Service Features
-      const serviceFeatures = parsedData?.features
-        ? Object.entries(parsedData.features)
-          .filter(([_, v]) => v)
-          .map(([k]) => k.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase()))
-        : [];
-      formDataToSend.append("serviceFeatures", JSON.stringify(serviceFeatures));
+      const serviceFeatures = Object.entries(features)
+        .filter(([_, v]) => v)
+        .map(([k]) =>
+          k.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase())
+        );
+
+      formDataToSend.append("serviceFeatures", []);
 
       // Location
       const location = {
@@ -313,7 +349,10 @@ const BasicInfoForm = () => {
       formDataToSend.append("contactInfo", JSON.stringify(contactInfo));
 
       // Images
-      const photoKey = (parsedData?.foodType || "").toLowerCase() === "veg" ? "vegPhotos" : "nonVegPhotos";
+      const photoKey =
+        (parsedData?.foodType || "").toLowerCase() === "veg"
+          ? "vegPhotos"
+          : "nonVegPhotos";
       (photos || []).forEach((uri: string, index: number) => {
         formDataToSend.append(photoKey, {
           uri,
@@ -324,11 +363,13 @@ const BasicInfoForm = () => {
 
       // Whats included
       formDataToSend.append("whatsIncludes", parsedData?.includedDescription);
-      console.log(formDataToSend)
+      console.log(formDataToSend);
       const response = await fetch(
-       isEdit === 'true' ? `https://tifstay-project-be.onrender.com/api/tiffinService/updateTiffinService/${id}` : "https://tifstay-project-be.onrender.com/api/tiffinService/createTiffinService",
+        isEdit === "true"
+          ? `https://tifstay-project-be.onrender.com/api/tiffinService/updateTiffinService/${id}`
+          : "https://tifstay-project-be.onrender.com/api/tiffinService/createTiffinService",
         {
-          method: isEdit === 'true'  ? 'PUT' : "POST",
+          method: isEdit === "true" ? "PUT" : "POST",
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "multipart/form-data",
@@ -340,7 +381,7 @@ const BasicInfoForm = () => {
       const data = await response.json();
       if (response.ok) {
         Alert.alert("Success", "Tiffin service created successfully!");
-        router.push("/(service)/confirmService");
+        router.push("/(secure)/(service)/confirmService");
       } else {
         Alert.alert("Error", data?.message || "Failed to create listing.");
       }
@@ -368,10 +409,15 @@ const BasicInfoForm = () => {
         {/* === Service Features === */}
         <View style={styles.card}>
           <View style={{ flexDirection: "row", gap: 5, alignItems: "center" }}>
-            <Image source={Images.emptyStar} style={{ height: 16, width: 16 }} />
+            <Image
+              source={Images.emptyStar}
+              style={{ height: 16, width: 16 }}
+            />
             <Text style={styles.heading}>Service Features</Text>
           </View>
-          <Text style={styles.subText}>Select features that apply to your service</Text>
+          <Text style={styles.subText}>
+            Select features that apply to your service
+          </Text>
 
           {Object.keys(features).map((key) => (
             <MealCheckbox
@@ -381,7 +427,9 @@ const BasicInfoForm = () => {
               onToggle={() => toggleFeature(key as keyof typeof features)}
               containerStyle={{ marginBottom: 16 }}
               labelStyle={{
-                color: features[key as keyof typeof features] ? Colors.orange : Colors.grey,
+                color: features[key as keyof typeof features]
+                  ? Colors.orange
+                  : Colors.grey,
               }}
             />
           ))}
@@ -395,9 +443,17 @@ const BasicInfoForm = () => {
           </View>
           <View style={{ paddingHorizontal: 16 }}>
             {photos.length === 0 ? (
-              <TouchableOpacity style={styles.uploadBox} onPress={pickImage} activeOpacity={0.7}>
-                <Text style={{ fontFamily: fonts.interSemibold, fontSize: 15 }}>Upload photos</Text>
-                <Text style={styles.uploadHint}>Upload clear photos of your tiffin meals</Text>
+              <TouchableOpacity
+                style={styles.uploadBox}
+                onPress={pickImage}
+                activeOpacity={0.7}
+              >
+                <Text style={{ fontFamily: fonts.interSemibold, fontSize: 15 }}>
+                  Upload photos
+                </Text>
+                <Text style={styles.uploadHint}>
+                  Upload clear photos of your tiffin meals
+                </Text>
               </TouchableOpacity>
             ) : (
               <View style={styles.previewContainer}>
@@ -470,7 +526,10 @@ const BasicInfoForm = () => {
         {/* === Contact Info === */}
         <View style={styles.card}>
           <View style={{ flexDirection: "row", gap: 5, alignItems: "center" }}>
-            <Image source={Images.profile} style={{ height: 16, width: 16, tintColor: Colors.title }} />
+            <Image
+              source={Images.profile}
+              style={{ height: 16, width: 16, tintColor: Colors.title }}
+            />
             <Text style={styles.heading}>Contact Information</Text>
           </View>
 
@@ -501,7 +560,11 @@ const BasicInfoForm = () => {
 
         {/* === Buttons === */}
         <CommonButton
-          title={isEdit==="true" ? "Edit tiffin listing" : "+ Create Tiffin Listing"}
+          title={
+            isEdit === "true"
+              ? "Edit tiffin listing"
+              : "+ Create Tiffin Listing"
+          }
           onPress={handleCreateListing}
           disabled={loading}
         />

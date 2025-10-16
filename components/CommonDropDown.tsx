@@ -1,9 +1,16 @@
-import React, { useState } from "react";
-import DropDownPicker from "react-native-dropdown-picker";
-import { StyleSheet, View, Text, Image, ViewStyle, TextStyle } from "react-native";
 import { Colors } from "@/constants/Colors";
-import { fonts } from "@/constants/typography";
 import { Images } from "@/constants/Images";
+import { fonts } from "@/constants/typography";
+import React, { useState } from "react";
+import {
+  Image,
+  StyleSheet,
+  Text,
+  TextStyle,
+  View,
+  ViewStyle,
+} from "react-native";
+import DropDownPicker from "react-native-dropdown-picker";
 
 type Props = {
   label?: string;
@@ -14,7 +21,7 @@ type Props = {
   containerStyle?: object;
   dropdownStyle?: ViewStyle;
   placeholderStyle?: TextStyle;
-  dropdownStyleContainer?:ViewStyle;
+  dropdownStyleContainer?: ViewStyle;
   labelStyle?: TextStyle;
 };
 
@@ -28,14 +35,14 @@ const CommonDropdown: React.FC<Props> = ({
   dropdownStyle,
   placeholderStyle,
   dropdownStyleContainer,
-  labelStyle
+  labelStyle,
 }) => {
   const [open, setOpen] = useState(false);
   const [listItems, setListItems] = useState(items);
 
   return (
     <View style={[styles.wrapper, containerStyle]}>
-      {label && <Text style={[styles.label , labelStyle]}>{label}</Text>}
+      {label && <Text style={[styles.label, labelStyle]}>{label}</Text>}
       <DropDownPicker
         open={open}
         value={value}
@@ -55,19 +62,32 @@ const CommonDropdown: React.FC<Props> = ({
         listMode="SCROLLVIEW"
         scrollViewProps={{ nestedScrollEnabled: true }}
         style={[styles.dropdown, dropdownStyle]}
-        dropDownContainerStyle={[styles.dropdownContainer, dropdownStyleContainer]}
+        dropDownContainerStyle={[
+          styles.dropdownContainer,
+          dropdownStyleContainer,
+        ]}
         textStyle={styles.text}
         placeholderStyle={placeholderStyle}
         ArrowDownIconComponent={() => (
           <Image
             source={Images.back}
-            style={{ height: 12, width: 12, resizeMode: "contain", transform: [{ rotate: "90deg" }] }}
+            style={{
+              height: 12,
+              width: 12,
+              resizeMode: "contain",
+              transform: [{ rotate: "90deg" }],
+            }}
           />
         )}
         ArrowUpIconComponent={() => (
           <Image
             source={Images.back}
-            style={{ height: 12, width: 12, resizeMode: "contain", transform: [{ rotate: "270deg" }] }}
+            style={{
+              height: 12,
+              width: 12,
+              resizeMode: "contain",
+              transform: [{ rotate: "270deg" }],
+            }}
           />
         )}
       />
@@ -80,7 +100,6 @@ export default CommonDropdown;
 const styles = StyleSheet.create({
   wrapper: {
     marginBottom: 16,
-    zIndex: 999,
   },
   label: {
     fontSize: 12,
@@ -98,6 +117,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.title,
     borderRadius: 8,
     backgroundColor: Colors.white,
+    zIndex: 9999,
   },
   text: {
     fontSize: 14,

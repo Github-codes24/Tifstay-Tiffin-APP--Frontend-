@@ -183,7 +183,6 @@ const useAuthStore = create<AuthState>()(
     try {
       let response;
       const userServiceType = get().userServiceType || type;
-      console.log('++$$$$',userServiceType, userServiceType, userServiceType)
       if (userServiceType === "hostel_owner") {
         response = await hostelApiService.updateProfile(profileData);
       } else {

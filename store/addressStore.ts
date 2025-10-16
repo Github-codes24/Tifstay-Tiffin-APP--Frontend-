@@ -79,7 +79,7 @@ const useAddressStore = create<AddressState>()(
           } else {
             response = await tiffinApiService.getAllAddresses();
           }
-          console.log('@@@@@',response)
+
           if (response.success) {
             set({
               addresses: response.data?.addresses || [],

@@ -45,7 +45,6 @@ const AddEditAddress = () => {
     setIsLoadingData(true);
     try {
       const result = await getAddressById(addressId);
-      console.log('||||||||',result)
       if (result.success && result.data) {
         setAddress(result.data.address);
         setStreet(result.data.street);
@@ -88,11 +87,14 @@ const AddEditAddress = () => {
       address: address.trim(),
       street: street.trim(),
       postCode: postCode.trim(),
-      label: (
-        userServiceType === "hostel_owner"
-          ? (isHome ? "Home" : "Work")
-          : (isHome ? "home" : "work")
-      ) as any   };
+      label: (userServiceType === "hostel_owner"
+        ? isHome
+          ? "Home"
+          : "Work"
+        : isHome
+        ? "home"
+        : "work") as any,
+    };
 
     try {
       let result;

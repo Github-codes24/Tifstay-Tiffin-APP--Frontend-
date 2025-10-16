@@ -201,7 +201,6 @@ const useServiceStore = create<ServiceState>()(
           } else {
             response = await tiffinApiService.getTotalTiffinServicesCount();
           }
-          console.log('+++++++', response?.data)
 
           if (response.status === 200) {
             const count = userServiceType === "hostel_owner" ? response.data.data.requestedHostelServices || 0 : response?.data?.totalBookings || 0;
@@ -277,7 +276,6 @@ const useServiceStore = create<ServiceState>()(
           } else {
             response = await tiffinApiService.getAcceptedTiffinServicesCount();
           }
-          console.log('++++666++', response?.data)
 
           if (response.status === 200) {
             const count = userServiceType === "hostel_owner" ? response.data.data.acceptedHostelServices || 0 : response?.data?.totalConfirmedBookings || 0;

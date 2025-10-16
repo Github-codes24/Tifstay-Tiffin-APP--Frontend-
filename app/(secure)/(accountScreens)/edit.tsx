@@ -17,14 +17,12 @@ import {
 import { IS_ANDROID } from "@/constants/Platform";
 import { fonts } from "@/constants/typography";
 import useAuthStore from "@/store/authStore";
-import { router } from "expo-router";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 const EditProfile = () => {
   const { user, updateProfile, userServiceType } = useAuthStore();
-  console.log(user?.name)
   // Initialize state with user data
-  const [name, setName] = useState(user?.fullName ?? user?.name ?? '');
+  const [name, setName] = useState(user?.fullName ?? user?.name ?? "");
   const [email, setEmail] = useState(user?.email || "");
   const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber || "");
   const [accountNumber, setAccountNumber] = useState(

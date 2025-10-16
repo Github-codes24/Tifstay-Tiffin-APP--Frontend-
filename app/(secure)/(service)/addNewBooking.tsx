@@ -28,8 +28,6 @@ const BasicInfoForm = () => {
   const [loading, setLoading] = useState(false);
 
   const bookingData = booking ? JSON.parse(booking) : null;
-  console.log(bookingData);
-  // Function to get today's date in YYYY-MM-DD format
   const getTodayDate = () => {
     const today = new Date();
     const year = today.getFullYear();
@@ -67,8 +65,6 @@ const BasicInfoForm = () => {
       reasonOfDinnerNotDone: description.trim(),
     };
     const token = useAuthStore.getState().token;
-    console.log(token);
-    console.log(payload);
     try {
       const response = await fetch(
         `https://tifstay-project-be.onrender.com/api/tiffinOrderSummary/createOrAddTiffinOrderSummary/${bookingData.orderId}`,
@@ -81,7 +77,6 @@ const BasicInfoForm = () => {
           body: JSON.stringify(payload),
         }
       );
-      console.log(response);
       const data = await response.json();
 
       if (response.ok) {
@@ -92,11 +87,9 @@ const BasicInfoForm = () => {
           },
         ]);
       } else {
-        console.log(data?.message);
         Alert.alert("Error", data.message || "Failed to save order summary");
       }
     } catch (error) {
-      console.error("API Error:", error);
       Alert.alert("Error", "An error occurred while saving. Please try again.");
     } finally {
       setLoading(false);

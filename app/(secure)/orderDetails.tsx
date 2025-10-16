@@ -5,13 +5,7 @@ import useAuthStore from "@/store/authStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
-import {
-  Alert,
-  StyleSheet,
-  Text,
-  View,
-  ActivityIndicator,
-} from "react-native";
+import { ActivityIndicator, Alert, StyleSheet, Text, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 export default function OrderDetail() {
@@ -42,7 +36,6 @@ export default function OrderDetail() {
       );
 
       const result = await response.json();
-      console.log("API Result:", JSON.stringify(result, null, 2));
 
       if (response.ok && result.success && result.data?.summary) {
         setOrderSummary(result.data.summary);
@@ -101,7 +94,9 @@ export default function OrderDetail() {
           {loading ? (
             <ActivityIndicator size="small" color={Colors.primary} />
           ) : orderSummary.length === 0 ? (
-            <Text style={{ color: Colors.grey, textAlign: "center", marginTop: 10 }}>
+            <Text
+              style={{ color: Colors.grey, textAlign: "center", marginTop: 10 }}
+            >
               No summary available.
             </Text>
           ) : (

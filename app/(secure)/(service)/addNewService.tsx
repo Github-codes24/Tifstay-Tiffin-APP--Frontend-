@@ -101,8 +101,8 @@ const BasicInfoForm = () => {
         weeklyDelivery: 120,
         monthlyDining: 120,
         monthlyDelivery: 120,
-        perBreakfastDining: 120,
-        perBreakfastDelivery: 120,
+        // // perBreakfastDining: 120,
+        // perBreakfastDelivery: 120,
       },
     ],
   });
@@ -140,8 +140,8 @@ const BasicInfoForm = () => {
               weeklyDelivery: p.weeklyDelivery || 0,
               monthlyDining: p.monthlyDining || 0,
               monthlyDelivery: p.monthlyDelivery || 0,
-              perBreakfastDining: p.perBreakfastDining || 0,
-              perBreakfastDelivery: p.perBreakfastDelivery || 0,
+              // perBreakfastDining: p.perBreakfastDining || 0,
+              // perBreakfastDelivery: p.perBreakfastDelivery || 0,
               offers: p.offers || "",
             })) || [],
         };
@@ -212,8 +212,8 @@ const BasicInfoForm = () => {
           weeklyDelivery: 120,
           monthlyDining: 120,
           monthlyDelivery: 120,
-          perBreakfastDelivery: 120,
-          perBreakfastDining: 200,
+          // perBreakfastDelivery: 120,
+          // perBreakfastDining: 200,
         },
       ],
     }));
@@ -255,8 +255,8 @@ const BasicInfoForm = () => {
           weeklyDelivery: 120,
           monthlyDining: 120,
           monthlyDelivery: 120,
-          perBreakfastDelivery: 120,
-          perBreakfastDining: 200,
+          // perBreakfastDelivery: 120,
+          // perBreakfastDining: 200,
         },
       ],
     });
@@ -463,7 +463,7 @@ const BasicInfoForm = () => {
                   updatePricingBlock(index, "foodType", val)
                 }
               />
-              <View style={styles.row}>
+              {/* <View style={styles.row}>
                 <StepperInput
                   label="Per Breakfast for Dining (₹)"
                   value={block.perBreakfastDining}
@@ -484,7 +484,7 @@ const BasicInfoForm = () => {
                   min={50}
                   max={500}
                 />
-              </View>
+              </View> */}
               <View style={styles.row}>
                 <StepperInput
                   label="Per Meal for Dining (₹)"

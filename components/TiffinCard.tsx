@@ -15,7 +15,6 @@ import {
 const { width } = Dimensions.get("window");
 
 const TiffinCard = ({ tiffin }: any) => {
-  console.log(tiffin);
   return (
     <View style={styles.container}>
       <View style={styles.card}>
