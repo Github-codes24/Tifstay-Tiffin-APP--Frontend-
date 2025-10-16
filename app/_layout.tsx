@@ -14,9 +14,7 @@ import "react-native-reanimated";
 export default function RootLayout() {
   const { isAuthenticated } = useAuthStore();
   const [loaded] = useFonts({
-    // Custom local font
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
-    // Inter
     Inter_400Regular,
     Inter_500Medium,
     Inter_600SemiBold,
@@ -24,7 +22,6 @@ export default function RootLayout() {
   });
 
   if (!loaded) {
-    // Async font loading only occurs in development.
     return null;
   }
 

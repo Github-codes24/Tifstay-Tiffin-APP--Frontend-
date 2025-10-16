@@ -1,7 +1,5 @@
-import useAuthStore from "@/store/authStore";
 import { ApiResponse, CreateHostelServiceRequest, HostelServicesListResponse, UpdateHostelServiceRequest, } from "@/types/hostel";
 import axios, { AxiosInstance } from "axios";
-
 class ApiService {
   private api: AxiosInstance;
   private baseURL = "https://tifstay-project-be.onrender.com";
@@ -15,8 +13,11 @@ class ApiService {
       },
     });
 
+    // Request interceptor
     this.api.interceptors.request.use(
       async (config) => {
+        // ✅ Lazy import
+        const { default: useAuthStore } = await import("@/store/authStore");
         const token = useAuthStore.getState().token;
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
@@ -29,6 +30,7 @@ class ApiService {
       }
     );
 
+    // Response interceptor
     this.api.interceptors.response.use(
       (response) => {
         return response;
@@ -41,13 +43,20 @@ class ApiService {
         );
 
         if (error.response?.status === 401) {
-          useAuthStore.setState({ token: null, isAuthenticated: false, user: null, });
+          // ✅ Lazy import
+          const { default: useAuthStore } = await import("@/store/authStore");
+          useAuthStore.setState({
+            token: null,
+            isAuthenticated: false,
+            user: null,
+          });
         }
 
         return Promise.reject(error);
       }
     );
   }
+
 
   // Authentication APIs
   async login(email: string, password: string) {

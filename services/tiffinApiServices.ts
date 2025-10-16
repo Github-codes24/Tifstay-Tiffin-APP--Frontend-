@@ -1,4 +1,3 @@
-import useAuthStore from "@/store/authStore";
 import axios, { AxiosInstance } from "axios";
 
 class TiffinApiService {
@@ -17,6 +16,7 @@ class TiffinApiService {
     // Request interceptor to add auth token
     this.api.interceptors.request.use(
       async (config) => {
+        const { default: useAuthStore } = await import("@/store/authStore");
         const token = useAuthStore.getState().token;
         console.log('--',token)
         if (token) {
@@ -43,6 +43,7 @@ class TiffinApiService {
         );
 
         if (error.response?.status === 401) {
+          const { default: useAuthStore } = await import("@/store/authStore");
           useAuthStore.setState({
             token: null,
             isAuthenticated: false,
