@@ -92,13 +92,13 @@ const BasicInfoForm = () => {
 
   // Feature toggles
   const [features, setFeatures] = useState({
-    "Fresh ingredients daily": false,
-    "Hygienic preparation": false,
-    "Monthly subscription available": false,
-    "Oil-free cooking option": false,
-    "Home-style cooking": false,
-    "On-time delivery": false,
-    "Customizable spice level": false,
+   "Fresh ingredients daily": false,
+   "Hygienic preparation": false,
+   "Monthly subscription available": false,
+   "Oil-free cooking option": false,
+   "Home-style cooking": false,
+   "On-time delivery": false,
+   "Customizable spice level": false,
     "Organic vegetables": false,
   });
 
@@ -127,11 +127,7 @@ const BasicInfoForm = () => {
     // Meal Timings
     const mealTimings = (parsedData.mealTimings || [])
       .filter((m: any) => m.checked)
-      .map(({ mealType, startTime, endTime }: any) => ({
-        mealType,
-        startTime,
-        endTime,
-      }));
+      .map(({ mealType, startTime, endTime }: any) => ({ mealType, startTime, endTime }));
     formDataToSend.append("mealTimings", JSON.stringify(mealTimings));
 
     // Order Types
@@ -365,11 +361,9 @@ const BasicInfoForm = () => {
       formDataToSend.append("whatsIncludes", parsedData?.includedDescription);
       console.log(formDataToSend);
       const response = await fetch(
-        isEdit === "true"
-          ? `https://tifstay-project-be.onrender.com/api/tiffinService/updateTiffinService/${id}`
-          : "https://tifstay-project-be.onrender.com/api/tiffinService/createTiffinService",
+        isEdit === 'true' ? `https://tifstay-project-be.onrender.com/api/tiffinService/updateTiffinService/${id}` : "https://tifstay-project-be.onrender.com/api/tiffinService/createTiffinService",
         {
-          method: isEdit === "true" ? "PUT" : "POST",
+          method: isEdit === 'true' ? 'PUT' : "POST",
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "multipart/form-data",
@@ -560,16 +554,12 @@ const BasicInfoForm = () => {
 
         {/* === Buttons === */}
         <CommonButton
-          title={
-            isEdit === "true"
-              ? "Edit tiffin listing"
-              : "+ Create Tiffin Listing"
-          }
+          title={isEdit === "true" ? "Edit tiffin listing" : "+ Create Tiffin Listing"}
           onPress={handleCreateListing}
           disabled={loading}
         />
 
-        <CommonButton
+      {isEdit !== "true" &&  <CommonButton
           title="Preview"
           buttonStyle={{
             backgroundColor: Colors.white,
@@ -580,7 +570,7 @@ const BasicInfoForm = () => {
           }}
           textStyle={{ color: Colors.primary }}
           onPress={handlePreview}
-        />
+        />}
       </KeyboardAwareScrollView>
 
       {loading && (
@@ -596,7 +586,7 @@ export default BasicInfoForm;
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  container: { padding: 16, backgroundColor: Colors.white },
+  container: { padding: 16, backgroundColor: Colors.white , paddingBottom:80 },
   card: {
     borderWidth: 0.5,
     borderColor: Colors.lightGrey,

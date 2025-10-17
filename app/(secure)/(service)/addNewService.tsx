@@ -11,7 +11,7 @@ import { Images } from "@/constants/Images";
 import { IS_ANDROID } from "@/constants/Platform";
 import { fonts } from "@/constants/typography";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   Image,
@@ -50,11 +50,30 @@ const ROLES = [
   { label: "With one meal", value: "With one meal" },
   { label: "With two meal", value: "With two meal" },
   { label: "One meal with breakfast", value: "One meal with breakfast" },
-  {
-    label: "With lunch & dinner & breakfast",
-    value: "With lunch & dinner & breakfast",
-  },
+  { label: "With lunch & dinner & breakfast", value: "With lunch & dinner & breakfast" },
   { label: "With breakfast", value: "With breakfast" },
+];
+
+const ROLES1 = [
+  { label: "With one meal", value: "With one meal" },
+  { label: "One meal with breakfast", value: "One meal with breakfast" },
+];
+
+const ROLES2 = [
+  { label: "With two meal", value: "With two meal" },
+  { label: "One meal with breakfast", value: "One meal with breakfast" },
+];
+
+const ROLES_BREAKFAST = [
+  { label: "With breakfast", value: "With breakfast" },
+];
+
+const ROLES_LUNCH = [
+  { label: "With one meal", value: "With one meal" },
+];
+
+const ROLES_DINNER = [
+  { label: "With two meal", value: "With two meal" },
 ];
 
 const FOOD_TYPES = [
@@ -65,85 +84,94 @@ const FOOD_TYPES = [
 
 const BasicInfoForm = () => {
   const { formData: formDataParam, isEdit, id } = useLocalSearchParams();
+
   const [formData, setFormData] = useState({
     tiffinName: "",
     description: "",
     mealTimings: [
-      {
-        mealType: "Breakfast",
-        checked: false,
-        startTime: "7:00 AM",
-        endTime: "9:00 AM",
-      },
-      {
-        mealType: "Lunch",
-        checked: false,
-        startTime: "12:00 PM",
-        endTime: "2:00 PM",
-      },
-      {
-        mealType: "Dinner",
-        checked: false,
-        startTime: "8:00 PM",
-        endTime: "10:00 PM",
-      },
+      { mealType: "Breakfast", checked: false, startTime: "7:00 AM", endTime: "9:00 AM" },
+      { mealType: "Lunch", checked: false, startTime: "12:00 PM", endTime: "2:00 PM" },
+      { mealType: "Dinner", checked: false, startTime: "8:00 PM", endTime: "10:00 PM" },
     ],
     foodType: "Veg",
     includedDescription: "",
     orderTypes: { dining: false, delivery: false },
     pricing: [
-      {
-        planType: "",
-        foodType: "",
-        perMealDining: 120,
-        perMealDelivery: 120,
-        weeklyDining: 120,
-        weeklyDelivery: 120,
-        monthlyDining: 120,
-        monthlyDelivery: 120,
-        // // perBreakfastDining: 120,
-        // perBreakfastDelivery: 120,
-      },
+      { planType: "", foodType: "Veg", perMealDining: 120, perMealDelivery: 120, weeklyDining: 120, weeklyDelivery: 120, monthlyDining: 120, monthlyDelivery: 120 },
     ],
   });
-  console.log(formDataParam);
 
+  const getPlanOptions = (mealTimings = formData.mealTimings) => {
+    const selectedMeals = mealTimings
+      .filter((meal) => meal.checked)
+      .map((meal) => meal.mealType);
+  
+    const len = selectedMeals.length;
+  
+    if (len === 1) {
+      const meal = selectedMeals[0];
+      if (meal === "Breakfast") return ROLES_BREAKFAST;
+      if (meal === "Lunch") return ROLES_LUNCH;
+      if (meal === "Dinner") return ROLES_DINNER;
+    }
+  
+    if (len === 2) {
+      if (selectedMeals.includes("Breakfast") && selectedMeals.includes("Lunch")) return ROLES2;
+      if (selectedMeals.includes("Lunch") && selectedMeals.includes("Dinner")) return ROLES1;
+      if (selectedMeals.includes("Breakfast") && selectedMeals.includes("Dinner")) return ROLES2;
+    }
+  
+    if (len === 3) return ROLES;
+  
+    return ROLES; // fallback
+  };
+  
+  // Edit mode: parse and prefill
   useEffect(() => {
     if (formDataParam) {
       try {
         const parsed = JSON.parse(formDataParam as string);
-        console.log("=-=", parsed);
-        // Convert backend format into your local format if needed
+
+        const defaultMeals = [
+          { mealType: "Breakfast", checked: false, startTime: "7:00 AM", endTime: "9:00 AM" },
+          { mealType: "Lunch", checked: false, startTime: "12:00 PM", endTime: "2:00 PM" },
+          { mealType: "Dinner", checked: false, startTime: "8:00 PM", endTime: "10:00 PM" },
+        ];
+
+        const updatedMeals = defaultMeals.map((defaultMeal) => {
+          const match = parsed.mealTimings?.find((m: any) => m.mealType === defaultMeal.mealType);
+          if (match) {
+            return {
+              ...defaultMeal,
+              checked: true,
+              startTime: match.startTime || defaultMeal.startTime,
+              endTime: match.endTime || defaultMeal.endTime,
+            };
+          }
+          return defaultMeal;
+        });
+
         const transformedData = {
           tiffinName: parsed.tiffinName || "",
           description: parsed.description || "",
-          mealTimings:
-            parsed.mealTimings?.map((m: any) => ({
-              mealType: m.mealType,
-              checked: true,
-              startTime: m.startTime,
-              endTime: m.endTime,
-            })) || [],
+          mealTimings: updatedMeals,
           foodType: parsed.foodType || "Veg",
           includedDescription: parsed.whatsIncludes || "",
           orderTypes: {
             dining: parsed.orderTypes?.includes("Dining") || false,
             delivery: parsed.orderTypes?.includes("Delivery") || false,
           },
-          pricing:
-            parsed.pricing?.map((p: any) => ({
-              planType: p.planType,
-              foodType: p.foodType,
-              perMealDining: p.perMealDining,
-              perMealDelivery: p.perMealDelivery,
-              weeklyDining: p.weeklyDining || 0,
-              weeklyDelivery: p.weeklyDelivery || 0,
-              monthlyDining: p.monthlyDining || 0,
-              monthlyDelivery: p.monthlyDelivery || 0,
-              // perBreakfastDining: p.perBreakfastDining || 0,
-              // perBreakfastDelivery: p.perBreakfastDelivery || 0,
-              offers: p.offers || "",
-            })) || [],
+          pricing: parsed.pricing?.map((p: any) => ({
+            planType: p.planType,
+            foodType: p.foodType,
+            perMealDining: p.perMealDining,
+            perMealDelivery: p.perMealDelivery,
+            weeklyDining: p.weeklyDining || 0,
+            weeklyDelivery: p.weeklyDelivery || 0,
+            monthlyDining: p.monthlyDining || 0,
+            monthlyDelivery: p.monthlyDelivery || 0,
+            offers: p.offers || "",
+          })) || [],
         };
 
         setFormData(transformedData);
@@ -153,21 +181,37 @@ const BasicInfoForm = () => {
     }
   }, [formDataParam]);
 
-  const updateField = (key: string, value: any) =>
-    setFormData((prev) => ({ ...prev, [key]: value }));
+  // Update pricing foodType if main foodType changes
+  useEffect(() => {
+    setFormData((prev) => ({
+      ...prev,
+      pricing: prev.pricing.map((p) => ({
+        ...p,
+        foodType: formData.foodType === "Both Veg & Non-Veg" ? p.foodType : formData.foodType,
+      })),
+    }));
+  }, [formData.foodType]);
+
+  const updateField = (key: string, value: any) => setFormData((prev) => ({ ...prev, [key]: value }));
 
   const toggleMeal = (index: number) =>
     setFormData((prev) => {
       const newMeals = [...prev.mealTimings];
       newMeals[index].checked = !newMeals[index].checked;
-      return { ...prev, mealTimings: newMeals };
+  
+      // Compute plan options based on updated meals
+      const planOptions = getPlanOptions(newMeals);
+  
+      const newPricing = prev.pricing.map((p) => ({
+        ...p,
+        planType: planOptions[0]?.value || "", // default to first option
+      }));
+  
+      return { ...prev, mealTimings: newMeals, pricing: newPricing };
     });
+  
 
-  const updateMealTime = (
-    index: number,
-    key: "startTime" | "endTime",
-    value: string
-  ) =>
+  const updateMealTime = (index: number, key: "startTime" | "endTime", value: string) =>
     setFormData((prev) => {
       const newMeals = [...prev.mealTimings];
       newMeals[index][key] = value;
@@ -175,16 +219,9 @@ const BasicInfoForm = () => {
     });
 
   const updateOrderType = (type: "dining" | "delivery") =>
-    setFormData((prev) => ({
-      ...prev,
-      orderTypes: { ...prev.orderTypes, [type]: !prev.orderTypes[type] },
-    }));
+    setFormData((prev) => ({ ...prev, orderTypes: { ...prev.orderTypes, [type]: !prev.orderTypes[type] } }));
 
-  const updatePricingBlock = (
-    index: number,
-    key: "planType" | "foodType",
-    value: string
-  ) =>
+  const updatePricingBlock = (index: number, key: "planType" | "foodType", value: string) =>
     setFormData((prev) => {
       const newPricing = [...prev.pricing];
       newPricing[index][key] = value;
@@ -205,15 +242,13 @@ const BasicInfoForm = () => {
         ...prev.pricing,
         {
           planType: "",
-          foodType: "",
+          foodType: formData.foodType,
           perMealDining: 120,
           perMealDelivery: 120,
           weeklyDining: 120,
           weeklyDelivery: 120,
           monthlyDining: 120,
           monthlyDelivery: 120,
-          // perBreakfastDelivery: 120,
-          // perBreakfastDining: 200,
         },
       ],
     }));
@@ -223,121 +258,44 @@ const BasicInfoForm = () => {
       tiffinName: "",
       description: "",
       mealTimings: [
-        {
-          mealType: "Breakfast",
-          checked: false,
-          startTime: "7:00 AM",
-          endTime: "9:00 AM",
-        },
-        {
-          mealType: "Lunch",
-          checked: false,
-          startTime: "12:00 PM",
-          endTime: "2:00 PM",
-        },
-        {
-          mealType: "Dinner",
-          checked: false,
-          startTime: "8:00 PM",
-          endTime: "10:00 PM",
-        },
+        { mealType: "Breakfast", checked: false, startTime: "7:00 AM", endTime: "9:00 AM" },
+        { mealType: "Lunch", checked: false, startTime: "12:00 PM", endTime: "2:00 PM" },
+        { mealType: "Dinner", checked: false, startTime: "8:00 PM", endTime: "10:00 PM" },
       ],
       foodType: "Veg",
       includedDescription: "",
       orderTypes: { dining: false, delivery: false },
       pricing: [
-        {
-          planType: "",
-          foodType: "",
-          perMealDining: 120,
-          perMealDelivery: 120,
-          weeklyDining: 120,
-          weeklyDelivery: 120,
-          monthlyDining: 120,
-          monthlyDelivery: 120,
-          // perBreakfastDelivery: 120,
-          // perBreakfastDining: 200,
-        },
+        { planType: "", foodType: "Veg", perMealDining: 120, perMealDelivery: 120, weeklyDining: 120, weeklyDelivery: 120, monthlyDining: 120, monthlyDelivery: 120 },
       ],
     });
   };
 
   const validateForm = () => {
-    if (!formData.tiffinName.trim()) {
-      Alert.alert(
-        "Validation Error",
-        "Please enter the Tiffin/Restaurant Name."
-      );
-      return false;
-    }
-
-    if (!formData.description.trim()) {
-      Alert.alert("Validation Error", "Please enter a Description.");
-      return false;
-    }
-
-    // At least one meal should be selected
-    if (!formData.mealTimings.some((m) => m.checked)) {
-      Alert.alert("Validation Error", "Please select at least one meal.");
-      return false;
-    }
-
-    // All selected meals should have start and end times
+    if (!formData.tiffinName.trim()) return Alert.alert("Validation Error", "Please enter the Tiffin/Restaurant Name.");
+    if (!formData.description.trim()) return Alert.alert("Validation Error", "Please enter a Description.");
+    if (!formData.mealTimings.some((m) => m.checked)) return Alert.alert("Validation Error", "Please select at least one meal.");
     for (let meal of formData.mealTimings) {
       if (meal.checked && (!meal.startTime || !meal.endTime)) {
-        Alert.alert(
-          "Validation Error",
-          `Please select timing for ${meal.mealType}.`
-        );
-        return false;
+        return Alert.alert("Validation Error", `Please select timing for ${meal.mealType}.`);
       }
     }
+    if (!formData.foodType) return Alert.alert("Validation Error", "Please select a Food Type.");
+    if (!formData.includedDescription.trim()) return Alert.alert("Validation Error", "Please enter what's included.");
+    if (!formData.orderTypes.dining && !formData.orderTypes.delivery) return Alert.alert("Validation Error", "Please select at least one Order Type.");
 
-    if (!formData.foodType) {
-      Alert.alert("Validation Error", "Please select a Food Type.");
-      return false;
-    }
-
-    if (!formData.includedDescription.trim()) {
-      Alert.alert("Validation Error", "Please enter what's included.");
-      return false;
-    }
-
-    if (!formData.orderTypes.dining && !formData.orderTypes.delivery) {
-      Alert.alert("Validation Error", "Please select at least one Order Type.");
-      return false;
-    }
-
-    // Validate pricing blocks
     for (let i = 0; i < formData.pricing.length; i++) {
       const block = formData.pricing[i];
-      if (!block.planType) {
-        Alert.alert(
-          "Validation Error",
-          `Please select Plan Type for pricing block ${i + 1}.`
-        );
-        return false;
-      }
-      if (!block.foodType) {
-        Alert.alert(
-          "Validation Error",
-          `Please select Food Type for pricing block ${i + 1}.`
-        );
-        return false;
-      }
+      if (!block.planType) return Alert.alert("Validation Error", `Please select Plan Type for pricing block ${i + 1}.`);
+      if (!block.foodType) return Alert.alert("Validation Error", `Please select Food Type for pricing block ${i + 1}.`);
     }
-
     return true;
   };
 
   return (
     <View style={styles.flex}>
       <SafeAreaView edges={["top"]} style={{ backgroundColor: Colors.white }}>
-        <CommonHeader
-          title="Add New Tiffen Service"
-          actionText="Reset"
-          onActionPress={resetForm}
-        />
+        <CommonHeader title={isEdit ? "Edit Tiffen Service" : "Add New Tiffen Service"} actionText="Reset" onActionPress={resetForm} />
       </SafeAreaView>
 
       <KeyboardAwareScrollView
@@ -376,9 +334,7 @@ const BasicInfoForm = () => {
             containerStyle={styles.descContainer}
           />
 
-          <Text style={[styles.sectionTitle, { marginBottom: 14 }]}>
-            Meal Preference*
-          </Text>
+          <Text style={[styles.sectionTitle, { marginBottom: 14 }]}>Meal Preference*</Text>
           {formData.mealTimings.map((meal, index) => (
             <View key={meal.mealType}>
               <MealCheckbox
@@ -442,115 +398,94 @@ const BasicInfoForm = () => {
 
         {/* Pricing */}
         <View style={[styles.card, { padding: 0 }]}>
-          <Text style={[styles.heading, styles.cardHeading]}>
-            ₹ Pricing Information
-          </Text>
+          <Text style={[styles.heading, styles.cardHeading]}>₹ Pricing Information</Text>
           {formData.pricing.map((block, index) => (
             <View key={index} style={styles.innerCard}>
               <CommonDropdown
-                items={ROLES}
+                items={getPlanOptions()}
                 label="Choose Plan Type"
                 value={block.planType}
-                setValue={(val: any) =>
-                  updatePricingBlock(index, "planType", val)
-                }
+                setValue={(val: any) => updatePricingBlock(index, "planType", val)}
               />
               <CommonDropdown
                 items={FOOD_TYPES}
                 label="Food Type"
                 value={block.foodType}
-                setValue={(val: any) =>
-                  updatePricingBlock(index, "foodType", val)
-                }
+                setValue={(val: any) => updatePricingBlock(index, "foodType", val)}
               />
-              {/* <View style={styles.row}>
-                <StepperInput
-                  label="Per Breakfast for Dining (₹)"
-                  value={block.perBreakfastDining}
-                  onChange={(val) =>
-                    updatePricingValue(index, "perBreakfastDining", val)
-                  }
-                  step={1}
-                  min={50}
-                  max={500}
-                />
-                <StepperInput
-                  label="Per meal for Breakfast for Delivery (₹)"
-                  value={block.perBreakfastDelivery}
-                  onChange={(val) =>
-                    updatePricingValue(index, "perBreakfastDelivery", val)
-                  }
-                  step={1}
-                  min={50}
-                  max={500}
-                />
-              </View> */}
-              <View style={styles.row}>
-                <StepperInput
-                  label="Per Meal for Dining (₹)"
-                  value={block.perMealDining}
-                  onChange={(val) =>
-                    updatePricingValue(index, "perMealDining", val)
-                  }
-                  step={1}
-                  min={50}
-                  max={500}
-                />
-                <StepperInput
-                  label="Per Meal for Delivery (₹)"
-                  value={block.perMealDelivery}
-                  onChange={(val) =>
-                    updatePricingValue(index, "perMealDelivery", val)
-                  }
-                  step={1}
-                  min={50}
-                  max={500}
-                />
-              </View>
-              <View style={styles.row}>
-                <StepperInput
-                  label="Weekly for Dining (₹)"
-                  value={block.weeklyDining}
-                  onChange={(val) =>
-                    updatePricingValue(index, "weeklyDining", val)
-                  }
-                  step={1}
-                  min={50}
-                  max={500}
-                />
-                <StepperInput
-                  label="Weekly for Delivery (₹)"
-                  value={block.weeklyDelivery}
-                  onChange={(val) =>
-                    updatePricingValue(index, "weeklyDelivery", val)
-                  }
-                  step={1}
-                  min={50}
-                  max={500}
-                />
-              </View>
-              <View style={styles.row}>
-                <StepperInput
-                  label="Monthly for Dining (₹)"
-                  value={block.monthlyDining}
-                  onChange={(val) =>
-                    updatePricingValue(index, "monthlyDining", val)
-                  }
-                  step={1}
-                  min={50}
-                  max={500}
-                />
-                <StepperInput
-                  label="Monthly for Delivery (₹)"
-                  value={block.monthlyDelivery}
-                  onChange={(val) =>
-                    updatePricingValue(index, "monthlyDelivery", val)
-                  }
-                  step={1}
-                  min={50}
-                  max={500}
-                />
-              </View>
+
+              {(formData.orderTypes.dining || formData.orderTypes.delivery) && (
+                <>
+                  <View style={styles.row}>
+                    {formData.orderTypes.dining && (
+                      <StepperInput
+                        label="Per Meal for Dining (₹)"
+                        value={block.perMealDining}
+                        onChange={(val) => updatePricingValue(index, "perMealDining", val)}
+                        step={1}
+                        min={50}
+                        max={500}
+                      />
+                    )}
+                    {formData.orderTypes.delivery && (
+                      <StepperInput
+                        label="Per Meal for Delivery (₹)"
+                        value={block.perMealDelivery}
+                        onChange={(val) => updatePricingValue(index, "perMealDelivery", val)}
+                        step={1}
+                        min={50}
+                        max={500}
+                      />
+                    )}
+                  </View>
+
+                  <View style={styles.row}>
+                    {formData.orderTypes.dining && (
+                      <StepperInput
+                        label="Weekly for Dining (₹)"
+                        value={block.weeklyDining}
+                        onChange={(val) => updatePricingValue(index, "weeklyDining", val)}
+                        step={1}
+                        min={50}
+                        max={500}
+                      />
+                    )}
+                    {formData.orderTypes.delivery && (
+                      <StepperInput
+                        label="Weekly for Delivery (₹)"
+                        value={block.weeklyDelivery}
+                        onChange={(val) => updatePricingValue(index, "weeklyDelivery", val)}
+                        step={1}
+                        min={50}
+                        max={500}
+                      />
+                    )}
+                  </View>
+
+                  <View style={styles.row}>
+                    {formData.orderTypes.dining && (
+                      <StepperInput
+                        label="Monthly for Dining (₹)"
+                        value={block.monthlyDining}
+                        onChange={(val) => updatePricingValue(index, "monthlyDining", val)}
+                        step={1}
+                        min={50}
+                        max={500}
+                      />
+                    )}
+                    {formData.orderTypes.delivery && (
+                      <StepperInput
+                        label="Monthly for Delivery (₹)"
+                        value={block.monthlyDelivery}
+                        onChange={(val) => updatePricingValue(index, "monthlyDelivery", val)}
+                        step={1}
+                        min={50}
+                        max={500}
+                      />
+                    )}
+                  </View>
+                </>
+              )}
             </View>
           ))}
           <TouchableOpacity onPress={addPricingBlock}>
@@ -582,7 +517,7 @@ const BasicInfoForm = () => {
 
 export default BasicInfoForm;
 
-// Styles remain unchanged
+// ✅ No UI Changes Below
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   container: { padding: 16, marginBottom: 100, backgroundColor: Colors.white },
@@ -614,7 +549,7 @@ const styles = StyleSheet.create({
     color: Colors.title,
     marginBottom: 5,
   },
-  row: { flexDirection: "row", justifyContent: "space-between", gap: 20 },
+  row: { flexDirection: "row", justifyContent: "space-between", gap: 20, flexWrap: "wrap" },
   checkboxSpacing: { marginTop: 14 },
   radioContainer: {
     flexDirection: "row",
@@ -632,12 +567,7 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   outerCircleSelected: { borderColor: "#1E40AF" },
-  innerCircle: {
-    width: 9,
-    height: 9,
-    borderRadius: 6,
-    backgroundColor: "#1E40AF",
-  },
+  innerCircle: { width: 9, height: 9, borderRadius: 6, backgroundColor: "#1E40AF" },
   radioLabel: { fontSize: 16, color: "#222" },
   includeBox: { minHeight: 64 },
   includeContainer: { marginBottom: 20, paddingHorizontal: 0, marginTop: 20 },
