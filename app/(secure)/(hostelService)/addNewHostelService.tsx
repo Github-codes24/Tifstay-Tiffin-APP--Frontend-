@@ -114,14 +114,14 @@ const AddNewHostelService = () => {
 
           const facilitiesArray = hostelData.facilities || [];
           setAmenities({
-            wifi: facilitiesArray.includes("WiFi"),
-            meals: facilitiesArray.includes("Mess"),
-            security: facilitiesArray.includes("Security"),
-            studyHall: facilitiesArray.includes("Study Hall"),
-            commonTV: facilitiesArray.includes("Common TV"),
-            cctv: facilitiesArray.includes("CCTV"),
-            acRooms: facilitiesArray.includes("AC Rooms"),
-            laundry: facilitiesArray.includes("Laundry"),
+            wifi: facilitiesArray.includes("wifi"),
+            meals: facilitiesArray.includes("mess"),
+            security: facilitiesArray.includes("security"),
+            studyHall: facilitiesArray.includes("study hall"),
+            commonTV: facilitiesArray.includes("common tv"),
+            cctv: facilitiesArray.includes("cctv"),
+            acRooms: facilitiesArray.includes("ac rooms"),
+            laundry: facilitiesArray.includes("laundry"),
           });
 
           // Load Rooms Data
