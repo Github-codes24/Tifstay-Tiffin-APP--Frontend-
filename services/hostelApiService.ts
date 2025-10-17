@@ -799,12 +799,20 @@ async getCustomerInfo(customerId: string) {
     };
   }
 }
-// Chat API
-async sendMessageToAdmin(message: string) {
+
+// Chat API - CORRECTED with receiverId
+async sendMessageToAdmin(message: string, receiverId: string) {
   try {
-    const response = await this.api.post("/api/message/sendMessage", { message });
+    const response = await this.api.post(
+      "/api/hostelOwner/message/sendMessage", 
+      { 
+        receiverId,  // ✅ Admin ID required
+        message 
+      }
+    );
     return { success: true, data: response.data };
   } catch (error: any) {
+    console.error("❌ Hostel Send Message Error:", error.response?.data || error);
     return {
       success: false,
       error: error.response?.data?.message || "Failed to send message",
@@ -812,17 +820,20 @@ async sendMessageToAdmin(message: string) {
   }
 }
 
-  async getHostelOwnerPreviousChat() {
-    try {
-      const response = await this.api.get("/api/message/getHostelOwnerPreviousChat");
-      return { success: true, data: response.data };
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.response?.data?.message || "Failed to load messages",
-      };
-    }
+async getHostelOwnerPreviousChat() {
+  try {
+    const response = await this.api.get(
+      "/api/hostelOwner/message/getHostelOwnerPreviousChat"
+    );
+    return { success: true, data: response.data };
+  } catch (error: any) {
+    console.error("❌ Hostel Get Chat Error:", error.response?.data || error);
+    return {
+      success: false,
+      error: error.response?.data?.message || "Failed to load messages",
+    };
   }
+}
   //earning 
 async getEarningsAnalytics() {
   try {

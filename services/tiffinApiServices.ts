@@ -948,31 +948,6 @@ async getAllBookings(page: number = 1, limit: number = 10) {
     }
   }
 
-  // Chat API
-  async sendMessageToAdmin(message: string) {
-    try {
-      const response = await this.api.post("/api/message/sendMessage", { message });
-      return { success: true, data: response.data };
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.response?.data?.message || "Failed to send message",
-      };
-    }
-  }
-
-  async getTiffinOwnerPreviousChat() {
-    try {
-      const response = await this.api.get("/api/message/getTiffinOwnerPreviousChat");
-      return { success: true, data: response.data };
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.response?.data?.message || "Failed to load messages",
-      };
-    }
-  }
-
   // Earnings
   async getEarningsAnalytics() {
     try {
@@ -1049,6 +1024,42 @@ async getAllBookings(page: number = 1, limit: number = 10) {
     );
     return response.data;
   }
+// Chat API - CORRECTED with receiverId
+async sendMessageToAdmin(message: string, receiverId: string) {
+  try {
+    const response = await this.api.post(
+      "/api/tiffinOwner/message/sendMessage", 
+      { 
+        receiverId,  // ✅ Admin ID required
+        message 
+      }
+    );
+    return { success: true, data: response.data };
+  } catch (error: any) {
+    console.error("❌ Tiffin Send Message Error:", error.response?.data || error);
+    return {
+      success: false,
+      error: error.response?.data?.message || "Failed to send message",
+    };
+  }
+}
+
+async getTiffinOwnerPreviousChat() {
+  try {
+    const response = await this.api.get(
+      "/api/tiffinOwner/message/getTiffinOwnerPreviousChat"
+    );
+    return { success: true, data: response.data };
+  } catch (error: any) {
+    console.error("❌ Tiffin Get Chat Error:", error.response?.data || error);
+    return {
+      success: false,
+      error: error.response?.data?.message || "Failed to load messages",
+    };
+  }
+}
+
+
 }
 
 export default new TiffinApiService();

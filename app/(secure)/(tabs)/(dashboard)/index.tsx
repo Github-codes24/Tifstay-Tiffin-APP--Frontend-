@@ -197,11 +197,13 @@ export default function ServiceOfflineScreen() {
   );
 
   const displayRating = useMemo(() => {
-    return overallRating > 0 ? overallRating.toFixed(1) : "0.0";
+    return typeof overallRating === "number" && overallRating > 0
+      ? overallRating.toFixed(1)
+      : "0.0";
   }, [overallRating]);
 
   const displayReviewCount = useMemo(() => {
-    return `(${totalReviews})`;
+    return `(${totalReviews ?? 0})`;
   }, [totalReviews]);
 
   const loadData = useCallback(

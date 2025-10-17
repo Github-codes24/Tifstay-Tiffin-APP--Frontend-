@@ -26,9 +26,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 const BasicInfoForm = () => {
   const { token, userServiceType } = useAuthStore();
   const { formData, extraData, isEdit, id } = useLocalSearchParams();
-  // const parsedData = formData ? JSON.parse(formData as string) : null;
-  const parsedRxtra = extraData ? JSON.parse(extraData as string) : null;
-  // ✅ Parse only once
+  
   const parsedData = useMemo(
     () => (formData ? JSON.parse(formData as string) : null),
     [formData]
@@ -74,12 +72,14 @@ const BasicInfoForm = () => {
     }
 
     // 🖼️ Photos
-    if (parsedExtra.photos?.length > 0) {
-      setPhotos(parsedExtra.photos);
-    } else if (parsedExtra.vegPhotos?.length > 0) {
-      setPhotos(parsedExtra.vegPhotos);
-    } else if (parsedExtra.nonVegPhotos?.length > 0) {
-      setPhotos(parsedExtra.nonVegPhotos);
+    if (parsedExtra.vegPhotos?.length > 0) {
+      setVegPhotos(parsedExtra.vegPhotos);
+    }
+    if (parsedExtra.nonVegPhotos?.length > 0) {
+      setNonVegPhotos(parsedExtra.nonVegPhotos);
+    }
+    if (parsedExtra.photos?.length > 0 && !parsedExtra.vegPhotos && !parsedExtra.nonVegPhotos) {
+      setVegPhotos(parsedExtra.photos);
     }
   }, []);
 
@@ -92,13 +92,13 @@ const BasicInfoForm = () => {
 
   // Feature toggles
   const [features, setFeatures] = useState({
-   "Fresh ingredients daily": false,
-   "Hygienic preparation": false,
-   "Monthly subscription available": false,
-   "Oil-free cooking option": false,
-   "Home-style cooking": false,
-   "On-time delivery": false,
-   "Customizable spice level": false,
+    "Fresh ingredients daily": false,
+    "Hygienic preparation": false,
+    "Monthly subscription available": false,
+    "Oil-free cooking option": false,
+    "Home-style cooking": false,
+    "On-time delivery": false,
+    "Customizable spice level": false,
     "Organic vegetables": false,
   });
 
@@ -106,16 +106,60 @@ const BasicInfoForm = () => {
     setFeatures((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  // Photos state
-  const [photos, setPhotos] = useState<string[]>([]);
+  // Separate photos state for Veg and Non-Veg
+  const [vegPhotos, setVegPhotos] = useState<string[]>([]);
+  const [nonVegPhotos, setNonVegPhotos] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-  const [formDataToSendState, setFormDataToSendState] =
-    useState<FormData | null>(null);
   const [modifyDataState, setModifyDataState] = useState<any>(null);
+
+  // Get food type from parsedData
+  const foodType = parsedData?.foodType || "";
+  const isBothType = foodType === "Both Veg & Non-Veg";
+  const isVegOnly = foodType.toLowerCase() === "veg";
+  const isNonVegOnly = foodType.toLowerCase() === "non-veg";
+console.log(isBothType)
+  // Pick image from gallery
+  const pickImage = async (type: "veg" | "nonVeg") => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.7,
+    });
+
+    if (!result.canceled) {
+      if (type === "veg") {
+        setVegPhotos((prev) => [...prev, result.assets[0].uri]);
+      } else {
+        setNonVegPhotos((prev) => [...prev, result.assets[0].uri]);
+      }
+    }
+  };
+
+  // Validate photos based on food type
+  const validatePhotos = (): boolean => {
+    if (isBothType) {
+      if (vegPhotos.length === 0) {
+        Alert.alert("Validation", "Please upload at least one veg photo");
+        return false;
+      }
+      if (nonVegPhotos.length === 0) {
+        Alert.alert("Validation", "Please upload at least one non-veg photo");
+        return false;
+      }
+    } else if (isVegOnly && vegPhotos.length === 0) {
+      Alert.alert("Validation", "Please upload at least one veg photo");
+      return false;
+    } else if (isNonVegOnly && nonVegPhotos.length === 0) {
+      Alert.alert("Validation", "Please upload at least one non-veg photo");
+      return false;
+    }
+    return true;
+  };
 
   // Preview logic
   const handlePreview = () => {
     if (!parsedData) return;
+    if (!validatePhotos()) return;
 
     const formDataToSend = new FormData();
 
@@ -169,26 +213,13 @@ const BasicInfoForm = () => {
     };
     formDataToSend.append("contactInfo", JSON.stringify(contactInfo));
 
-    // Photos
-    const photoKey =
-      (parsedData?.foodType || "").toLowerCase() === "veg"
-        ? "vegPhotos"
-        : "nonVegPhotos";
-    (photos || []).forEach((uri: string, index: number) => {
-      formDataToSend.append(photoKey, {
-        uri,
-        name: `${photoKey}_${index}.jpg`,
-        type: "image/jpeg",
-      } as any);
-    });
-
     // Whats included
     formDataToSend.append(
       "whatsIncludes",
       JSON.stringify(parsedData?.includedDescription)
     );
 
-    // Modify Data built same as FormData for preview
+    // Modify Data
     const modifyData = {
       tiffinName: parsedData.tiffinName || "",
       description: parsedData.description || "",
@@ -199,7 +230,8 @@ const BasicInfoForm = () => {
       serviceFeatures,
       location,
       contactInfo,
-      photos: photos.length > 0 ? photos : parsedData.photos || [],
+      vegPhotos,
+      nonVegPhotos,
       whatsIncludes: parsedData?.includedDescription || "",
       ownerId: parsedData.ownerId || "",
       _id: parsedData._id || "",
@@ -212,8 +244,6 @@ const BasicInfoForm = () => {
       createdAt: parsedData.createdAt || "",
       updatedAt: parsedData.updatedAt || "",
       visibilityStatus: parsedData.visibilityStatus || "",
-      nonVegPhotos: parsedData.nonVegPhotos || [],
-      vegPhotos: parsedData.vegPhotos || [],
       offlineDetails: {
         isOffline: false,
         offlineType: null,
@@ -221,7 +251,7 @@ const BasicInfoForm = () => {
       },
     };
     setModifyDataState(modifyData);
-    // Prepare a raw object to pass
+
     const rawDataToSend = {
       tiffinName: parsedData?.tiffinName || "",
       description: parsedData?.description || "",
@@ -235,29 +265,11 @@ const BasicInfoForm = () => {
             .map(([k]) => k.charAt(0).toUpperCase() + k.slice(1))
         : [],
       pricing: parsedData?.pricing || [],
-      serviceFeatures: parsedData?.features
-        ? Object.entries(parsedData.features)
-            .filter(([_, v]) => v)
-            .map(([k]) =>
-              k
-                .replace(/([A-Z])/g, " $1")
-                .replace(/^./, (str) => str.toUpperCase())
-            )
-        : [],
-      location: {
-        area: area || parsedData?.location?.area || "",
-        nearbyLandmarks:
-          landmark || parsedData?.location?.nearbyLandmarks || "",
-        fullAddress: address || parsedData?.location?.fullAddress || "",
-        serviceRadius: Number(
-          radius || parsedData?.location?.serviceRadius || 5
-        ),
-      },
-      contactInfo: {
-        phone: Number(phone || parsedData?.contactInfo?.phone || 0),
-        whatsapp: Number(whatsapp || parsedData?.contactInfo?.whatsapp || 0),
-      },
-      photos: photos.length > 0 ? photos : parsedData?.photos || [],
+      serviceFeatures,
+      location,
+      contactInfo,
+      vegPhotos,
+      nonVegPhotos,
       whatsIncludes: parsedData?.includedDescription || "",
     };
     router.push({
@@ -270,22 +282,11 @@ const BasicInfoForm = () => {
     });
   };
 
-  // Pick image from gallery
-  const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      quality: 0.7,
-    });
-
-    if (!result.canceled) {
-      setPhotos((prev) => [...prev, result.assets[0].uri]);
-    }
-  };
-
   // Create listing
   const handleCreateListing = async () => {
     try {
+      if (!validatePhotos()) return;
+      
       setLoading(true);
 
       const formDataToSend = new FormData();
@@ -344,26 +345,36 @@ const BasicInfoForm = () => {
       };
       formDataToSend.append("contactInfo", JSON.stringify(contactInfo));
 
-      // Images
-      const photoKey =
-        (parsedData?.foodType || "").toLowerCase() === "veg"
-          ? "vegPhotos"
-          : "nonVegPhotos";
-      (photos || []).forEach((uri: string, index: number) => {
-        formDataToSend.append(photoKey, {
-          uri,
-          name: `${photoKey}_${index}.jpg`,
-          type: "image/jpeg",
-        } as any);
-      });
+      // Images - Upload based on food type
+      if (isVegOnly || isBothType) {
+        (vegPhotos || []).forEach((uri: string, index: number) => {
+          formDataToSend.append("vegPhotos", {
+            uri,
+            name: `vegPhotos_${index}.jpg`,
+            type: "image/jpeg",
+          } as any);
+        });
+      }
+
+      if (isNonVegOnly || isBothType) {
+        (nonVegPhotos || []).forEach((uri: string, index: number) => {
+          formDataToSend.append("nonVegPhotos", {
+            uri,
+            name: `nonVegPhotos_${index}.jpg`,
+            type: "image/jpeg",
+          } as any);
+        });
+      }
 
       // Whats included
       formDataToSend.append("whatsIncludes", parsedData?.includedDescription);
-      console.log(formDataToSend);
+console.log(formDataToSend)
       const response = await fetch(
-        isEdit === 'true' ? `https://tifstay-project-be.onrender.com/api/tiffinService/updateTiffinService/${id}` : "https://tifstay-project-be.onrender.com/api/tiffinService/createTiffinService",
+        isEdit === "true"
+          ? `https://tifstay-project-be.onrender.com/api/tiffinService/updateTiffinService/${id}`
+          : "https://tifstay-project-be.onrender.com/api/tiffinService/createTiffinService",
         {
-          method: isEdit === 'true' ? 'PUT' : "POST",
+          method: isEdit === "true" ? "PUT" : "POST",
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "multipart/form-data",
@@ -371,7 +382,7 @@ const BasicInfoForm = () => {
           body: formDataToSend,
         }
       );
-
+console.log(response)
       const data = await response.json();
       if (response.ok) {
         Alert.alert("Success", "Tiffin service created successfully!");
@@ -386,6 +397,49 @@ const BasicInfoForm = () => {
       setLoading(false);
     }
   };
+
+  // Photo section component
+  const PhotoSection = ({
+    title,
+    type,
+    photos,
+  }: {
+    title: string;
+    type: "veg" | "nonVeg";
+    photos: string[];
+  }) => (
+    <View style={[styles.card, { padding: 0 }]}>
+      <View style={styles.photoHeader}>
+        <Image source={Images.camera} style={{ height: 16, width: 16 }} />
+        <Text style={styles.heading}>{title} *</Text>
+      </View>
+      <View style={{ paddingHorizontal: 16 }}>
+        {photos.length === 0 ? (
+          <TouchableOpacity
+            style={styles.uploadBox}
+            onPress={() => pickImage(type)}
+            activeOpacity={0.7}
+          >
+            <Text style={{ fontFamily: fonts.interSemibold, fontSize: 15 }}>
+              Upload {type === "veg" ? "Veg" : "Non-Veg"} Photos
+            </Text>
+            <Text style={styles.uploadHint}>
+              Upload clear photos of your {type === "veg" ? "vegetarian" : "non-vegetarian"} tiffin meals
+            </Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.previewContainer}>
+            {photos.map((uri, index) => (
+              <Image key={index} source={{ uri }} style={styles.image} />
+            ))}
+          </View>
+        )}
+        <TouchableOpacity onPress={() => pickImage(type)}>
+          <Text style={styles.addMore}>+ Add More Photo</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
 
   return (
     <View style={styles.flex}>
@@ -430,37 +484,16 @@ const BasicInfoForm = () => {
         </View>
 
         {/* === Photos Section === */}
-        <View style={[styles.card, { padding: 0 }]}>
-          <View style={styles.photoHeader}>
-            <Image source={Images.camera} style={{ height: 16, width: 16 }} />
-            <Text style={styles.heading}>Photos</Text>
-          </View>
-          <View style={{ paddingHorizontal: 16 }}>
-            {photos.length === 0 ? (
-              <TouchableOpacity
-                style={styles.uploadBox}
-                onPress={pickImage}
-                activeOpacity={0.7}
-              >
-                <Text style={{ fontFamily: fonts.interSemibold, fontSize: 15 }}>
-                  Upload photos
-                </Text>
-                <Text style={styles.uploadHint}>
-                  Upload clear photos of your tiffin meals
-                </Text>
-              </TouchableOpacity>
-            ) : (
-              <View style={styles.previewContainer}>
-                {photos.map((uri, index) => (
-                  <Image key={index} source={{ uri }} style={styles.image} />
-                ))}
-              </View>
-            )}
-            <TouchableOpacity onPress={pickImage}>
-              <Text style={styles.addMore}>+ Add More Photo</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        {isBothType ? (
+          <>
+            <PhotoSection title="Veg Photos" type="veg" photos={vegPhotos} />
+            <PhotoSection title="Non-Veg Photos" type="nonVeg" photos={nonVegPhotos} />
+          </>
+        ) : isVegOnly ? (
+          <PhotoSection title="Veg Photos" type="veg" photos={vegPhotos} />
+        ) : isNonVegOnly ? (
+          <PhotoSection title="Non-Veg Photos" type="nonVeg" photos={nonVegPhotos} />
+        ) : null}
 
         {/* === Location Section === */}
         <View style={styles.card}>
@@ -559,18 +592,20 @@ const BasicInfoForm = () => {
           disabled={loading}
         />
 
-      {isEdit !== "true" &&  <CommonButton
-          title="Preview"
-          buttonStyle={{
-            backgroundColor: Colors.white,
-            borderWidth: 1,
-            borderColor: Colors.primary,
-            marginTop: 16,
-            marginBottom: IS_ANDROID ? 50 : 5,
-          }}
-          textStyle={{ color: Colors.primary }}
-          onPress={handlePreview}
-        />}
+        {isEdit !== "true" && (
+          <CommonButton
+            title="Preview"
+            buttonStyle={{
+              backgroundColor: Colors.white,
+              borderWidth: 1,
+              borderColor: Colors.primary,
+              marginTop: 16,
+              marginBottom: IS_ANDROID ? 50 : 5,
+            }}
+            textStyle={{ color: Colors.primary }}
+            onPress={handlePreview}
+          />
+        )}
       </KeyboardAwareScrollView>
 
       {loading && (
@@ -586,7 +621,7 @@ export default BasicInfoForm;
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  container: { padding: 16, backgroundColor: Colors.white , paddingBottom:80 },
+  container: { padding: 16, backgroundColor: Colors.white, paddingBottom: 80 },
   card: {
     borderWidth: 0.5,
     borderColor: Colors.lightGrey,

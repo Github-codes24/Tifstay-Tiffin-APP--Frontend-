@@ -1,7 +1,7 @@
 import { Colors } from "@/constants/Colors";
 import { Images } from "@/constants/Images";
-import messageService from "@/services/messageService";
 import useAuthStore from "@/store/authStore";
+import messageService from "@/store/messageService";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
@@ -34,30 +34,52 @@ const ChatScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [adminInfo, setAdminInfo] = useState<any>(null);
   const flatListRef = useRef<FlatList>(null);
   const { user, userServiceType } = useAuthStore();
 
   // Load previous messages on mount
   useEffect(() => {
     loadPreviousMessages();
+
+    return () => {
+      // Clear cache when component unmounts
+      messageService.clearCache();
+    };
   }, []);
 
   const loadPreviousMessages = async () => {
     setIsLoading(true);
     try {
+      console.log("📥 Loading previous messages...");
       const response = await messageService.getPreviousChat();
+      console.log("📥 Get chat response:", response);
 
-      if (response.success && response.data) {
+      if (response.success) {
+        // Store admin info for sending messages
+        if (response.adminInfo) {
+          setAdminInfo(response.adminInfo);
+          console.log("✅ Admin info loaded:", response.adminInfo);
+        }
+
         if (response.hasConversation && response.messages.length > 0) {
           // Transform API messages to our format
-          const formattedMessages = response.messages.map((msg: any) => ({
-            id: msg._id || Date.now().toString(),
-            text: msg.message,
-            time: formatTime(msg.createdAt),
-            sender: msg.senderName === user?.fullName ? "me" : "admin",
-            createdAt: msg.createdAt,
-          }));
+          const formattedMessages = response.messages.map(
+            (msg: any, index: number) => {
+              // Get user name - check both fullName (hostel) and name (tiffin)
+              const currentUserName = user?.fullName || user?.name;
 
+              return {
+                id: msg._id || `${Date.now()}-${index}`,
+                text: msg.message,
+                time: formatTime(msg.createdAt),
+                sender: msg.senderName === currentUserName ? "me" : "admin",
+                createdAt: msg.createdAt,
+              };
+            }
+          );
+
+          console.log("✅ Formatted messages:", formattedMessages.length);
           setMessages(formattedMessages);
           setConversationId(response.conversationId);
 
@@ -65,10 +87,14 @@ const ChatScreen = () => {
           setTimeout(() => {
             flatListRef.current?.scrollToEnd({ animated: true });
           }, 100);
+        } else {
+          console.log("ℹ️ No previous conversation found");
         }
+      } else {
+        console.log("⚠️ Failed to load messages:", response.error);
       }
     } catch (error) {
-      console.error("Error loading messages:", error);
+      console.error("❌ Error loading messages:", error);
       Alert.alert("Error", "Failed to load previous messages");
     } finally {
       setIsLoading(false);
@@ -93,6 +119,25 @@ const ChatScreen = () => {
   const sendMessage = async () => {
     if (!input.trim()) return;
 
+    // Check if we have admin info
+    if (!adminInfo?.adminId) {
+      Alert.alert(
+        "Error",
+        "Unable to send message. Admin information not available. Please try refreshing.",
+        [
+          {
+            text: "Refresh",
+            onPress: () => loadPreviousMessages(),
+          },
+          {
+            text: "Cancel",
+            style: "cancel",
+          },
+        ]
+      );
+      return;
+    }
+
     const messageText = input.trim();
     const tempId = Date.now().toString();
 
@@ -115,35 +160,62 @@ const ChatScreen = () => {
     }, 100);
 
     try {
-      const response = await messageService.sendMessage(messageText);
+      console.log("📤 Sending message to admin ID:", adminInfo.adminId);
+      console.log("📤 Message:", messageText);
+
+      const response = await messageService.sendMessage(
+        messageText,
+        adminInfo.adminId
+      );
+      console.log("📥 Send message response:", response);
 
       if (response.success) {
-        // Update message with server response if needed
-        if (response.data?.data) {
+        const serverData = response.data?.data;
+
+        if (serverData) {
+          // Update the message with server data if available
           setMessages((prev) =>
             prev.map((msg) =>
               msg.id === tempId
                 ? {
                     ...msg,
-                    id: response.data.data._id || tempId,
-                    time: formatTime(response.data.data.createdAt),
+                    id: serverData._id || tempId,
+                    time: formatTime(
+                      serverData.createdAt || new Date().toISOString()
+                    ),
                   }
                 : msg
             )
           );
 
-          // If this is the first message, set the conversation ID
-          if (response.data.data.conversationId && !conversationId) {
-            setConversationId(response.data.data.conversationId);
+          // Store conversation ID if this is first message
+          if (serverData.conversationId && !conversationId) {
+            setConversationId(serverData.conversationId);
           }
         }
+
+        console.log("✅ Message sent successfully");
       } else {
         // Remove the message if sending failed
         setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
-        Alert.alert("Error", response.error || "Failed to send message");
+
+        // Check if it's an auth error
+        if (
+          response.error?.includes("Token") ||
+          response.error?.includes("401") ||
+          response.error?.includes("Unauthorized")
+        ) {
+          Alert.alert(
+            "Session Expired",
+            "Your session has expired. Please log in again.",
+            [{ text: "OK", onPress: () => router.replace("/(auth)/login") }]
+          );
+        } else {
+          Alert.alert("Error", response.error || "Failed to send message");
+        }
       }
-    } catch (error) {
-      console.error("Error sending message:", error);
+    } catch (error: any) {
+      console.error("❌ Error sending message:", error);
       setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
       Alert.alert("Error", "Failed to send message. Please try again.");
     } finally {
@@ -183,9 +255,14 @@ const ChatScreen = () => {
   const renderHeader = () => (
     <View style={styles.header}>
       <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-        <Ionicons name="arrow-back" size={20} color={Colors.title} />
+        <Ionicons name="chevron-back" size={20} color={Colors.title} />
       </TouchableOpacity>
-      <Text style={styles.headerTitle}>Chat with Admin</Text>
+      <View style={styles.headerTitleContainer}>
+        <Text style={styles.headerTitle}>Chat with Admin</Text>
+        {adminInfo && (
+          <Text style={styles.headerSubtitle}>{adminInfo.adminName}</Text>
+        )}
+      </View>
     </View>
   );
 
@@ -194,8 +271,11 @@ const ChatScreen = () => {
       <Ionicons name="chatbubbles-outline" size={80} color={Colors.grey} />
       <Text style={styles.emptyText}>No messages yet</Text>
       <Text style={styles.emptySubtext}>
-        Send a message to start the conversation
+        Send a message to start the conversation with admin
       </Text>
+      {adminInfo && (
+        <Text style={styles.adminInfoText}>Admin: {adminInfo.adminName}</Text>
+      )}
     </View>
   );
 
@@ -230,6 +310,11 @@ const ChatScreen = () => {
             ListEmptyComponent={renderEmptyState}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
+            onContentSizeChange={() => {
+              if (messages.length > 0) {
+                flatListRef.current?.scrollToEnd({ animated: false });
+              }
+            }}
           />
         )}
 
@@ -237,20 +322,24 @@ const ChatScreen = () => {
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
-            placeholder="Type Message..."
+            placeholder={
+              adminInfo ? "Type Message..." : "Loading admin info..."
+            }
+            placeholderTextColor={Colors.grey}
             value={input}
             onChangeText={setInput}
-            editable={!isSending}
+            editable={!isSending && !!adminInfo}
             multiline
             maxLength={500}
           />
           <TouchableOpacity
             style={[
               styles.sendButton,
-              (isSending || !input.trim()) && styles.sendButtonDisabled,
+              (isSending || !input.trim() || !adminInfo) &&
+                styles.sendButtonDisabled,
             ]}
             onPress={sendMessage}
-            disabled={isSending || !input.trim()}
+            disabled={isSending || !input.trim() || !adminInfo}
           >
             {isSending ? (
               <ActivityIndicator size="small" color="#fff" />
@@ -282,11 +371,19 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  headerTitleContainer: {
+    marginLeft: 16,
+    flex: 1,
+  },
   headerTitle: {
     fontSize: 18,
     fontWeight: "600",
-    marginLeft: 16,
     color: "#000",
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    color: Colors.grey,
+    marginTop: 2,
   },
   container: {
     flex: 1,
@@ -345,6 +442,7 @@ const styles = StyleSheet.create({
     marginRight: 10,
     minHeight: 56,
     maxHeight: 100,
+    color: "#000",
   },
   sendButton: {
     borderRadius: 50,
@@ -371,6 +469,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.grey || "#666",
     textAlign: "center",
+  },
+  adminInfoText: {
+    fontSize: 12,
+    color: Colors.primary || "#5E9BED",
+    marginTop: 8,
   },
   loadingContainer: {
     flex: 1,

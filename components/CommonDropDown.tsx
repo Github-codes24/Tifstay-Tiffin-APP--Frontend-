@@ -39,7 +39,9 @@ const CommonDropdown: React.FC<Props> = ({
 }) => {
   const [open, setOpen] = useState(false);
   const [listItems, setListItems] = useState(items);
-  useEffect(()=>{setListItems(items),[items]})
+  useEffect(() => {
+    setListItems(items), [items];
+  });
   return (
     <View style={[styles.wrapper, containerStyle]}>
       {label && <Text style={[styles.label, labelStyle]}>{label}</Text>}

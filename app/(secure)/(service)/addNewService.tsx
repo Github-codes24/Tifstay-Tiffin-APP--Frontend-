@@ -11,7 +11,7 @@ import { Images } from "@/constants/Images";
 import { IS_ANDROID } from "@/constants/Platform";
 import { fonts } from "@/constants/typography";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Alert,
   Image,
@@ -50,30 +50,32 @@ const ROLES = [
   { label: "With one meal", value: "With one meal" },
   { label: "With two meal", value: "With two meal" },
   { label: "One meal with breakfast", value: "One meal with breakfast" },
-  { label: "With lunch & dinner & breakfast", value: "With lunch & dinner & breakfast" },
-  { label: "With breakfast", value: "With breakfast" },
+  {
+    label: "With lunch & dinner & breakfast",
+    value: "With lunch & dinner & breakfast",
+  },
+  { label: "With breakfast", value: "Only breakfast" },
 ];
 
 const ROLES1 = [
+  { label: "With breakfast", value: "Only breakfast" },
   { label: "With one meal", value: "With one meal" },
   { label: "One meal with breakfast", value: "One meal with breakfast" },
 ];
 
 const ROLES2 = [
-  { label: "With two meal", value: "With two meal" },
-  { label: "One meal with breakfast", value: "One meal with breakfast" },
-];
-
-const ROLES_BREAKFAST = [
-  { label: "With breakfast", value: "With breakfast" },
-];
-
-const ROLES_LUNCH = [
   { label: "With one meal", value: "With one meal" },
+  { label: "With two meal", value: "With two meal" },
 ];
 
-const ROLES_DINNER = [
-  { label: "With two meal", value: "With two meal" },
+const ROLES_BREAKFAST = [{ label: "With breakfast", value: "Only breakfast" }];
+
+const ROLES_LUNCH = [{ label: "With one meal", value: "With one meal" }];
+
+const ROLESALL = [
+  { label: "With one meal", value: "With one meal" },
+  { label: "One meal with breakfast", value: "One meal with breakfast" },
+  { label: "With breakfast", value: "Only breakfast" },
 ];
 
 const FOOD_TYPES = [
@@ -89,15 +91,39 @@ const BasicInfoForm = () => {
     tiffinName: "",
     description: "",
     mealTimings: [
-      { mealType: "Breakfast", checked: false, startTime: "7:00 AM", endTime: "9:00 AM" },
-      { mealType: "Lunch", checked: false, startTime: "12:00 PM", endTime: "2:00 PM" },
-      { mealType: "Dinner", checked: false, startTime: "8:00 PM", endTime: "10:00 PM" },
+      {
+        mealType: "Breakfast",
+        checked: false,
+        startTime: "7:00 AM",
+        endTime: "9:00 AM",
+      },
+      {
+        mealType: "Lunch",
+        checked: false,
+        startTime: "12:00 PM",
+        endTime: "2:00 PM",
+      },
+      {
+        mealType: "Dinner",
+        checked: false,
+        startTime: "8:00 PM",
+        endTime: "10:00 PM",
+      },
     ],
     foodType: "Veg",
     includedDescription: "",
     orderTypes: { dining: false, delivery: false },
     pricing: [
-      { planType: "", foodType: "Veg", perMealDining: 120, perMealDelivery: 120, weeklyDining: 120, weeklyDelivery: 120, monthlyDining: 120, monthlyDelivery: 120 },
+      {
+        planType: "",
+        foodType: "Veg",
+        perMealDining: 120,
+        perMealDelivery: 120,
+        weeklyDining: 120,
+        weeklyDelivery: 120,
+        monthlyDining: 120,
+        monthlyDelivery: 120,
+      },
     ],
   });
 
@@ -105,27 +131,36 @@ const BasicInfoForm = () => {
     const selectedMeals = mealTimings
       .filter((meal) => meal.checked)
       .map((meal) => meal.mealType);
-  
+
     const len = selectedMeals.length;
-  
+
     if (len === 1) {
       const meal = selectedMeals[0];
       if (meal === "Breakfast") return ROLES_BREAKFAST;
       if (meal === "Lunch") return ROLES_LUNCH;
-      if (meal === "Dinner") return ROLES_DINNER;
+      if (meal === "Dinner") return ROLES_LUNCH;
     }
-  
+
     if (len === 2) {
-      if (selectedMeals.includes("Breakfast") && selectedMeals.includes("Lunch")) return ROLES2;
-      if (selectedMeals.includes("Lunch") && selectedMeals.includes("Dinner")) return ROLES1;
-      if (selectedMeals.includes("Breakfast") && selectedMeals.includes("Dinner")) return ROLES2;
+      if (
+        selectedMeals.includes("Breakfast") &&
+        selectedMeals.includes("Lunch")
+      )
+        return ROLES1;
+      if (selectedMeals.includes("Lunch") && selectedMeals.includes("Dinner"))
+        return ROLES2;
+      if (
+        selectedMeals.includes("Breakfast") &&
+        selectedMeals.includes("Dinner")
+      )
+        return ROLES1;
     }
-  
+
     if (len === 3) return ROLES;
-  
-    return ROLES; // fallback
+
+    return ROLES;
   };
-  
+
   // Edit mode: parse and prefill
   useEffect(() => {
     if (formDataParam) {
@@ -133,13 +168,30 @@ const BasicInfoForm = () => {
         const parsed = JSON.parse(formDataParam as string);
 
         const defaultMeals = [
-          { mealType: "Breakfast", checked: false, startTime: "7:00 AM", endTime: "9:00 AM" },
-          { mealType: "Lunch", checked: false, startTime: "12:00 PM", endTime: "2:00 PM" },
-          { mealType: "Dinner", checked: false, startTime: "8:00 PM", endTime: "10:00 PM" },
+          {
+            mealType: "Breakfast",
+            checked: false,
+            startTime: "7:00 AM",
+            endTime: "9:00 AM",
+          },
+          {
+            mealType: "Lunch",
+            checked: false,
+            startTime: "12:00 PM",
+            endTime: "2:00 PM",
+          },
+          {
+            mealType: "Dinner",
+            checked: false,
+            startTime: "8:00 PM",
+            endTime: "10:00 PM",
+          },
         ];
 
         const updatedMeals = defaultMeals.map((defaultMeal) => {
-          const match = parsed.mealTimings?.find((m: any) => m.mealType === defaultMeal.mealType);
+          const match = parsed.mealTimings?.find(
+            (m: any) => m.mealType === defaultMeal.mealType
+          );
           if (match) {
             return {
               ...defaultMeal,
@@ -161,17 +213,18 @@ const BasicInfoForm = () => {
             dining: parsed.orderTypes?.includes("Dining") || false,
             delivery: parsed.orderTypes?.includes("Delivery") || false,
           },
-          pricing: parsed.pricing?.map((p: any) => ({
-            planType: p.planType,
-            foodType: p.foodType,
-            perMealDining: p.perMealDining,
-            perMealDelivery: p.perMealDelivery,
-            weeklyDining: p.weeklyDining || 0,
-            weeklyDelivery: p.weeklyDelivery || 0,
-            monthlyDining: p.monthlyDining || 0,
-            monthlyDelivery: p.monthlyDelivery || 0,
-            offers: p.offers || "",
-          })) || [],
+          pricing:
+            parsed.pricing?.map((p: any) => ({
+              planType: p.planType,
+              foodType: p.foodType,
+              perMealDining: p.perMealDining,
+              perMealDelivery: p.perMealDelivery,
+              weeklyDining: p.weeklyDining || 0,
+              weeklyDelivery: p.weeklyDelivery || 0,
+              monthlyDining: p.monthlyDining || 0,
+              monthlyDelivery: p.monthlyDelivery || 0,
+              offers: p.offers || "",
+            })) || [],
         };
 
         setFormData(transformedData);
@@ -182,36 +235,44 @@ const BasicInfoForm = () => {
   }, [formDataParam]);
 
   // Update pricing foodType if main foodType changes
+  // Update pricing foodType if main foodType changes
   useEffect(() => {
     setFormData((prev) => ({
       ...prev,
       pricing: prev.pricing.map((p) => ({
         ...p,
-        foodType: formData.foodType === "Both Veg & Non-Veg" ? p.foodType : formData.foodType,
+        foodType:
+          formData.foodType === "Both Veg & Non-Veg"
+            ? "Both Veg & Non-Veg"
+            : formData.foodType,
       })),
     }));
   }, [formData.foodType]);
 
-  const updateField = (key: string, value: any) => setFormData((prev) => ({ ...prev, [key]: value }));
+  const updateField = (key: string, value: any) =>
+    setFormData((prev) => ({ ...prev, [key]: value }));
 
   const toggleMeal = (index: number) =>
     setFormData((prev) => {
       const newMeals = [...prev.mealTimings];
       newMeals[index].checked = !newMeals[index].checked;
-  
+
       // Compute plan options based on updated meals
       const planOptions = getPlanOptions(newMeals);
-  
+
       const newPricing = prev.pricing.map((p) => ({
         ...p,
         planType: planOptions[0]?.value || "", // default to first option
       }));
-  
+
       return { ...prev, mealTimings: newMeals, pricing: newPricing };
     });
-  
 
-  const updateMealTime = (index: number, key: "startTime" | "endTime", value: string) =>
+  const updateMealTime = (
+    index: number,
+    key: "startTime" | "endTime",
+    value: string
+  ) =>
     setFormData((prev) => {
       const newMeals = [...prev.mealTimings];
       newMeals[index][key] = value;
@@ -219,9 +280,16 @@ const BasicInfoForm = () => {
     });
 
   const updateOrderType = (type: "dining" | "delivery") =>
-    setFormData((prev) => ({ ...prev, orderTypes: { ...prev.orderTypes, [type]: !prev.orderTypes[type] } }));
+    setFormData((prev) => ({
+      ...prev,
+      orderTypes: { ...prev.orderTypes, [type]: !prev.orderTypes[type] },
+    }));
 
-  const updatePricingBlock = (index: number, key: "planType" | "foodType", value: string) =>
+  const updatePricingBlock = (
+    index: number,
+    key: "planType" | "foodType",
+    value: string
+  ) =>
     setFormData((prev) => {
       const newPricing = [...prev.pricing];
       newPricing[index][key] = value;
@@ -258,44 +326,109 @@ const BasicInfoForm = () => {
       tiffinName: "",
       description: "",
       mealTimings: [
-        { mealType: "Breakfast", checked: false, startTime: "7:00 AM", endTime: "9:00 AM" },
-        { mealType: "Lunch", checked: false, startTime: "12:00 PM", endTime: "2:00 PM" },
-        { mealType: "Dinner", checked: false, startTime: "8:00 PM", endTime: "10:00 PM" },
+        {
+          mealType: "Breakfast",
+          checked: false,
+          startTime: "7:00 AM",
+          endTime: "9:00 AM",
+        },
+        {
+          mealType: "Lunch",
+          checked: false,
+          startTime: "12:00 PM",
+          endTime: "2:00 PM",
+        },
+        {
+          mealType: "Dinner",
+          checked: false,
+          startTime: "8:00 PM",
+          endTime: "10:00 PM",
+        },
       ],
       foodType: "Veg",
       includedDescription: "",
       orderTypes: { dining: false, delivery: false },
       pricing: [
-        { planType: "", foodType: "Veg", perMealDining: 120, perMealDelivery: 120, weeklyDining: 120, weeklyDelivery: 120, monthlyDining: 120, monthlyDelivery: 120 },
+        {
+          planType: "",
+          foodType: "Veg",
+          perMealDining: 120,
+          perMealDelivery: 120,
+          weeklyDining: 120,
+          weeklyDelivery: 120,
+          monthlyDining: 120,
+          monthlyDelivery: 120,
+        },
       ],
     });
   };
 
   const validateForm = () => {
-    if (!formData.tiffinName.trim()) return Alert.alert("Validation Error", "Please enter the Tiffin/Restaurant Name.");
-    if (!formData.description.trim()) return Alert.alert("Validation Error", "Please enter a Description.");
-    if (!formData.mealTimings.some((m) => m.checked)) return Alert.alert("Validation Error", "Please select at least one meal.");
+    if (!formData.tiffinName.trim())
+      return Alert.alert(
+        "Validation Error",
+        "Please enter the Tiffin/Restaurant Name."
+      );
+    if (!formData.description.trim())
+      return Alert.alert("Validation Error", "Please enter a Description.");
+    if (!formData.mealTimings.some((m) => m.checked))
+      return Alert.alert(
+        "Validation Error",
+        "Please select at least one meal."
+      );
     for (let meal of formData.mealTimings) {
       if (meal.checked && (!meal.startTime || !meal.endTime)) {
-        return Alert.alert("Validation Error", `Please select timing for ${meal.mealType}.`);
+        return Alert.alert(
+          "Validation Error",
+          `Please select timing for ${meal.mealType}.`
+        );
       }
     }
-    if (!formData.foodType) return Alert.alert("Validation Error", "Please select a Food Type.");
-    if (!formData.includedDescription.trim()) return Alert.alert("Validation Error", "Please enter what's included.");
-    if (!formData.orderTypes.dining && !formData.orderTypes.delivery) return Alert.alert("Validation Error", "Please select at least one Order Type.");
+    if (!formData.foodType)
+      return Alert.alert("Validation Error", "Please select a Food Type.");
+    if (!formData.includedDescription.trim())
+      return Alert.alert("Validation Error", "Please enter what's included.");
+    if (!formData.orderTypes.dining && !formData.orderTypes.delivery)
+      return Alert.alert(
+        "Validation Error",
+        "Please select at least one Order Type."
+      );
 
     for (let i = 0; i < formData.pricing.length; i++) {
       const block = formData.pricing[i];
-      if (!block.planType) return Alert.alert("Validation Error", `Please select Plan Type for pricing block ${i + 1}.`);
-      if (!block.foodType) return Alert.alert("Validation Error", `Please select Food Type for pricing block ${i + 1}.`);
+      if (!block.planType)
+        return Alert.alert(
+          "Validation Error",
+          `Please select Plan Type for pricing block ${i + 1}.`
+        );
+      if (!block.foodType)
+        return Alert.alert(
+          "Validation Error",
+          `Please select Food Type for pricing block ${i + 1}.`
+        );
     }
     return true;
+  };
+
+  // Determine which food options to show based on current selection
+  const getFilteredFoodTypes = () => {
+    if (formData.foodType === "Veg") {
+      return [{ label: "Veg", value: "Veg" }];
+    }
+    if (formData.foodType === "Non-Veg") {
+      return [{ label: "Non-Veg", value: "Non-Veg" }];
+    }
+    return [{ label: "Both Veg & Non-Veg", value: "Both Veg & Non-Veg" }];
   };
 
   return (
     <View style={styles.flex}>
       <SafeAreaView edges={["top"]} style={{ backgroundColor: Colors.white }}>
-        <CommonHeader title={isEdit ? "Edit Tiffen Service" : "Add New Tiffen Service"} actionText="Reset" onActionPress={resetForm} />
+        <CommonHeader
+          title={isEdit ? "Edit Tiffen Service" : "Add New Tiffen Service"}
+          actionText="Reset"
+          onActionPress={resetForm}
+        />
       </SafeAreaView>
 
       <KeyboardAwareScrollView
@@ -334,7 +467,9 @@ const BasicInfoForm = () => {
             containerStyle={styles.descContainer}
           />
 
-          <Text style={[styles.sectionTitle, { marginBottom: 14 }]}>Meal Preference*</Text>
+          <Text style={[styles.sectionTitle, { marginBottom: 14 }]}>
+            Meal Preference*
+          </Text>
           {formData.mealTimings.map((meal, index) => (
             <View key={meal.mealType}>
               <MealCheckbox
@@ -398,20 +533,26 @@ const BasicInfoForm = () => {
 
         {/* Pricing */}
         <View style={[styles.card, { padding: 0 }]}>
-          <Text style={[styles.heading, styles.cardHeading]}>₹ Pricing Information</Text>
+          <Text style={[styles.heading, styles.cardHeading]}>
+            ₹ Pricing Information
+          </Text>
           {formData.pricing.map((block, index) => (
             <View key={index} style={styles.innerCard}>
               <CommonDropdown
                 items={getPlanOptions()}
                 label="Choose Plan Type"
                 value={block.planType}
-                setValue={(val: any) => updatePricingBlock(index, "planType", val)}
+                setValue={(val: any) =>
+                  updatePricingBlock(index, "planType", val)
+                }
               />
               <CommonDropdown
-                items={FOOD_TYPES}
+                items={getFilteredFoodTypes()}
                 label="Food Type"
                 value={block.foodType}
-                setValue={(val: any) => updatePricingBlock(index, "foodType", val)}
+                setValue={(val: any) =>
+                  updatePricingBlock(index, "foodType", val)
+                }
               />
 
               {(formData.orderTypes.dining || formData.orderTypes.delivery) && (
@@ -421,7 +562,9 @@ const BasicInfoForm = () => {
                       <StepperInput
                         label="Per Meal for Dining (₹)"
                         value={block.perMealDining}
-                        onChange={(val) => updatePricingValue(index, "perMealDining", val)}
+                        onChange={(val) =>
+                          updatePricingValue(index, "perMealDining", val)
+                        }
                         step={1}
                         min={50}
                         max={500}
@@ -431,7 +574,9 @@ const BasicInfoForm = () => {
                       <StepperInput
                         label="Per Meal for Delivery (₹)"
                         value={block.perMealDelivery}
-                        onChange={(val) => updatePricingValue(index, "perMealDelivery", val)}
+                        onChange={(val) =>
+                          updatePricingValue(index, "perMealDelivery", val)
+                        }
                         step={1}
                         min={50}
                         max={500}
@@ -444,7 +589,9 @@ const BasicInfoForm = () => {
                       <StepperInput
                         label="Weekly for Dining (₹)"
                         value={block.weeklyDining}
-                        onChange={(val) => updatePricingValue(index, "weeklyDining", val)}
+                        onChange={(val) =>
+                          updatePricingValue(index, "weeklyDining", val)
+                        }
                         step={1}
                         min={50}
                         max={500}
@@ -454,7 +601,9 @@ const BasicInfoForm = () => {
                       <StepperInput
                         label="Weekly for Delivery (₹)"
                         value={block.weeklyDelivery}
-                        onChange={(val) => updatePricingValue(index, "weeklyDelivery", val)}
+                        onChange={(val) =>
+                          updatePricingValue(index, "weeklyDelivery", val)
+                        }
                         step={1}
                         min={50}
                         max={500}
@@ -467,7 +616,9 @@ const BasicInfoForm = () => {
                       <StepperInput
                         label="Monthly for Dining (₹)"
                         value={block.monthlyDining}
-                        onChange={(val) => updatePricingValue(index, "monthlyDining", val)}
+                        onChange={(val) =>
+                          updatePricingValue(index, "monthlyDining", val)
+                        }
                         step={1}
                         min={50}
                         max={500}
@@ -477,7 +628,9 @@ const BasicInfoForm = () => {
                       <StepperInput
                         label="Monthly for Delivery (₹)"
                         value={block.monthlyDelivery}
-                        onChange={(val) => updatePricingValue(index, "monthlyDelivery", val)}
+                        onChange={(val) =>
+                          updatePricingValue(index, "monthlyDelivery", val)
+                        }
                         step={1}
                         min={50}
                         max={500}
@@ -549,7 +702,12 @@ const styles = StyleSheet.create({
     color: Colors.title,
     marginBottom: 5,
   },
-  row: { flexDirection: "row", justifyContent: "space-between", gap: 20, flexWrap: "wrap" },
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 20,
+    flexWrap: "wrap",
+  },
   checkboxSpacing: { marginTop: 14 },
   radioContainer: {
     flexDirection: "row",
@@ -567,7 +725,12 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   outerCircleSelected: { borderColor: "#1E40AF" },
-  innerCircle: { width: 9, height: 9, borderRadius: 6, backgroundColor: "#1E40AF" },
+  innerCircle: {
+    width: 9,
+    height: 9,
+    borderRadius: 6,
+    backgroundColor: "#1E40AF",
+  },
   radioLabel: { fontSize: 16, color: "#222" },
   includeBox: { minHeight: 64 },
   includeContainer: { marginBottom: 20, paddingHorizontal: 0, marginTop: 20 },
