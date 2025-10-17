@@ -630,18 +630,23 @@ async getComebackOptions() {
     }
   }
 
-  async getReviewsSummary() {
-    try {
-      const response = await this.api.get("/api/hostelOwner/reviews/getAllReviews?page=1&limit=1");
-      return { success: true, data: response.data };
-    } catch (error: any) {
-      console.error("Get Reviews Summary Error:", error);
-      return {
-        success: false,
-        error: error.response?.data?.message || "Failed to fetch reviews summary.",
-      };
-    }
+async getReviewsSummary(page = 1, limit = 10, filter = "all") {
+  try {
+    const response = await this.api.get(
+      "/api/hostelOwner/reviews/getAllReviews",
+      {
+        params: { page, limit, filter },
+      }
+    );
+    return { success: true, data: response.data };
+  } catch (error: any) {
+    console.error("❌ Get Reviews Summary Error:", error);
+    return {
+      success: false,
+      error: error.response?.data?.message || "Failed to fetch reviews summary.",
+    };
   }
+}
 
   async getCurrentUser() {
     try {

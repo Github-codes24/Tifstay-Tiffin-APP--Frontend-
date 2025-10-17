@@ -62,7 +62,11 @@ interface ServiceState {
   getRequestedServicesCount: () => Promise<ApiResponse<any>>;
   getAcceptedServicesCount: () => Promise<ApiResponse<any>>;
   getCancelledServicesCount: () => Promise<ApiResponse<any>>;
-  getReviewsSummary: () => Promise<ApiResponse<any>>;
+  getReviewsSummary: (
+    page?: number, 
+    limit?: number, 
+    filter?: string
+  ) => Promise<ApiResponse<any>>;
   getHostelServicesList: (page?: number, limit?: number) => Promise<ApiResponse<any>>;
   getEarningsAnalytics: (type: "hostel_owner" | "tiffin_provider") => Promise<any>;
 
@@ -340,7 +344,6 @@ const useServiceStore = create<ServiceState>()(
 
       // ==================== HOSTEL SERVICE ACTIONS ====================
 
-      // API Actions
       createHostelService: async (data: CreateHostelServiceRequest) => {
         set({ isLoading: true, error: null });
 
@@ -407,8 +410,7 @@ const useServiceStore = create<ServiceState>()(
         }
       },
 
-      // Get All Tiffin Services
-    getAllTiffinServices: async (page = 1, limit = 10) => {
+      getAllTiffinServices: async (page = 1, limit = 10) => {
   set({ isLoading: true, error: null });
 
   try {
@@ -437,8 +439,6 @@ const useServiceStore = create<ServiceState>()(
     return { success: false, error: error.message };
   }
 },
-
-      // Get Tiffin Service By ID
       getTiffinServiceById: async (tiffinId: string) => {
         set({ isLoading: true, error: null });
 
@@ -754,7 +754,6 @@ const useServiceStore = create<ServiceState>()(
 
       // ==================== FORM MANAGEMENT ====================
 
-      // Form management actions
       setFormPage1Data: (data: FormPage1Data) => {
         set({ formPage1Data: data });
       },
@@ -777,52 +776,48 @@ const useServiceStore = create<ServiceState>()(
 
       // ==================== REVIEWS AND RATINGS ====================
 
-      // Rating
-      getReviewsSummary: async () => {
-        set({ isLoading: true, error: null });
+    getReviewsSummary: async (page = 1, limit = 10, filter = "all") => {
+  set({ isLoading: true, error: null });
 
-        try {
-          const userServiceType = useAuthStore.getState().userServiceType;
-          let response;
+  try {
+    const userServiceType = useAuthStore.getState().userServiceType;
+    let response;
 
-          if (userServiceType === "hostel_owner") {
-            response = await hostelApiService.getReviewsSummary();
-          } else {
-            response = await tiffinApiService.getReviewsSummary();
-          }
+    if (userServiceType === "hostel_owner") {
+      response = await hostelApiService.getReviewsSummary(page, limit, filter);
+    } else {
+      response = await tiffinApiService.getReviewsSummary(page, limit, filter);
+    }
 
-          if (response.success && response.data) {
-            if (userServiceType === "hostel_owner") {
-              set({
-                overallRating: response.data.data.overallRating || 0,
-                totalReviews: response.data.data.totalReviews || 0,
-                isLoading: false,
-                error: null,
-              });
-            } else {
-              set({
-                overallRating: response.data.data.summary.overallRating || 0,
-                totalReviews: response.data.data.summary.totalReviews || 0,
-                isLoading: false,
-                error: null,
-              });
-            }
-            return { success: true, data: response.data };
-          } else {
-            set({
-              isLoading: false,
-              error: response.error || "Failed to fetch reviews summary",
-            });
-            return { success: false, error: response.error };
-          }
-        } catch (error: any) {
-          set({
-            isLoading: false,
-            error: error.message || "Failed to fetch reviews summary",
-          });
-          return { success: false, error: error.message };
-        }
-      },
+    if (response.success && response.data) {
+      // ✅ Handle different response structures
+      const data = userServiceType === "hostel_owner" 
+        ? response.data.data 
+        : response.data;
+
+      set({
+        overallRating: data.overallRating || 0,
+        totalReviews: data.totalReviews || 0,
+        isLoading: false,
+        error: null,
+      });
+
+      return { success: true, data: response.data };
+    } else {
+      set({
+        isLoading: false,
+        error: response.error || "Failed to fetch reviews summary",
+      });
+      return { success: false, error: response.error };
+    }
+  } catch (error: any) {
+    set({
+      isLoading: false,
+      error: error.message || "Failed to fetch reviews summary",
+    });
+    return { success: false, error: error.message };
+  }
+},
 
       // ==================== EARNINGS ANALYTICS ====================
 
@@ -862,7 +857,6 @@ const useServiceStore = create<ServiceState>()(
 
       // ==================== UTILITY ACTIONS ====================
 
-      // Utility actions
       clearError: () => set({ error: null }),
 
       setSelectedHostelService: (hostelService: HostelService | null) =>

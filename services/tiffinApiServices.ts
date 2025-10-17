@@ -590,35 +590,50 @@ async getCancelledTiffinServicesCount() {
   }
 
   // Reviews
-  async getReviewsByTiffinId(tiffinId: string, page: number = 1, limit: number = 10, rating?: number) {
-    try {
-      let url = `/api/tiffinOwner/reviews/getReviewsByTiffinId/${tiffinId}?page=${page}&limit=${limit}`;
-      if (rating) {
-        url += `&rating=${rating}`;
+async getReviewsByTiffinId(
+  tiffinId: string,
+  page: number = 1,
+  limit: number = 10,
+  filter: string = "all"
+) {
+  try {
+    const response = await this.api.get(
+      `/api/tiffinOwner/reviews/getReviewsByTiffinId/${tiffinId}`,
+      {
+        params: { page, limit, filter },
       }
-      const response = await this.api.get(url);
-      return { success: true, data: response.data };
-    } catch (error: any) {
-      console.error("Get Reviews By Tiffin ID Error:", error);
-      return {
-        success: false,
-        error: error.response?.data?.message || "Failed to fetch tiffin reviews.",
-      };
-    }
+    );
+    return { success: true, data: response.data };
+  } catch (error: any) {
+    console.error("❌ Get Reviews By Tiffin ID Error:", error);
+    return {
+      success: false,
+      error: error.response?.data?.message || "Failed to fetch tiffin reviews.",
+    };
   }
+}
 
-  async getReviewsSummary(page: number = 1, limit: number = 10, ratingType?: string) {
-    try {
-      const response = await this.api.get(`/api/tiffinService/getAllOwnerTiffinReviews?page=${page}&limit=${limit}&${ratingType ? `ratingType=${ratingType}` : ""}`);
-      return { success: true, data: response.data };
-    } catch (error: any) {
-      console.error("Get Reviews Summary Error:", error);
-      return {
-        success: false,
-        error: error.response?.data?.message || "Failed to fetch reviews summary.",
-      };
-    }
+async getReviewsSummary(
+  page: number = 1,
+  limit: number = 10,
+  filter: string = "all"
+) {
+  try {
+    const response = await this.api.get(
+      `/api/tiffinService/getAllOwnerTiffinReviews`,
+      {
+        params: { page, limit, filter },
+      }
+    );
+    return { success: true, data: response.data };
+  } catch (error: any) {
+    console.error("❌ Get Reviews Summary Error:", error);
+    return {
+      success: false,
+      error: error.response?.data?.message || "Failed to fetch reviews summary.",
+    };
   }
+}
 
   // User Profile
   async getCurrentUser() {

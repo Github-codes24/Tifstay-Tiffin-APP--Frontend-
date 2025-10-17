@@ -42,23 +42,34 @@ const subscribers = [
   { id: "2", name: "Annette Black", plan: "Monthly (Non-Veg Dinner)" },
 ];
 
-// ✅ Helper function to format plan name
+// ✅ FIXED Helper function to format plan name
 const formatPlanName = (plans: any[]): string => {
   if (!plans || plans.length === 0) return "N/A";
-  return plans[0].name.charAt(0).toUpperCase() + plans[0].name.slice(1);
+  const planName = plans[0]?.name;
+  if (!planName || typeof planName !== "string") return "N/A";
+  return planName.charAt(0).toUpperCase() + planName.slice(1);
 };
 
-// ✅ Helper function to format bed numbers
+// ✅ FIXED Helper function to format bed numbers
 const formatBedNumbers = (rooms: any[]): string => {
   if (!rooms || rooms.length === 0) return "N/A";
-  const allBeds = rooms.flatMap((room) => room.bedNumbers);
-  return allBeds.join(", ");
+  try {
+    const allBeds = rooms.flatMap((room) => room?.bedNumbers || []);
+    return allBeds.length > 0 ? allBeds.join(", ") : "N/A";
+  } catch (error) {
+    return "N/A";
+  }
 };
 
-// ✅ Helper function to format room numbers
+// ✅ FIXED Helper function to format room numbers
 const formatRoomNumbers = (rooms: any[]): string => {
   if (!rooms || rooms.length === 0) return "N/A";
-  return rooms.map((room) => room.roomNumber).join(", ");
+  try {
+    const roomNumbers = rooms.map((room) => room?.roomNumber).filter(Boolean);
+    return roomNumbers.length > 0 ? roomNumbers.join(", ") : "N/A";
+  } catch (error) {
+    return "N/A";
+  }
 };
 
 // ------------------ TIFFIN Tab Screens (Refactored) ------------------
@@ -832,7 +843,7 @@ export default function Order() {
   );
 }
 
-// ------------------ Styles (unchanged) ------------------
+// ------------------ Styles ------------------
 
 const styles = StyleSheet.create({
   scene: {
