@@ -597,11 +597,13 @@ async getReviewsByTiffinId(
   filter: string = "all"
 ) {
   try {
+    const params: any = { page, limit };
+    if (filter !== "all") {
+      params.filter = filter;
+    }
     const response = await this.api.get(
       `/api/tiffinOwner/reviews/getReviewsByTiffinId/${tiffinId}`,
-      {
-        params: { page, limit, filter },
-      }
+      { params }
     );
     return { success: true, data: response.data };
   } catch (error: any) {
@@ -619,11 +621,13 @@ async getReviewsSummary(
   filter: string = "all"
 ) {
   try {
+    const params: any = { page, limit };
+    if (filter !== "all") {
+      params.filter = filter;
+    }
     const response = await this.api.get(
       `/api/tiffinService/getAllOwnerTiffinReviews`,
-      {
-        params: { page, limit, filter },
-      }
+      { params }
     );
     return { success: true, data: response.data };
   } catch (error: any) {

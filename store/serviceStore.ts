@@ -776,7 +776,7 @@ const useServiceStore = create<ServiceState>()(
 
       // ==================== REVIEWS AND RATINGS ====================
 
-    getReviewsSummary: async (page = 1, limit = 10, filter = "all") => {
+   getReviewsSummary: async (page = 1, limit = 10, filter = "all") => {
   set({ isLoading: true, error: null });
 
   try {
@@ -785,18 +785,18 @@ const useServiceStore = create<ServiceState>()(
 
     if (userServiceType === "hostel_owner") {
       response = await hostelApiService.getReviewsSummary(page, limit, filter);
-    } else {
+    } else if (userServiceType === "tiffin_provider") {
       response = await tiffinApiService.getReviewsSummary(page, limit, filter);
+    } else {
+      throw new Error("Invalid user service type");
     }
 
     if (response.success && response.data) {
-      // ✅ Handle different response structures
-      const data = userServiceType === "hostel_owner" 
-        ? response.data.data 
-        : response.data;
+      // ✅ Handle response structure - both APIs return data.data
+      const data = response.data.data || response.data;
 
       set({
-        overallRating: data.overallRating || 0,
+        overallRating: parseFloat(data.overallRating) || 0,
         totalReviews: data.totalReviews || 0,
         isLoading: false,
         error: null,
@@ -814,6 +814,64 @@ const useServiceStore = create<ServiceState>()(
     set({
       isLoading: false,
       error: error.message || "Failed to fetch reviews summary",
+    });
+    return { success: false, error: error.message };
+  }
+},
+
+// Add method to get reviews by specific service ID
+getReviewsByServiceId: async (
+  serviceId: string,
+  page = 1,
+  limit = 10,
+  filter = "all"
+) => {
+  set({ isLoading: true, error: null });
+
+  try {
+    const userServiceType = useAuthStore.getState().userServiceType;
+    let response;
+
+    if (userServiceType === "hostel_owner") {
+      response = await hostelApiService.getReviewsByHostelId(
+        serviceId,
+        page,
+        limit,
+        filter
+      );
+    } else if (userServiceType === "tiffin_provider") {
+      response = await tiffinApiService.getReviewsByTiffinId(
+        serviceId,
+        page,
+        limit,
+        filter
+      );
+    } else {
+      throw new Error("Invalid user service type");
+    }
+
+    if (response.success && response.data) {
+      const data = response.data.data || response.data;
+
+      set({
+        overallRating: parseFloat(data.overallRating) || 0,
+        totalReviews: data.totalReviews || 0,
+        isLoading: false,
+        error: null,
+      });
+
+      return { success: true, data: response.data };
+    } else {
+      set({
+        isLoading: false,
+        error: response.error || "Failed to fetch reviews",
+      });
+      return { success: false, error: response.error };
+    }
+  } catch (error: any) {
+    set({
+      isLoading: false,
+      error: error.message || "Failed to fetch reviews",
     });
     return { success: false, error: error.message };
   }

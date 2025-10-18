@@ -5,7 +5,6 @@ import { fonts } from "@/constants/typography";
 import hostelApiService from "@/services/hostelApiService";
 import tiffinApiService from "@/services/tiffinApiServices";
 import useAuthStore from "@/store/authStore";
-import { RatingDistribution } from "@/types/hostel";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
@@ -36,19 +35,31 @@ const filters: { label: string; value: FilterType }[] = [
   { label: "1", value: "1" },
 ];
 
+interface RatingDistribution {
+  "1": string;
+  "2": string;
+  "3": string;
+  "4": string;
+  "5": string;
+}
+
 interface ReviewItem {
   _id: string;
-  comment?: string; // Hostel
-  review?: string; // Tiffin
+  review: string;
   rating: number;
-  createdAt: string;
-  reviewDate?: string; // Tiffin
-  userId?: {
-    fullName: string;
-    profileImage?: string;
-  }; // Hostel
-  guestName?: string; // Tiffin
-  guestImage?: string; // Tiffin
+  reviewDate: string;
+  guestName: string;
+  guestImage: string | null;
+}
+
+interface PaginationData {
+  currentPage: number;
+  totalPages: number;
+  limit: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+  nextPage: number | null;
+  prevPage: number | null;
 }
 
 const ReviewsScreen = () => {
@@ -65,31 +76,46 @@ const ReviewsScreen = () => {
   const [totalReviews, setTotalReviews] = useState(0);
   const [ratingDistribution, setRatingDistribution] =
     useState<RatingDistribution>({
-      "1": 0,
-      "2": 0,
-      "3": 0,
-      "4": 0,
-      "5": 0,
+      "1": "0.0",
+      "2": "0.0",
+      "3": "0.0",
+      "4": "0.0",
+      "5": "0.0",
     });
-  const [pagination, setPagination] = useState({
+  const [pagination, setPagination] = useState<PaginationData>({
     currentPage: 1,
     totalPages: 0,
+    limit: ITEMS_PER_PAGE,
     hasNextPage: false,
     hasPrevPage: false,
+    nextPage: null,
+    prevPage: null,
   });
 
   const isTiffinService = userServiceType === "tiffin_provider";
 
-  // Calculate bar widths based on distribution
+  // Convert filter type to API filter value
+  const getFilterValue = useCallback((filter: FilterType): string => {
+    switch (filter) {
+      case "all":
+        return "all";
+      case "positive":
+        return "4,5";
+      case "negative":
+        return "1,2,3";
+      default:
+        return filter; // "1", "2", "3", "4", "5"
+    }
+  }, []);
+
+  // Calculate bar widths based on distribution (now using percentages)
   const getBarWidth = useCallback(
     (star: number): DimensionValue => {
-      const count =
-        ratingDistribution[star.toString() as keyof typeof ratingDistribution];
-      if (totalReviews === 0) return "0%";
-      const percentage = (count / totalReviews) * 100;
+      const percentage =
+        ratingDistribution[star.toString() as keyof RatingDistribution];
       return `${percentage}%`;
     },
-    [ratingDistribution, totalReviews]
+    [ratingDistribution]
   );
 
   // Fetch reviews based on filter
@@ -97,6 +123,7 @@ const ReviewsScreen = () => {
     async (page: number, filter: FilterType) => {
       setLoading(true);
       try {
+        const filterValue = getFilterValue(filter);
         let response;
 
         // ✅ If specific hostel or tiffin ID provided
@@ -105,14 +132,14 @@ const ReviewsScreen = () => {
             hostelId,
             page,
             ITEMS_PER_PAGE,
-            filter
+            filterValue
           );
         } else if (tiffinId) {
           response = await tiffinApiService.getReviewsByTiffinId(
             tiffinId,
             page,
             ITEMS_PER_PAGE,
-            filter
+            filterValue
           );
         } else {
           // ✅ Get all reviews based on service type
@@ -120,40 +147,44 @@ const ReviewsScreen = () => {
             response = await tiffinApiService.getReviewsSummary(
               page,
               ITEMS_PER_PAGE,
-              filter
+              filterValue
             );
           } else {
             response = await hostelApiService.getReviewsSummary(
               page,
               ITEMS_PER_PAGE,
-              filter
+              filterValue
             );
           }
         }
 
-        if (response.success) {
-          // ✅ Handle different response structures
-          const data =
-            isTiffinService && !tiffinId ? response.data : response.data.data;
+        if (response.success && response.data) {
+          // ✅ Handle response structure
+          const data = response.data.data || response.data;
 
           setReviews(data.reviews || []);
-          setOverallRating(data.overallRating || 0);
+          setOverallRating(parseFloat(data.overallRating) || 0);
           setTotalReviews(data.totalReviews || 0);
           setRatingDistribution(
             data.ratingDistribution || {
-              "1": 0,
-              "2": 0,
-              "3": 0,
-              "4": 0,
-              "5": 0,
+              "1": "0.0",
+              "2": "0.0",
+              "3": "0.0",
+              "4": "0.0",
+              "5": "0.0",
             }
           );
-          setPagination({
-            currentPage: data.pagination?.currentPage || 1,
-            totalPages: data.pagination?.totalPages || 0,
-            hasNextPage: data.pagination?.hasNextPage || false,
-            hasPrevPage: data.pagination?.hasPrevPage || false,
-          });
+          setPagination(
+            data.pagination || {
+              currentPage: 1,
+              totalPages: 0,
+              limit: ITEMS_PER_PAGE,
+              hasNextPage: false,
+              hasPrevPage: false,
+              nextPage: null,
+              prevPage: null,
+            }
+          );
         }
       } catch (error) {
         console.error("Error fetching reviews:", error);
@@ -161,7 +192,7 @@ const ReviewsScreen = () => {
         setLoading(false);
       }
     },
-    [hostelId, tiffinId, isTiffinService]
+    [hostelId, tiffinId, isTiffinService, getFilterValue]
   );
 
   useEffect(() => {
@@ -200,52 +231,6 @@ const ReviewsScreen = () => {
     );
   }, []);
 
-  const formatDate = useCallback((dateString: string, reviewDate?: string) => {
-    // Tiffin API already provides formatted date
-    if (reviewDate) return reviewDate;
-
-    // Format date for hostel API
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  }, []);
-
-  // Get review text based on service type
-  const getReviewText = useCallback(
-    (item: ReviewItem) => {
-      return isTiffinService ? item.review || "" : item.comment || "";
-    },
-    [isTiffinService]
-  );
-
-  // Get user name based on service type
-  const getUserName = useCallback(
-    (item: ReviewItem) => {
-      if (isTiffinService) {
-        return item.guestName || "Anonymous";
-      }
-      return item.userId?.fullName || "Anonymous";
-    },
-    [isTiffinService]
-  );
-
-  // Get user image based on service type
-  const getUserImage = useCallback(
-    (item: ReviewItem) => {
-      if (isTiffinService) {
-        return item.guestImage ? { uri: item.guestImage } : Images.user;
-      }
-      return item.userId?.profileImage
-        ? { uri: item.userId.profileImage }
-        : Images.user;
-    },
-    [isTiffinService]
-  );
-
   const renderReview = useCallback(
     ({ item, index }: { item: ReviewItem; index: number }) => (
       <View
@@ -256,27 +241,21 @@ const ReviewsScreen = () => {
       >
         <View style={styles.rowBetween}>
           <View style={styles.row}>
-            <Image source={getUserImage(item)} style={styles.avatar} />
+            <Image
+              source={item.guestImage ? { uri: item.guestImage } : Images.user}
+              style={styles.avatar}
+            />
             <View style={styles.nameRow}>
-              <Text style={styles.name}>{getUserName(item)}</Text>
+              <Text style={styles.name}>{item.guestName || "Anonymous"}</Text>
               <View style={styles.starWrapper}>{renderStars(item.rating)}</View>
             </View>
           </View>
-          <Text style={styles.date}>
-            {formatDate(item.createdAt, item.reviewDate)}
-          </Text>
+          <Text style={styles.date}>{item.reviewDate}</Text>
         </View>
-        <Text style={styles.reviewText}>{getReviewText(item)}</Text>
+        <Text style={styles.reviewText}>{item.review}</Text>
       </View>
     ),
-    [
-      reviews.length,
-      renderStars,
-      formatDate,
-      getUserImage,
-      getUserName,
-      getReviewText,
-    ]
+    [reviews.length, renderStars]
   );
 
   const renderPagination = useMemo(() => {
@@ -482,7 +461,6 @@ const styles = StyleSheet.create({
   /** Rating Section **/
   ratingSection: {
     flexDirection: "row",
-    // marginBottom: 16,
     alignItems: "center",
     justifyContent: "space-between",
   },
@@ -586,11 +564,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 40,
   },
-  emptyText: {
-    color: Colors.grey,
-    fontFamily: fonts.interRegular,
-    fontSize: 14,
-  },
 
   /** Pagination **/
   paginationContainer: {
@@ -660,11 +633,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.interRegular,
     color: Colors.grey,
     textAlign: "center",
-  },
-  emptyIcon: {
-    width: 24,
-    height: 24,
-    tintColor: Colors.grey,
   },
 });
 
