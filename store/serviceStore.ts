@@ -824,7 +824,7 @@ getReviewsByServiceId: async (
   serviceId: string,
   page = 1,
   limit = 10,
-  filter = "all"
+  filter = "all,positive,negative,5,4,3,2,1"
 ) => {
   set({ isLoading: true, error: null });
 

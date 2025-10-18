@@ -596,54 +596,47 @@ async getComebackOptions() {
   }
 
   // Reviews
- async getAllReviews(page: number = 1, limit: number = 10, filter?: string) {
-  try {
-    let url = `/api/hostelOwner/reviews/getAllReviews?page=${page}&limit=${limit}`;
-    if (filter && filter !== "all") {
-      url += `&filter=${filter}`;
+  async getAllReviews(page: number = 1, limit: number = 10, rating?: number) {
+    try {
+      let url = `/api/hostelOwner/reviews/getAllReviews?page=${page}&limit=${limit}`;
+      if (rating) {
+        url += `&rating=${rating}`;
+      }
+      const response = await this.api.get(url);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      console.error("Get All Reviews Error:", error);
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to fetch reviews.",
+      };
     }
-    const response = await this.api.get(url);
-    return { success: true, data: response.data };
-  } catch (error: any) {
-    console.error("Get All Reviews Error:", error);
-    return {
-      success: false,
-      error: error.response?.data?.message || "Failed to fetch reviews.",
-    };
   }
-}
 
-async getReviewsByHostelId(
-  hostelId: string,
-  page: number = 1,
-  limit: number = 10,
-  filter?: string
-) {
-  try {
-    let url = `/api/hostelOwner/reviews/getReviewsByHostelId/${hostelId}?page=${page}&limit=${limit}`;
-    if (filter && filter !== "all") {
-      url += `&filter=${filter}`;
+  async getReviewsByHostelId(hostelId: string, page: number = 1, limit: number = 10, rating?: string) {
+    try {
+      let url = `/api/hostelOwner/reviews/getReviewsByHostelId/${hostelId}?page=${page}&limit=${limit}`;
+      if (rating) {
+        url += `&rating=${rating}`;
+      }
+      const response = await this.api.get(url);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      console.error("Get Reviews By Hostel ID Error:", error);
+      return {
+        success: false,
+        error: error.response?.data?.message || "Failed to fetch hostel reviews.",
+      };
     }
-    const response = await this.api.get(url);
-    return { success: true, data: response.data };
-  } catch (error: any) {
-    console.error("Get Reviews By Hostel ID Error:", error);
-    return {
-      success: false,
-      error: error.response?.data?.message || "Failed to fetch hostel reviews.",
-    };
   }
-}
 
-async getReviewsSummary(page = 1, limit = 10, filter = "all") {
+async getReviewsSummary(page = 1, limit = 10, filter = "all,positive,negative,5,4,3,2,1") {
   try {
-    const params: any = { page, limit };
-    if (filter !== "all") {
-      params.filter = filter;
-    }
     const response = await this.api.get(
       "/api/hostelOwner/reviews/getAllReviews",
-      { params }
+      {
+        params: { page, limit, filter },
+      }
     );
     return { success: true, data: response.data };
   } catch (error: any) {

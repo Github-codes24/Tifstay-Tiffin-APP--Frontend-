@@ -5,7 +5,7 @@ import { Images } from "@/constants/Images";
 import { fonts } from "@/constants/typography";
 import useAuthStore from "@/store/authStore";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Alert,
   Image,
@@ -22,9 +22,17 @@ export default function Register() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
   const { register, isLoading, error, clearError, userServiceType } =
     useAuthStore();
+
+  const userTypeDisplay = useMemo(() => {
+    if (userServiceType === "hostel_owner") {
+      return "Hostel Owner";
+    } else if (userServiceType === "tiffin_provider") {
+      return "Tiffin Provider";
+    }
+    return "";
+  }, [userServiceType]);
 
   const handleRegister = async () => {
     try {
@@ -75,7 +83,6 @@ export default function Register() {
     }
   };
 
-  // ✅ Fix: Add missing functions
   const handleGoogleLogin = () => {
     Alert.alert("Info", "Google login not implemented yet");
   };
@@ -84,7 +91,6 @@ export default function Register() {
     Alert.alert("Info", "Apple login not implemented yet");
   };
 
-  // ✅ Fix: Add placeholder SocialIcons
   const SocialIcons = {
     googleIcon: Images.googleIcon,
     appleIcon: Images.appleIcon,
@@ -99,7 +105,10 @@ export default function Register() {
             style={styles.appLogo}
             resizeMode="contain"
           />
-          <Text style={styles.title}>Get started with Tifstay</Text>
+          <Text style={styles.title}>
+            Get started with Tifstay{"\n"}
+            <Text style={styles.userTypeText}>{userTypeDisplay}</Text>
+          </Text>
 
           <LabeledInput
             value={name}
@@ -216,6 +225,11 @@ const styles = StyleSheet.create({
     marginBottom: 28,
     textAlign: "center",
     color: Colors.title,
+  },
+  userTypeText: {
+    fontSize: 20,
+    fontFamily: fonts.interSemibold,
+    color: Colors.primary,
   },
   footer: {
     position: "absolute",

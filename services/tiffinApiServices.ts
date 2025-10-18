@@ -379,7 +379,7 @@ class TiffinApiService {
 async getAllTiffinServices(page = 1, limit = 10) {
   try {
     const response = await this.api.get(
-      "/api/tiffinService/getTiffinServicesList", // ✅ Correct endpoint
+      "/api/tiffinService/getTiffinServicesByOwner",
       {
         params: { page, limit },
       }

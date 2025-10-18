@@ -5,7 +5,7 @@ import { Images } from "@/constants/Images";
 import { fonts } from "@/constants/typography";
 import useAuthStore from "@/store/authStore";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Alert,
   Image,
@@ -28,6 +28,15 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const { login, isLoading, error, clearError, userServiceType } =
     useAuthStore();
+
+  const userTypeDisplay = useMemo(() => {
+    if (userServiceType === "hostel_owner") {
+      return "Hostel Owner";
+    } else if (userServiceType === "tiffin_provider") {
+      return "Tiffin Provider";
+    }
+    return ""; // Default case
+  }, [userServiceType]);
 
   const handleLogin = async () => {
     try {
@@ -52,6 +61,7 @@ export default function Login() {
       const response = await login(email.trim(), password, userServiceType);
 
       if (response.success) {
+        // Navigation will be handled by auth state change
       } else {
         Alert.alert(
           "Login Failed",
@@ -82,7 +92,10 @@ export default function Login() {
           style={styles.appLogo}
           resizeMode="contain"
         />
-        <Text style={styles.title}>Get started with Tifstay</Text>
+        <Text style={styles.title}>
+          Get started with Tifstay{"\n"}
+          <Text style={styles.userTypeText}>{userTypeDisplay}</Text>
+        </Text>
 
         <LabeledInput
           value={email}
@@ -201,7 +214,13 @@ const styles = StyleSheet.create({
     fontFamily: fonts.interSemibold,
     marginBottom: 28,
     textAlign: "center",
-    color: Colors.grey || "#000000",
+    color: Colors.title || "#000000",
+    lineHeight: 32,
+  },
+  userTypeText: {
+    fontSize: 20,
+    fontFamily: fonts.interSemibold,
+    color: Colors.primary || "#1E40AF",
   },
   forgotPasswordContainer: {
     padding: 16,

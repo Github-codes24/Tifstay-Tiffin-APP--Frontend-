@@ -41,6 +41,8 @@ interface RatingDistribution {
   "3": string;
   "4": string;
   "5": string;
+  positive: string;
+  negative: string;
 }
 
 interface ReviewItem {
@@ -81,6 +83,8 @@ const ReviewsScreen = () => {
       "3": "0.0",
       "4": "0.0",
       "5": "0.0",
+      positive: "positive",
+      negative: "negative",
     });
   const [pagination, setPagination] = useState<PaginationData>({
     currentPage: 1,
@@ -100,9 +104,9 @@ const ReviewsScreen = () => {
       case "all":
         return "all";
       case "positive":
-        return "4,5";
+        return "positive";
       case "negative":
-        return "1,2,3";
+        return "negative";
       default:
         return filter; // "1", "2", "3", "4", "5"
     }
@@ -113,7 +117,11 @@ const ReviewsScreen = () => {
     (star: number): DimensionValue => {
       const percentage =
         ratingDistribution[star.toString() as keyof RatingDistribution];
-      return `${percentage}%`;
+      const numeric = Number(percentage);
+      const clamped = Number.isFinite(numeric)
+        ? Math.max(0, Math.min(100, numeric))
+        : 0;
+      return `${clamped}%` as `${number}%`;
     },
     [ratingDistribution]
   );
